@@ -4,6 +4,7 @@ import authReducer from '../features/auth/authSlice';
 import cartReducer from '../features/cart/cartSlice';
 import { productsApi } from '../features/products/productsApi';
 import { ordersApi } from '../features/orders/ordersApi';
+import { favoritesApi } from '../features/favorites/favoritesApi';
 import { cartPersistenceMiddleware } from '../middleware/cartPersistenceMiddleware';
 
 const rootReducer = combineReducers({
@@ -11,6 +12,7 @@ const rootReducer = combineReducers({
   cart: cartReducer,
   [productsApi.reducerPath]: productsApi.reducer,
   [ordersApi.reducerPath]: ordersApi.reducer,
+  [favoritesApi.reducerPath]: favoritesApi.reducer,
 });
 
 export const store = configureStore({
@@ -21,6 +23,7 @@ export const store = configureStore({
     }).concat(
       productsApi.middleware,
       ordersApi.middleware,
+      favoritesApi.middleware,
       cartPersistenceMiddleware
     ),
 });

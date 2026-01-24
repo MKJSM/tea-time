@@ -13,7 +13,8 @@ import { fetchCurrentUser, setAuthModalOpen, logout, logoutUser } from '../featu
 import { mockUser } from '../mockData';
 import { cn } from '../utils/cn';
 import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { useGetFavoritesQuery } from '../features/favorites/favoritesApi';
 
 const ProfilePage: React.FC = () => {
   const { isAuthenticated, user: realUser } = useAppSelector((state) => state.auth);
@@ -100,6 +101,44 @@ const ProfilePage: React.FC = () => {
     </button>
   );
 
+  const FavoritesSection = () => {
+    const { data: favorites = [], isLoading } = useGetFavoritesQuery();
+    const navigate = useNavigate();
+
+    if (isLoading) return <SettingItem icon={Heart} label="Wishlist" value="Syncing..." />;
+
+    if (favorites.length === 0) return <SettingItem icon={Heart} label="Wishlist" value="Empty" />;
+
+    return (
+      <div className="p-5 border-t border-gray-50">
+        <div className="flex items-center justify-between mb-4" onClick={() => navigate('/shop')}>
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-gray-50 text-tea-800 rounded-xl flex items-center justify-center">
+              <Heart size={20} />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-tea-950">Wishlist & Favorites</p>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{favorites.length} Saved Teas</p>
+            </div>
+          </div>
+          <ChevronRight size={18} className="text-gray-300" />
+        </div>
+
+        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+          {favorites.map(tea => (
+            <Link key={tea.id} to={`/product/${tea.id}`} className="flex-shrink-0 w-24 group">
+              <div className="aspect-square rounded-2xl bg-gray-100 overflow-hidden mb-2 border border-gray-100 group-hover:border-tea-300 transition-colors">
+                <img src={tea.image} alt={tea.name} className="w-full h-full object-cover" />
+              </div>
+              <p className="text-[10px] font-bold text-tea-900 truncate">{tea.name}</p>
+              <p className="text-[9px] text-gray-400">₹{tea.price}</p>
+            </Link>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-cream-paper pb-32">
       {/* 1. Elegant Header */}
@@ -177,7 +216,7 @@ const ProfilePage: React.FC = () => {
           <div className="divide-y divide-gray-50">
             <SettingItem icon={BookOpen} label="Tasting Journal" value="18 Entries" />
             <SettingItem icon={Bookmark} label="My Collection" value="8 Saved Teas" />
-            <SettingItem icon={Heart} label="Wishlist" />
+            <FavoritesSection />
           </div>
         </section>
 
