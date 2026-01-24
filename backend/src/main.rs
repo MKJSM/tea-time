@@ -70,6 +70,12 @@ async fn main() {
         .route("/api/products", get(handlers::products::get_products))
         .route("/api/products/:id", get(handlers::products::get_product_by_id))
         .route("/api/products/:id/customizations", get(handlers::products::get_product_customizations))
+        .route("/api/favorites", get(handlers::favorites::list_favorites))
+        .route("/api/favorites/ids", get(handlers::favorites::get_favorite_ids))
+        .route("/api/products/:id/favorite", 
+            axum::routing::post(handlers::favorites::add_favorite)
+            .delete(handlers::favorites::remove_favorite)
+        )
         .with_state(state)
         // Serve static files from backend/static/assets
         .nest_service("/assets", ServeDir::new("static/assets"))

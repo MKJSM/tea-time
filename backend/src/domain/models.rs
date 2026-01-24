@@ -105,3 +105,11 @@ pub struct AuthResponse {
     pub user: User,
     pub token: String,
 }
+
+#[derive(Serialize, Deserialize, FromRow, Clone, Debug)]
+pub struct Favorite {
+    pub id: i32,
+    pub user_id: i32,
+    pub product_id: i32,
+    pub created_at: Option<DateTime<Utc>>,
+}
