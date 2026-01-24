@@ -1,0 +1,11 @@
+node_modules
+target
+dist
+.git
+.env
+*.db
+*.sqlite
+backend/target
+backend/db.sqlite
+frontend/node_modules
+frontend/dist
