@@ -9,6 +9,8 @@ use serde_json::json;
 pub enum AppError {
     DatabaseError(sqlx::Error),
     InternalServerError(String),
+    Unauthorized(String),
+    NotFound(String),
 }
 
 impl From<sqlx::Error> for AppError {
@@ -26,7 +28,13 @@ impl IntoResponse for AppError {
             }
             AppError::InternalServerError(msg) => {
                 eprintln!("Internal server error: {}", msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string())
+                (StatusCode::INTERNAL_SERVER_ERROR, msg)
+            }
+            AppError::Unauthorized(msg) => {
+                (StatusCode::UNAUTHORIZED, msg)
+            }
+            AppError::NotFound(msg) => {
+                (StatusCode::NOT_FOUND, msg)
             }
         };
 

@@ -254,7 +254,7 @@ pub async fn get_product_by_id(
     .bind(id)
     .fetch_optional(&state.db)
     .await?
-    .ok_or_else(|| AppError::InternalServerError("Product not found".into()))?; // Should have a NotFound error type
+    .ok_or_else(|| AppError::NotFound("Product not found".into()))?;
 
     let attributes_map = fetch_attributes_for_products(&state.db, &[product.id]).await?;
     let attributes = attributes_map.get(&product.id).cloned().unwrap_or_default();

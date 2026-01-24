@@ -81,7 +81,7 @@ pub async fn login(
         .bind(&payload.email)
         .fetch_optional(&state.db)
         .await?
-        .ok_or_else(|| AppError::InternalServerError("Invalid credentials".into()))?;
+        .ok_or_else(|| AppError::Unauthorized("Invalid credentials".into()))?;
 
     // Verify Password if provided (for social login simulation we might skip, but let's enforce for now)
     if let Some(pwd) = payload.password {
@@ -89,7 +89,7 @@ pub async fn login(
             .map_err(|e| AppError::InternalServerError(e.to_string()))?;
         
         Argon2::default().verify_password(pwd.as_bytes(), &parsed_hash)
-            .map_err(|_| AppError::InternalServerError("Invalid credentials".into()))?;
+            .map_err(|_| AppError::Unauthorized("Invalid credentials".into()))?;
     } else {
         // Handle "Social" login simulation without password? 
         // For security, strict login requires password. 
@@ -117,9 +117,9 @@ pub async fn get_me(
     headers: HeaderMap,
 ) -> Result<Json<User>, AppError> {
     let auth_header = headers.get("Authorization")
-        .ok_or_else(|| AppError::InternalServerError("Missing token".into()))?
+        .ok_or_else(|| AppError::Unauthorized("Missing token".into()))?
         .to_str()
-        .map_err(|_| AppError::InternalServerError("Invalid token format".into()))?;
+        .map_err(|_| AppError::Unauthorized("Invalid token format".into()))?;
 
     let token = auth_header.strip_prefix("Bearer ").unwrap_or(auth_header);
 
@@ -128,7 +128,7 @@ pub async fn get_me(
         .bind(token)
         .fetch_optional(&state.db)
         .await?
-        .ok_or_else(|| AppError::InternalServerError("Invalid or expired session".into()))?;
+        .ok_or_else(|| AppError::Unauthorized("Invalid or expired session".into()))?;
 
     let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = ?")
         .bind(session.user_id)
@@ -143,9 +143,9 @@ pub async fn logout(
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
     let auth_header = headers.get("Authorization")
-        .ok_or_else(|| AppError::InternalServerError("Missing token".into()))?
+        .ok_or_else(|| AppError::Unauthorized("Missing token".into()))?
         .to_str()
-        .map_err(|_| AppError::InternalServerError("Invalid token format".into()))?;
+        .map_err(|_| AppError::Unauthorized("Invalid token format".into()))?;
 
     let token = auth_header.strip_prefix("Bearer ").unwrap_or(auth_header);
 
