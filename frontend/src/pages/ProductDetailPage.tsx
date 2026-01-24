@@ -1,28 +1,68 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { useGetProductByIdQuery } from '../features/products/productsApi';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useGetProductByIdQuery, useGetProductsQuery } from '../features/products/productsApi';
+import { useGetFavoriteIdsQuery, useAddFavoriteMutation, useRemoveFavoriteMutation } from '../features/favorites/favoritesApi';
+import { setAuthModalOpen } from '../features/auth/authSlice';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { addItem } from '../features/cart/cartSlice';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ChevronLeft, ShoppingCart, Thermometer,
-  Clock, Share2, Heart, PlayCircle, BarChart3, Check,
-  Info, ShieldCheck, Zap, Star
+  ChevronLeft, ShoppingCart, Star, Heart,
+  Plus, Minus, ChevronDown, Share2,
+  ShieldCheck, Truck, RotateCcw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { ProductCustomizer } from '../components/products/ProductCustomizer';
 import { ImageSlider } from '../components/common/ImageSlider';
 import { SelectedAttributes } from '../types';
+import { cn } from '../utils/cn';
+import ProductCard from '../components/products/ProductCard';
+
+const Accordion = ({ title, children, isOpen, onToggle }: { title: string, children: React.ReactNode, isOpen: boolean, onToggle: () => void }) => (
+  <div className="border-b border-gray-100 last:border-0">
+    <button
+      onClick={onToggle}
+      className="w-full flex items-center justify-between py-4 text-left transition-colors hover:text-tea-700"
+    >
+      <span className="text-sm font-semibold uppercase tracking-widest text-gray-900">{title}</span>
+      <ChevronDown className={cn("w-5 h-5 text-gray-400 transition-transform duration-300", isOpen && "rotate-180")} />
+    </button>
+    <AnimatePresence initial={false}>
+      {isOpen && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+          className="overflow-hidden"
+        >
+          <div className="pb-6 text-sm text-gray-600 leading-relaxed space-y-3">
+            {children}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </div>
+);
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { data: product, isLoading, error } = useGetProductByIdQuery(id || '');
+  const { data: allProducts = [] } = useGetProductsQuery(undefined);
+
   const dispatch = useAppDispatch();
-  const cartItems = useAppSelector((state) => state.cart.items);
+  // Adapted to use our existing favorites implementation
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const { data: favoriteIds = [] } = useGetFavoriteIdsQuery(undefined, { skip: !isAuthenticated });
+  const [addFavorite] = useAddFavoriteMutation();
+  const [removeFavorite] = useRemoveFavoriteMutation();
+
   const [qty, setQty] = useState(1);
   const [selections, setSelections] = useState<SelectedAttributes>({});
+  const [openAccordion, setOpenAccordion] = useState<string | null>('details');
 
   useEffect(() => {
     if (product?.attributes) {
@@ -33,11 +73,8 @@ const ProductDetailPage: React.FC = () => {
       });
       setSelections(defaults);
     }
+    window.scrollTo(0, 0);
   }, [product]);
-
-  const handleSelectionChange = (attributeId: string, value: any) => {
-    setSelections(prev => ({ ...prev, [attributeId]: value }));
-  };
 
   const currentPrice = useMemo(() => {
     if (!product) return 0;
@@ -52,177 +89,336 @@ const ProductDetailPage: React.FC = () => {
     return basePrice;
   }, [product, selections]);
 
+  const handleAddToCart = () => {
+    if (!product) return;
+    dispatch(addItem({ product: product, quantity: qty, selectedAttributes: selections }));
+    toast.success(`${product.name} added to cart`, {
+      icon: '🍃',
+      style: { borderRadius: '8px', background: '#2E7D32', color: '#fff', fontSize: '14px' }
+    });
+  };
+
+  const handleBuyNow = () => {
+    handleAddToCart();
+    navigate('/checkout');
+  };
+
+  const isFavorited = product ? favoriteIds.includes(parseInt(product.id)) : false;
+
+  const handleToggleFavorite = async () => {
+    if (!isAuthenticated) {
+      dispatch(setAuthModalOpen(true));
+      return;
+    }
+    if (product) {
+      const id = parseInt(product.id);
+      if (isFavorited) {
+        await removeFavorite(id);
+        toast.success('Removed from sanctuary', { icon: '🍃' });
+      } else {
+        await addFavorite(id);
+        toast.success('Saved to sanctuary', { icon: '❤️' });
+      }
+    }
+  };
+
+  const relatedProducts = useMemo(() => {
+    if (!product) return [];
+    return allProducts
+      .filter(p => p.id !== product.id && p.category === product.category)
+      .slice(0, 4);
+  }, [allProducts, product]);
+
   if (isLoading) return <LoadingSpinner fullPage />;
   if (error || !product) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center bg-white p-12 rounded-[3rem] shadow-xl">
-          <h2 className="text-2xl font-serif text-tea-900 mb-4">Discovery Interrupted</h2>
-          <p className="text-gray-500 mb-8">This exceptional leaf has vanished from our archives.</p>
-          <Link to="/shop" className="px-8 py-3 bg-tea-700 text-white font-bold rounded-2xl">Back to Collection</Link>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center p-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Product not found</h2>
+          <Link to="/shop" className="text-tea-700 font-bold hover:underline">Return to collection</Link>
         </div>
       </div>
     );
   }
 
-  const handleAddToCart = () => {
-    dispatch(addItem({ product, quantity: qty, selectedAttributes: selections }));
-    toast.success(`Added ${qty} items to collection`, {
-      icon: '🍃',
-      style: { borderRadius: '15px', background: '#1B5E20', color: '#fff' }
-    });
-  };
+  const discountPercent = 15; // Mock discount for sale display
 
   const productImages = product.images && product.images.length > 0 ? product.images : [product.image];
 
   return (
-    <div className="bg-cream min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Link to="/shop" className="inline-flex items-center text-tea-700 font-bold mb-8 hover:underline group">
-          <ChevronLeft className="mr-1 w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-          Back to Collection
+    <div className="min-h-screen bg-[#FAFAFA] font-sans">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        {/* Breadcrumb - Mobile Only visible */}
+        <Link to="/shop" className="inline-flex items-center text-xs font-bold uppercase tracking-widest text-gray-400 mb-8 hover:text-tea-700 transition-colors">
+          <ChevronLeft size={16} className="mr-1" /> Back to Library
         </Link>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 xl:gap-20">
-          {/* Gallery Side with Auto Slider */}
-          <div className="space-y-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="aspect-square rounded-[3rem] overflow-hidden shadow-2xl bg-white border border-gray-100 relative group"
-            >
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 xl:gap-20">
+          {/* Left Column: Image Gallery & Description */}
+          <div className="lg:col-span-7 space-y-12">
+            {/* Hero Image Section */}
+            <div className="relative aspect-[16/9] md:aspect-square bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
               <ImageSlider
                 images={productImages}
-                showArrows
-                showDots
+                autoPlay={false}
+                showArrows={true}
+                showDots={true}
                 className="w-full h-full"
               />
-              <div className="absolute top-6 left-6 z-20">
-                <div className="px-4 py-2 bg-white/90 backdrop-blur-md text-[10px] font-bold text-tea-800 rounded-full uppercase tracking-widest shadow-lg border border-white/50">
-                  {product.category}
-                </div>
+              <div className="absolute top-4 left-4 flex gap-2">
+                <span className="px-3 py-1 bg-tea-700 text-white text-[10px] font-bold uppercase tracking-widest rounded-md shadow-sm">Organic</span>
+                {product.tags && product.tags.includes('Limited') && (
+                  <span className="px-3 py-1 bg-accent-600 text-black text-[10px] font-bold uppercase tracking-widest rounded-md shadow-sm">Limited</span>
+                )}
               </div>
-            </motion.div>
-
-            <div className="grid grid-cols-4 gap-4">
-              {productImages.map((img, i) => (
-                <div key={i} className="aspect-square rounded-3xl overflow-hidden bg-white border border-gray-100 hover:border-tea-500 cursor-pointer transition-all shadow-sm">
-                  <img src={img || "https://images.unsplash.com/photo-1544787210-2213d2429f77?auto=format&fit=crop&q=80&w=200"} alt="Detail" className="w-full h-full object-cover" />
-                </div>
-              ))}
             </div>
 
-            <div className="bg-white/50 backdrop-blur p-8 rounded-[3rem] border border-white shadow-sm">
-              <div className="flex items-center gap-3 text-tea-800 font-bold mb-6">
-                <PlayCircle size={24} className="text-tea-600" />
-                <span className="text-xl font-serif">The Brewing Ritual</span>
-              </div>
-              <div className="aspect-video bg-gray-100 rounded-[2rem] overflow-hidden relative group cursor-pointer shadow-inner">
-                <img src="https://images.unsplash.com/photo-1576092762791-dd9e2220abd1?auto=format&fit=crop&q=80&w=800" className="w-full h-full object-cover opacity-70" alt="Brewing" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-16 h-16 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
-                    <PlayCircle size={32} className="text-tea-800 fill-tea-800" />
-                  </div>
+            {/* Desktop Only: Full Description */}
+            <div className="hidden lg:block space-y-10">
+              <section className="space-y-6">
+                <h2 className="text-xl font-bold text-gray-900">About This Tea</h2>
+                <div className="text-gray-600 leading-relaxed space-y-4">
+                  <p>{product.story}</p>
                 </div>
-              </div>
+              </section>
+
+              <section className="space-y-6">
+                <h2 className="text-xl font-bold text-gray-900">Flavor Profile</h2>
+                <ul className="grid grid-cols-2 gap-4">
+                  {(Object.entries(product.flavorProfile) as [string, number][]).map(([key, val]) => (
+                    <li key={key} className="flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-tea-700" />
+                      <span className="text-sm font-medium text-gray-700 capitalize">
+                        <span className="font-bold">{key}</span>: {val}/10
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+
+              {/* Reviews Section */}
+              <section className="pt-10 border-t border-gray-100">
+                <div className="flex justify-between items-center mb-8">
+                  <div className="flex items-center gap-4">
+                    <h2 className="text-xl font-bold text-gray-900">Reviews</h2>
+                    <div className="flex items-center gap-1 text-accent-700">
+                      <Star size={16} fill="currentColor" />
+                      <span className="text-sm font-bold text-gray-900">{product.rating.toFixed(1)}</span>
+                    </div>
+                  </div>
+                  <button className="text-xs font-bold text-tea-700 uppercase tracking-widest hover:underline">View All →</button>
+                </div>
+                <div className="space-y-6">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="p-6 bg-white rounded-2xl border border-gray-100">
+                      <div className="flex justify-between mb-2">
+                        <div className="flex text-accent-500">
+                          {[...Array(5)].map((_, j) => <Star key={j} size={12} fill={j < 5 ? "currentColor" : "none"} />)}
+                        </div>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase">Verified Purchase</span>
+                      </div>
+                      <p className="text-sm font-medium text-gray-900 mb-1">"Exceptional clarity and depth. Truly a morning ritual staple."</p>
+                      <p className="text-xs text-gray-500">- Sarah M.</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
             </div>
           </div>
 
-          {/* Info Side */}
-          <div className="flex flex-col">
-            <div className="mb-10">
-              <span className="text-tea-700 font-bold uppercase tracking-[0.3em] text-[10px] bg-tea-50 px-4 py-2 rounded-full mb-6 inline-block border border-tea-100">{product.origin} Estate Sanctuary</span>
-              <h1 className="text-4xl md:text-5xl lg:text-7xl font-serif font-bold text-tea-900 mb-8 tracking-tight leading-[1.1]">{product.name}</h1>
-              <div className="flex items-center gap-10 mb-10">
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Investment</span>
-                  <span className="text-5xl font-serif font-bold text-tea-900">₹{currentPrice.toFixed(2)}</span>
-                </div>
-                <div className="h-12 w-px bg-gray-200" />
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Artisan Rating</span>
-                  <div className="flex items-center text-accent-600 gap-1.5 font-bold text-2xl">
-                    <Star size={24} fill="currentColor" /> {product.rating.toFixed(1)}
-                  </div>
-                </div>
-              </div>
-              <p className="text-gray-600 leading-relaxed italic text-xl font-light border-l-4 border-tea-700/20 pl-8 py-2">"{product.story}"</p>
-            </div>
-
-            {product.attributes && product.attributes.length > 0 && (
-              <div className="mb-14 bg-white p-8 rounded-[3rem] shadow-sm border border-gray-100">
-                <ProductCustomizer
-                  attributes={product.attributes}
-                  selections={selections}
-                  onSelectionChange={handleSelectionChange}
-                />
-              </div>
-            )}
-
-            <div className="space-y-10 mb-14">
-              <div className="flex flex-wrap items-center gap-6">
-                <div className="bg-white border border-gray-100 rounded-2xl p-2 shadow-sm flex items-center">
-                  <button onClick={() => setQty(Math.max(1, qty - 1))} className="w-12 h-12 flex items-center justify-center hover:bg-tea-50 rounded-xl transition-all font-bold text-xl">-</button>
-                  <span className="w-14 text-center font-bold text-xl">{qty}</span>
-                  <button onClick={() => setQty(qty + 1)} className="w-12 h-12 flex items-center justify-center hover:bg-tea-50 rounded-xl transition-all font-bold text-xl">+</button>
-                </div>
-                <button onClick={handleAddToCart} className="flex-grow py-5 bg-tea-800 hover:bg-tea-950 text-white font-bold rounded-2xl transition-all shadow-2xl flex items-center justify-center gap-3 text-xl group active:scale-[0.98]">
-                  <ShoppingCart size={24} className="group-hover:scale-110 transition-transform" />
-                  Add to Collection — ₹{(currentPrice * qty).toFixed(2)}
-                </button>
-              </div>
-
-              <div className="flex gap-4">
-                <button className="flex-1 py-4 bg-white border border-gray-200 text-gray-500 hover:text-red-500 rounded-2xl transition-all shadow-sm flex items-center justify-center gap-3 font-bold text-xs uppercase tracking-widest">
-                  <Heart size={20} /> Save for Ritual
-                </button>
-                <button className="flex-1 py-4 bg-white border border-gray-200 text-gray-500 hover:text-tea-700 rounded-2xl transition-all shadow-sm flex items-center justify-center gap-3 font-bold text-xs uppercase tracking-widest">
-                  <Share2 size={20} /> Share Discovery
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 mb-14">
-              <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 flex items-center gap-5 shadow-sm">
-                <div className="p-3.5 bg-tea-50 text-tea-800 rounded-2xl"><ShieldCheck size={24} /></div>
-                <div>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Purity Grade</p>
-                  <p className="text-sm font-bold text-tea-950">100% Traceable Harvest</p>
-                </div>
-              </div>
-              <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 flex items-center gap-5 shadow-sm">
-                <div className="p-3.5 bg-accent-50 text-accent-700 rounded-2xl"><Zap size={24} /></div>
-                <div>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Global Express</p>
-                  <p className="text-sm font-bold text-tea-950">Carbon-Neutral Flow</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-tea-950 text-white p-12 rounded-[4rem] shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-8 opacity-5"><BarChart3 size={150} /></div>
-              <h3 className="font-serif font-bold text-3xl mb-10 relative z-10">Flavor Architecture</h3>
-              <div className="space-y-8 relative z-10">
-                {(Object.entries(product.flavorProfile) as [string, number][]).map(([key, val]) => (
-                  <div key={key}>
-                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-[0.2em] text-tea-200/60 mb-3">
-                      <span>{key} Analysis</span>
-                      <span className="text-accent-400">{val * 10}% Concentration</span>
-                    </div>
-                    <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${val * 10}%` }}
-                        transition={{ duration: 1.5, ease: "easeOut" }}
-                        className="h-full bg-accent-500 rounded-full shadow-[0_0_12px_rgba(255,235,59,0.4)]"
-                      />
+          {/* Right Column: Information & Actions */}
+          <div className="lg:col-span-5">
+            <div className="lg:sticky lg:top-24 space-y-8">
+              {/* Product Essentials */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h1 className="text-2xl md:text-[28px] font-bold text-gray-900 leading-tight mb-2">{product.name}</h1>
+                    <div className="flex items-center gap-3">
+                      <div className="flex text-accent-600">
+                        {[...Array(5)].map((_, i) => <Star key={i} size={14} fill={i < Math.floor(product.rating) ? "currentColor" : "none"} />)}
+                      </div>
+                      <span className="text-xs font-medium text-gray-400">{product.rating.toFixed(1)} (124 reviews)</span>
                     </div>
                   </div>
-                ))}
+                  <button
+                    onClick={handleToggleFavorite}
+                    className="p-3 text-gray-300 hover:text-red-500 transition-colors"
+                    aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
+                  >
+                    <Heart size={24} fill={isFavorited ? "currentColor" : "none"} className={isFavorited ? "text-red-500" : ""} />
+                  </button>
+                </div>
+
+                <div className="flex items-baseline gap-3 pt-2">
+                  <span className="text-3xl font-bold text-tea-900">₹{currentPrice.toFixed(2)}</span>
+                  <span className="text-sm text-gray-400 line-through">₹{(currentPrice * 1.2).toFixed(2)}</span>
+                  <span className="text-xs font-bold text-tea-700 bg-tea-50 px-2 py-0.5 rounded">Save 20%</span>
+                </div>
+
+                <div className="text-xs text-gray-500 font-medium pb-4 border-b border-gray-100 flex items-center gap-4">
+                  <span>In stock</span>
+                  <span className="w-1 h-1 bg-gray-300 rounded-full" />
+                  <span>Ships tomorrow</span>
+                </div>
+              </div>
+
+              {/* Customizer */}
+              {product.attributes && product.attributes.length > 0 && (
+                <div className="pt-2">
+                  <ProductCustomizer
+                    attributes={product.attributes}
+                    selections={selections}
+                    onSelectionChange={(attrId, val) => setSelections(prev => ({ ...prev, [attrId]: val }))}
+                  />
+                </div>
+              )}
+
+              {/* Quantity & CTA */}
+              <div className="space-y-4 pt-4">
+                <div className="flex items-center gap-6">
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Quantity</span>
+                  <div className="flex items-center border border-gray-200 rounded-full p-1 bg-white">
+                    <button onClick={() => setQty(Math.max(1, qty - 1))} className="w-10 h-10 flex items-center justify-center hover:bg-gray-50 rounded-full transition-colors"><Minus size={16} /></button>
+                    <span className="w-10 text-center font-bold text-gray-900">{qty}</span>
+                    <button onClick={() => setQty(qty + 1)} className="w-10 h-10 flex items-center justify-center hover:bg-gray-50 rounded-full transition-colors"><Plus size={16} /></button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={handleAddToCart}
+                    className="w-full py-5 bg-tea-700 hover:bg-tea-800 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+                  >
+                    Add to Cart · ₹{(currentPrice * qty).toFixed(2)}
+                  </button>
+                  <button
+                    onClick={handleBuyNow}
+                    className="w-full py-4 bg-white border border-tea-700 text-tea-700 font-bold rounded-xl hover:bg-tea-50 transition-all"
+                  >
+                    Buy It Now
+                  </button>
+                </div>
+              </div>
+
+              {/* Accordions */}
+              <div className="pt-6 border-t border-gray-100">
+                <Accordion
+                  title="Details"
+                  isOpen={openAccordion === 'details'}
+                  onToggle={() => setOpenAccordion(openAccordion === 'details' ? null : 'details')}
+                >
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Origin</p>
+                      <p className="font-semibold text-gray-900">{product.origin}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Harvest</p>
+                      <p className="font-semibold text-gray-900">Spring 2024</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Caffeine</p>
+                      <p className="font-semibold text-gray-900">{product.caffeine}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Format</p>
+                      <p className="font-semibold text-gray-900">{product.format}</p>
+                    </div>
+                  </div>
+                </Accordion>
+                <Accordion
+                  title="Brewing Guide"
+                  isOpen={openAccordion === 'brew'}
+                  onToggle={() => setOpenAccordion(openAccordion === 'brew' ? null : 'brew')}
+                >
+                  <div className="space-y-4">
+                    <p>{product.brewing.instructions}</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="text-center p-3 bg-gray-50 rounded-xl">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Temp</p>
+                        <p className="font-bold text-gray-900">{product.brewing.temperature}°C</p>
+                      </div>
+                      <div className="text-center p-3 bg-gray-50 rounded-xl">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Time</p>
+                        <p className="font-bold text-gray-900">{product.brewing.time}s</p>
+                      </div>
+                      <div className="text-center p-3 bg-gray-50 rounded-xl">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Water</p>
+                        <p className="font-bold text-gray-900">250ml</p>
+                      </div>
+                    </div>
+                  </div>
+                </Accordion>
+                <Accordion
+                  title="Shipping & Returns"
+                  isOpen={openAccordion === 'shipping'}
+                  onToggle={() => setOpenAccordion(openAccordion === 'shipping' ? null : 'shipping')}
+                >
+                  <ul className="space-y-2">
+                    <li className="flex items-center gap-2">
+                      <Truck size={14} className="text-tea-600" /> Free shipping on orders over ₹2000
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <RotateCcw size={14} className="text-tea-600" /> 30-day ritual return policy
+                    </li>
+                  </ul>
+                </Accordion>
+              </div>
+
+              {/* Trust Badges */}
+              <div className="grid grid-cols-2 gap-4 pt-6">
+                <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-100">
+                  <ShieldCheck size={20} className="text-tea-600" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-gray-900">100% Organic</span>
+                </div>
+                <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-100">
+                  <Share2 size={20} className="text-tea-600" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-gray-900">Direct Farm</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Mobile Only: Description & Reviews (Moved below if mobile) */}
+        <div className="lg:hidden mt-16 space-y-12">
+          <section className="space-y-4">
+            <h2 className="text-xl font-bold text-gray-900">About This Tea</h2>
+            <div className="text-sm text-gray-600 leading-relaxed">
+              {product.story}
+            </div>
+          </section>
+
+          <section className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold text-gray-900">Reviews</h2>
+              <div className="flex items-center gap-1 text-accent-700">
+                <Star size={16} fill="currentColor" />
+                <span className="text-sm font-bold text-gray-900">{product.rating.toFixed(1)}</span>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="p-5 bg-white rounded-2xl border border-gray-100">
+                <p className="text-sm text-gray-900 font-medium mb-1">"Perfect for morning focus."</p>
+                <p className="text-xs text-gray-500">- David L.</p>
+              </div>
+            </div>
+            <button className="w-full py-4 bg-gray-50 text-gray-900 font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-gray-100">View All 124 Reviews</button>
+          </section>
+        </div>
+
+        {/* You Might Also Like */}
+        <section className="mt-20 pt-20 border-t border-gray-100">
+          <h2 className="text-2xl font-bold text-gray-900 mb-10">You Might Also Like</h2>
+          <div className="flex gap-6 overflow-x-auto pb-8 scrollbar-hide snap-x snap-mandatory -mx-4 px-4 md:mx-0 md:px-0">
+            {relatedProducts.map(p => (
+              <div key={p.id} className="min-w-[280px] md:min-w-0 md:flex-1 snap-start">
+                <ProductCard product={p} />
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
     </div>
   );
