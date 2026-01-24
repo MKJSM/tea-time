@@ -9,10 +9,10 @@ import {
   ChevronRight, Heart, Wind, Zap, Shield, Laptop,
   LogOut, AlertTriangle, Key, Smartphone, Trash2
 } from 'lucide-react';
-import { useAppSelector, useAppDispatch } from '../../store/hooks';
+import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { setAuthModalOpen, logout } from '../features/auth/authSlice';
-import { mockUser } from '../../../mockData';
-import { cn } from '../../utils/cn';
+import { mockUser } from '../mockData';
+import { cn } from '../utils/cn';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 

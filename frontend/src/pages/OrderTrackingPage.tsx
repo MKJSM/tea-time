@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useGetOrderByIdQuery } from '../features/orders/ordersApi';
 import { TeaLoader } from '../components/common/TeaLoader';
-import { OrderStatus } from '../../../types';
+import { OrderStatus } from '../types';
 import toast from 'react-hot-toast';
 
 const OrderTrackingPage: React.FC = () => {

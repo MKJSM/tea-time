@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCartStore } from '../../../store';
+import { useCartStore } from '../store';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, CreditCard, Truck, CheckCircle, Apple } from 'lucide-react';
 import toast from 'react-hot-toast';

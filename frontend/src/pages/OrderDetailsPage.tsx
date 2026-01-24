@@ -9,7 +9,7 @@ import {
   Download, Instagram, Facebook, Send, Navigation
 } from 'lucide-react';
 import { useGetOrderByIdQuery } from '../features/orders/ordersApi';
-import { OrderStatus } from '../../../types';
+import { OrderStatus } from '../types';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { addItem } from '../features/cart/cartSlice';

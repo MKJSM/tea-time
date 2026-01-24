@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAppSelector, useAppDispatch } from '../../store/hooks';
+import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { removeItem, updateQuantity } from '../features/cart/cartSlice';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, ShoppingBag, ArrowRight, Minus, Plus, Settings2 } from 'lucide-react';

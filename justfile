@@ -6,28 +6,34 @@ default: all
 # --- Individual Commands ---
 
 # Build the frontend and copy the assets to the backend directory.
-# This installs dependencies and then runs the deploy script.
-copy-frontend:
-    @echo "Building and deploying frontend..."
-    cd frontend && npm install && npm run copy
+deploy-frontend:
+    @echo "Building frontend..."
+    cd frontend && bun install && bun run build
+    @echo "Deploying to backend..."
+    mkdir -p backend/static/assets
+    mkdir -p backend/templates
+    # Copy index.html as the template
+    cp frontend/dist/index.html backend/templates/index.stpl
+    # Copy assets
+    cp -r frontend/dist/assets/* backend/static/assets/
+    @echo "Frontend assets deployed."
 
 # Build the backend in release mode.
-# This implicitly depends on 'copy-frontend' because the backend compilation
-# requires the 'index.stpl' template to exist.
 build-backend:
     @echo "Building backend..."
     cd backend && cargo build --release
 
 # --- Combined Commands ---
 
-# Build both the frontend and backend.
-build: copy-frontend build-backend
-    @echo "Frontend and backend built successfully."
+# Deploy command: Build frontend, move assets, build backend
+deploy: deploy-frontend build-backend
+    @echo "Deployment build complete."
 
-# Build everything and run the backend server.
-run: build
+# Run command: Deploy then run the backend (dev mode mostly, or release)
+# Using cargo run for convenience
+run: deploy-frontend
     @echo "Starting server..."
-    cd backend && ./target/release/backend
+    cd backend && cargo run
 
-# 'all' is an alias for 'run' to provide a single command to get started.
+# 'all' is an alias for 'run'
 all: run

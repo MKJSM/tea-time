@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '../../../utils/cn';
+import { cn } from '../../utils/cn';
 
 export type TeaVariant = 'green' | 'black' | 'herbal' | 'matcha' | 'oolong' | 'water';
 export type LoaderType = 'steeping' | 'leaves' | 'cup-fill' | 'whisk' | 'kettle' | 'bag';

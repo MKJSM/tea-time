@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useGetProductByIdQuery } from '../features/products/productsApi';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { addItem } from '../features/cart/cartSlice';
 import { motion } from 'framer-motion';
 import {
@@ -14,7 +14,7 @@ import toast from 'react-hot-toast';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { ProductCustomizer } from '../components/products/ProductCustomizer';
 import { ImageSlider } from '../components/common/ImageSlider';
-import { SelectedAttributes } from '../../../types';
+import { SelectedAttributes } from '../types';
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams();

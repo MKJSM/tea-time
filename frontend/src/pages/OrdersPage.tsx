@@ -3,7 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Package, Truck, CheckCircle, MapPin, ExternalLink, RefreshCw, ChevronRight } from 'lucide-react';
-import { OrderStatus } from '../../../types';
+import { OrderStatus } from '../types';
 
 const OrdersPage: React.FC = () => {
   const activeOrder = {
@@ -77,7 +77,7 @@ const OrdersPage: React.FC = () => {
                 {steps.map((step, idx) => (
                   <div key={idx} className="flex flex-col items-center gap-2 relative z-10">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center border-4 border-white shadow-md ${step.status === 'completed' ? 'bg-tea-600' :
-                        step.status === 'active' ? 'bg-accent-500 animate-pulse' : 'bg-gray-200'
+                      step.status === 'active' ? 'bg-accent-500 animate-pulse' : 'bg-gray-200'
                       }`}>
                       {step.status === 'completed' && <CheckCircle className="text-white w-4 h-4" />}
                     </div>
