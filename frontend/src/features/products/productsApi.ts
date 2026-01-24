@@ -8,12 +8,29 @@ export const productsApi = createApi({
   baseQuery: axiosBaseQuery(),
   tagTypes: ['Product'],
   endpoints: (builder) => ({
-    getProducts: builder.query({
-      query: () => ({ url: '/products', method: 'GET' }),
-      providesTags: (result: Product[] | undefined) =>
+    getProducts: builder.query<Product[], { page?: number; limit?: number; q?: string; category?: string }>({
+      query: (params) => ({
+        url: '/products',
+        method: 'GET',
+        params: params || {}
+      }),
+      providesTags: (result) =>
         result
           ? [...result.map(({ id }) => ({ type: 'Product' as const, id })), { type: 'Product', id: 'LIST' }]
           : [{ type: 'Product', id: 'LIST' }],
+      // Merge results for infinite scroll
+      merge: (currentCache, newItems, { arg }) => {
+        if (arg?.page && arg.page > 1) {
+          return [...currentCache, ...newItems];
+        }
+        return newItems;
+      },
+      // Force refetch on filter change to clear cache
+      forceRefetch({ currentArg, previousArg }) {
+        return currentArg?.page !== previousArg?.page ||
+          currentArg?.q !== previousArg?.q ||
+          currentArg?.category !== previousArg?.category;
+      },
     }),
     getProductById: builder.query({
       query: (id: string) => ({ url: `/products/${id}`, method: 'GET' }),

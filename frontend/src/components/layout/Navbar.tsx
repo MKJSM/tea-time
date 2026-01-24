@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ShoppingCart, User, Search, Leaf, X } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
-// Fix: Added AnimatePresence to imports from framer-motion
 import { motion, AnimatePresence } from 'framer-motion';
 import { setAuthModalOpen } from '../../features/auth/authSlice';
 import { toggleDrawer } from '../../features/cart/cartSlice';
@@ -59,7 +58,9 @@ const Navbar: React.FC = () => {
           {/* Desktop Links */}
           <div className="hidden lg:flex items-center space-x-10">
             <Link to="/shop" className="text-tea-950/80 hover:text-tea-800 font-bold text-xs uppercase tracking-widest transition-colors">Collection</Link>
-            <Link to="/orders" className="text-tea-950/80 hover:text-tea-800 font-bold text-xs uppercase tracking-widest transition-colors">Orders</Link>
+            {isAuthenticated && (
+              <Link to="/orders" className="text-tea-950/80 hover:text-tea-800 font-bold text-xs uppercase tracking-widest transition-colors">Orders</Link>
+            )}
           </div>
 
           {/* Icons */}
