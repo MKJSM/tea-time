@@ -6,8 +6,9 @@ import { ShoppingCart, Star, Heart, Check, Settings2, ArrowRight } from 'lucide-
 import { Product } from '../../types';
 import { useDispatch } from 'react-redux';
 import { addItem } from '../../features/cart/cartSlice';
-import { toggleFavorite, setAuthModalOpen } from '../../features/auth/authSlice';
+import { setAuthModalOpen } from '../../features/auth/authSlice';
 import { useAppSelector } from '../../store/hooks';
+import { useGetFavoriteIdsQuery, useAddFavoriteMutation, useRemoveFavoriteMutation } from '../../features/favorites/favoritesApi';
 import { QuickAddModal } from './QuickAddModal';
 import { ImageSlider } from '../common/ImageSlider';
 import toast from 'react-hot-toast';
@@ -21,11 +22,17 @@ interface Props {
 const ProductCard: React.FC<Props> = ({ product }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { isAuthenticated, favorites } = useAppSelector((state) => state.auth);
+  // Using favorites API instead of auth slice for favorites list
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  // Fetch favorite IDs if authenticated
+  const { data: favoriteIds = [] } = useGetFavoriteIdsQuery(undefined, { skip: !isAuthenticated });
+  const [addFavorite] = useAddFavoriteMutation();
+  const [removeFavorite] = useRemoveFavoriteMutation();
+
   const cartItems = useAppSelector((state) => state.cart.items);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
 
-  const isFavorited = favorites.includes(product.id);
+  const isFavorited = favoriteIds.includes(product.id);
   const isInCart = cartItems.some((item) => item.id === product.id);
 
   const handleAddToCart = (e: React.MouseEvent) => {
@@ -45,15 +52,26 @@ const ProductCard: React.FC<Props> = ({ product }) => {
     });
   };
 
-  const handleToggleFavorite = (e: React.MouseEvent) => {
+  const handleToggleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
     if (!isAuthenticated) {
       dispatch(setAuthModalOpen(true));
       return;
     }
-    dispatch(toggleFavorite(product.id));
-    if (!isFavorited) toast.success('Saved to collection', { icon: '❤️' });
+
+    try {
+      if (isFavorited) {
+        await removeFavorite(product.id);
+        toast.success('Removed from collection', { icon: '🍃' });
+      } else {
+        await addFavorite(product.id);
+        toast.success('Saved to collection', { icon: '❤️' });
+      }
+    } catch (error) {
+      toast.error('Could not update favorites');
+    }
   };
 
   const hasAttributes = product.attributes && product.attributes.length > 0;
