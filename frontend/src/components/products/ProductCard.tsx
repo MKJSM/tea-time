@@ -86,11 +86,6 @@ const ProductCard: React.FC<Props> = ({ product }) => {
         <Link to={`/product/${product.id}`} className="flex flex-col h-full">
           {/* Enhanced Image Carousel */}
           <div className="relative aspect-square overflow-hidden shrink-0">
-            import {getOptimizedImageUrl} from '../../utils/images';
-
-            // ... existing imports ...
-
-            // In ProductCard component
             <ImageSlider
               images={(product.images && product.images.length > 0 ? product.images : [product.image]).map(img => getOptimizedImageUrl(img, 400))}
               autoPlay={true}
