@@ -134,6 +134,8 @@ pub async fn login(
             .execute(&state.db)
             .await?;
         token
+    };
+
     let cookie = format!(
         "token={}; HttpOnly; SameSite=Strict; Path=/; Max-Age={}", 
         token, 

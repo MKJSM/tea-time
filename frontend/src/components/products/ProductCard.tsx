@@ -14,6 +14,7 @@ import { ImageSlider } from '../common/ImageSlider';
 import toast from 'react-hot-toast';
 // Fix: Added missing import for cn utility
 import { cn } from '../../utils/cn';
+import { getOptimizedImageUrl } from '../../utils/images';
 
 interface Props {
   product: Product;
@@ -85,9 +86,14 @@ const ProductCard: React.FC<Props> = ({ product }) => {
         <Link to={`/product/${product.id}`} className="flex flex-col h-full">
           {/* Enhanced Image Carousel */}
           <div className="relative aspect-square overflow-hidden shrink-0">
+            import {getOptimizedImageUrl} from '../../utils/images';
+
+            // ... existing imports ...
+
+            // In ProductCard component
             <ImageSlider
-              images={product.images && product.images.length > 0 ? product.images : [product.image]}
-              autoPlay={true} // Fixed: Enabled autoPlay for PLP consistency
+              images={(product.images && product.images.length > 0 ? product.images : [product.image]).map(img => getOptimizedImageUrl(img, 400))}
+              autoPlay={true}
               showDots={true}
               className="w-full h-full"
             />
