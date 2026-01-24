@@ -10,112 +10,11 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap"
     rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            tea: {
-              50: '#F1F8E9',
-              100: '#DCEDC8',
-              200: '#C5E1A5',
-              300: '#AED581',
-              400: '#9CCC65',
-              500: '#81C784',
-              600: '#4CAF50',
-              700: '#2E7D32',
-              800: '#1B5E20',
-              900: '#0D3D10',
-            },
-            earth: {
-              50: '#EFEBE9',
-              100: '#D7CCC8',
-              200: '#BCAAA4',
-              300: '#A1887F',
-              400: '#8D6E63',
-              500: '#795548',
-              600: '#6D4C41',
-              700: '#5D4037',
-              800: '#4E342E',
-              900: '#3E2723',
-            },
-            accent: {
-              50: '#FFFDE7',
-              100: '#FFF9C4',
-              200: '#FFF59D',
-              300: '#FFF176',
-              400: '#FFEE58',
-              500: '#FFEB3B',
-              600: '#FDD835',
-              700: '#FBC02D',
-              800: '#F9A825',
-              900: '#F57F17',
-            },
-            cream: {
-              DEFAULT: '#FFF8F0',
-              paper: '#FFFEFC'
-            }
-          },
-          fontFamily: {
-            serif: ['Playfair Display', 'serif'],
-            sans: ['Inter', 'sans-serif'],
-          }
-        }
-      }
-    }
-  </script>
-  <style>
-    body {
-      background-color: #FFF8F0;
-      color: #333333;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .glass {
-      background: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-    }
-
-    .custom-scrollbar::-webkit-scrollbar {
-      width: 4px;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: #2E7D32;
-      border-radius: 10px;
-    }
-  </style>
-
-  <link rel="stylesheet" href="/index.css">
-  <script type="importmap">
-{
-  "imports": {
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "zustand/": "https://esm.sh/zustand@^5.0.10/",
-    "zustand": "https://esm.sh/zustand@^5.0.10",
-    "react-router-dom": "https://esm.sh/react-router-dom@^7.12.0",
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "framer-motion": "https://esm.sh/framer-motion@^12.29.0",
-    "tailwind-merge": "https://esm.sh/tailwind-merge@^3.4.0",
-    "clsx": "https://esm.sh/clsx@^2.1.1",
-    "react-hot-toast": "https://esm.sh/react-hot-toast@^2.6.0",
-    "axios": "https://esm.sh/axios@^1.7.9",
-    "@reduxjs/toolkit": "https://esm.sh/@reduxjs/toolkit@^2.5.1",
-    "react-redux": "https://esm.sh/react-redux@^9.2.0",
-    "@reduxjs/toolkit/": "https://esm.sh/@reduxjs/toolkit@^2.11.2/"
-  }
-}
-</script>
-  <script type="module" crossorigin src="/assets/index-DHFnGtbu.js"></script>
+  <script type="module" crossorigin src="/assets/index-DupYYX7y.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/state-DA3U1HQ7.js">
+  <link rel="modulepreload" crossorigin href="/assets/ui-DyyQl7aF.js">
+  <link rel="modulepreload" crossorigin href="/assets/vendor-bVwvch6A.js">
+  <link rel="stylesheet" crossorigin href="/assets/index-zERHWQTg.css">
 </head>
 
 <body>

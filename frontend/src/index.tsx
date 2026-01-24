@@ -2,8 +2,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { Provider } from 'react-redux';
-// Fix: Import from the store directory to get the Redux store instead of clashing with store.ts
 import { store } from './store/index';
+import './index.css';
 import App from './App';
 
 const rootElement = document.getElementById('root');
