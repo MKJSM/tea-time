@@ -24,7 +24,10 @@ COPY backend/Cargo.toml backend/Cargo.lock ./
 COPY backend/src ./src
 COPY backend/templates ./templates
 COPY backend/migrations ./migrations
-COPY backend/static ./static
+
+# Create static directory (will be populated by frontend builder)
+RUN mkdir -p static
+
 # Copy schema if needed (though migrations usually handle it)
 COPY backend/schema.sql ./
 
