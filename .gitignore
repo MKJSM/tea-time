@@ -12,7 +12,6 @@ yarn-error.log*
 
 # Backend generated static/templates
 backend/static/*
-backend/templates/index.stpl
 !backend/static/.gitkeep
 !backend/templates/.gitkeep
 

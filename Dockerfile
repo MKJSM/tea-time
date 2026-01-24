@@ -17,8 +17,16 @@ WORKDIR /app/backend
 # Install build dependencies
 RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
 
-# Copy backend source
-COPY backend/ .
+# Copy manifests first for better caching
+COPY backend/Cargo.toml backend/Cargo.lock ./
+
+# Copy source code and templates
+COPY backend/src ./src
+COPY backend/templates ./templates
+COPY backend/migrations ./migrations
+COPY backend/static ./static
+# Copy schema if needed (though migrations usually handle it)
+COPY backend/schema.sql ./
 
 # Copy built frontend assets to backend static directory (for runtime serving)
 COPY --from=frontend-builder /app/frontend/dist/assets ./static/assets
