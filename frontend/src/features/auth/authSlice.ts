@@ -4,8 +4,7 @@ import apiClient from '../../api/client';
 
 interface AuthState {
   user: User | null;
-  token: string | null;
-  isAuthenticated: boolean;
+  isAuthenticated: boolean; // Computed from successful /me or login
   isLoading: boolean;
   error: string | null;
   favorites: string[];
@@ -14,8 +13,7 @@ interface AuthState {
 
 const initialState: AuthState = {
   user: JSON.parse(localStorage.getItem('tea_user') || 'null'),
-  token: localStorage.getItem('tea_auth_token'),
-  isAuthenticated: !!localStorage.getItem('tea_auth_token'),
+  isAuthenticated: false, // Always start false, wait for /me check
   isLoading: false,
   error: null,
   favorites: JSON.parse(localStorage.getItem('tea_favorites') || '[]'),
@@ -27,10 +25,10 @@ export const loginUser = createAsyncThunk(
   async (credentials: { email: string; password?: string }, { rejectWithValue }) => {
     try {
       const response = await apiClient.post('/auth/login', credentials);
-      const { user, token } = response.data;
-      localStorage.setItem('tea_auth_token', token);
+      const { user } = response.data;
+      // Token is handled via HttpOnly cookie
       localStorage.setItem('tea_user', JSON.stringify(user));
-      return { user, token };
+      return { user };
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.message || 'Login failed');
     }
@@ -42,10 +40,10 @@ export const signupUser = createAsyncThunk(
   async (credentials: { name: string; email: string; password?: string; phone?: string }, { rejectWithValue }) => {
     try {
       const response = await apiClient.post('/auth/signup', credentials);
-      const { user, token } = response.data;
-      localStorage.setItem('tea_auth_token', token);
+      const { user } = response.data;
+      // Token is handled via HttpOnly cookie
       localStorage.setItem('tea_user', JSON.stringify(user));
-      return { user, token };
+      return { user };
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.message || 'Signup failed');
     }
@@ -84,10 +82,9 @@ const authSlice = createSlice({
   reducers: {
     logout: (state) => {
       state.user = null;
-      state.token = null;
       state.isAuthenticated = false;
       state.favorites = [];
-      localStorage.removeItem('tea_auth_token');
+      localStorage.removeItem('tea_auth_token'); // Cleanup old token
       localStorage.removeItem('tea_user');
       localStorage.removeItem('tea_favorites');
     },
@@ -111,11 +108,10 @@ const authSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(loginUser.fulfilled, (state, action: PayloadAction<{ user: User; token: string }>) => {
+      .addCase(loginUser.fulfilled, (state, action: PayloadAction<{ user: User }>) => {
         state.isLoading = false;
         state.isAuthenticated = true;
         state.user = action.payload.user;
-        state.token = action.payload.token;
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false;
@@ -126,11 +122,10 @@ const authSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(signupUser.fulfilled, (state, action: PayloadAction<{ user: User; token: string }>) => {
+      .addCase(signupUser.fulfilled, (state, action: PayloadAction<{ user: User }>) => {
         state.isLoading = false;
         state.isAuthenticated = true;
         state.user = action.payload.user;
-        state.token = action.payload.token;
       })
       .addCase(signupUser.rejected, (state, action) => {
         state.isLoading = false;
@@ -148,8 +143,7 @@ const authSlice = createSlice({
       .addCase(fetchCurrentUser.rejected, (state) => {
         state.isAuthenticated = false;
         state.user = null;
-        state.token = null;
-        localStorage.removeItem('tea_auth_token');
+        localStorage.removeItem('tea_auth_token'); // Cleanup
         localStorage.removeItem('tea_user');
       });
   },

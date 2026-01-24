@@ -62,8 +62,18 @@ async fn main() {
     // build our application with a route
     let app = Router::new()
         // API routes
-        // Allow CORS
-        .layer(CorsLayer::permissive())
+        // API routes
+        // Allow CORS with credentials
+        .layer(
+            CorsLayer::new()
+                .allow_origin([
+                    "http://localhost:3001".parse().unwrap(),
+                    "https://tea-time-production.up.railway.app".parse().unwrap() // Added prod url
+                ])
+                .allow_methods(tower_http::cors::Any)
+                .allow_headers(tower_http::cors::Any)
+                .allow_credentials(true)
+        )
         .layer(CompressionLayer::new())
         .route("/api/auth/signup", axum::routing::post(handlers::auth::signup))
         .route("/api/auth/login", axum::routing::post(handlers::auth::login))

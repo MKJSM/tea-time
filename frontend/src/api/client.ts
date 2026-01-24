@@ -6,18 +6,12 @@ const API_URL = '/api';
 const apiClient = axios.create({
   baseURL: API_URL,
   timeout: 10000,
+  withCredentials: true, // Send cookies with requests
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('tea_auth_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
 
 // RTK Query Base Query Utility
 export const axiosBaseQuery = () => async ({ url, method, data, params }: any) => {

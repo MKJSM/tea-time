@@ -3,7 +3,7 @@ import { CartItem } from '../types';
 const DB_NAME = 'TeaHavenDB';
 const STORE_NAME = 'guestCart';
 const DB_VERSION = 1;
-const MIGRATION_FLAG_KEY = 'cartMigrated_v2'; // Bumped version to force re-check
+const MIGRATION_FLAG_KEY = 'cartMigrated';
 
 let dbInstance: IDBDatabase | null = null;
 
@@ -11,27 +11,6 @@ let dbInstance: IDBDatabase | null = null;
  * Initialize IndexedDB for cart storage
  */
 export const initCartDB = async (): Promise<IDBDatabase> => {
-    // Check for clear_storage flag in URL (useful for Lighthouse audits)
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('clear_storage') === 'true') {
-        console.log('Clearing storage based on URL parameter...');
-        try {
-            // Delete DB
-            const req = indexedDB.deleteDatabase(DB_NAME);
-            await new Promise((resolve) => {
-                req.onsuccess = resolve;
-                req.onerror = resolve;
-            });
-            // Clear localStorage
-            localStorage.clear();
-            // Clean URL to prevent re-clearing on refresh
-            const newUrl = window.location.pathname + window.location.hash;
-            window.history.replaceState({}, '', newUrl);
-        } catch (e) {
-            console.warn('Failed to clear storage:', e);
-        }
-    }
-
     if (dbInstance) {
         return dbInstance;
     }

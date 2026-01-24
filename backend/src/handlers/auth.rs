@@ -22,7 +22,7 @@ const SESSION_DURATION_DAYS: i64 = 30;
 pub async fn signup(
     State(state): State<AppState>,
     Json(payload): Json<CreateUserRequest>,
-) -> Result<Json<AuthResponse>, AppError> {
+) -> Result<impl IntoResponse, AppError> {
     // 1. Check if user exists
     let exists = sqlx::query("SELECT 1 FROM users WHERE email = ?")
         .bind(&payload.email)
@@ -70,13 +70,22 @@ pub async fn signup(
         .fetch_one(&state.db)
         .await?;
 
-    Ok(Json(AuthResponse { user, token }))
+    let cookie = format!(
+        "token={}; HttpOnly; SameSite=Strict; Path=/; Max-Age={}", 
+        token, 
+        SESSION_DURATION_DAYS * 24 * 60 * 60
+    );
+
+    let mut headers = HeaderMap::new();
+    headers.insert("Set-Cookie", cookie.parse().unwrap());
+
+    Ok((StatusCode::OK, headers, Json(AuthResponse { user, token: "".to_string() })))
 }
 
 pub async fn login(
     State(state): State<AppState>,
     Json(payload): Json<LoginUserRequest>,
-) -> Result<Json<AuthResponse>, AppError> {
+) -> Result<impl IntoResponse, AppError> {
     let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = ?")
         .bind(&payload.email)
         .fetch_optional(&state.db)
@@ -125,21 +134,38 @@ pub async fn login(
             .execute(&state.db)
             .await?;
         token
-    };
+    let cookie = format!(
+        "token={}; HttpOnly; SameSite=Strict; Path=/; Max-Age={}", 
+        token, 
+        SESSION_DURATION_DAYS * 24 * 60 * 60
+    );
 
-    Ok(Json(AuthResponse { user, token }))
+    let mut headers = HeaderMap::new();
+    headers.insert("Set-Cookie", cookie.parse().unwrap());
+
+    Ok((StatusCode::OK, headers, Json(AuthResponse { user, token: "".to_string() }))) // Token removed from body
 }
 
 pub async fn get_me(
     State(state): State<AppState>,
     headers: HeaderMap,
 ) -> Result<Json<User>, AppError> {
-    let auth_header = headers.get("Authorization")
-        .ok_or_else(|| AppError::Unauthorized("Missing token".into()))?
+    let cookie_header = headers.get("Cookie")
+        .ok_or_else(|| AppError::Unauthorized("Missing cookie".into()))?
         .to_str()
-        .map_err(|_| AppError::Unauthorized("Invalid token format".into()))?;
+        .map_err(|_| AppError::Unauthorized("Invalid cookie format".into()))?;
 
-    let token = auth_header.strip_prefix("Bearer ").unwrap_or(auth_header);
+    let token = cookie_header
+        .split(';')
+        .find_map(|s| {
+            let parts: Vec<&str> = s.trim().split('=').collect();
+            if parts.len() == 2 && parts[0] == "token" {
+                Some(parts[1])
+            } else {
+                None
+            }
+        })
+        .ok_or_else(|| AppError::Unauthorized("Token not found in cookie".into()))?;
 
     // Validate session
     let session = sqlx::query_as::<_, Session>("SELECT * FROM sessions WHERE id = ? AND expires_at > CURRENT_TIMESTAMP")
@@ -160,17 +186,26 @@ pub async fn logout(
     State(state): State<AppState>,
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
-    let auth_header = headers.get("Authorization")
-        .ok_or_else(|| AppError::Unauthorized("Missing token".into()))?
-        .to_str()
-        .map_err(|_| AppError::Unauthorized("Invalid token format".into()))?;
+    // Attempt to get token to delete from DB, but don't fail if missing (idempotent logout)
+    if let Some(cookie_header) = headers.get("Cookie").and_then(|v| v.to_str().ok()) {
+        if let Some(token) = cookie_header.split(';').find_map(|s| {
+            let parts: Vec<&str> = s.trim().split('=').collect();
+            if parts.len() == 2 && parts[0] == "token" {
+                Some(parts[1])
+            } else {
+                None
+            }
+        }) {
+             let _ = sqlx::query("DELETE FROM sessions WHERE id = ?")
+                .bind(token)
+                .execute(&state.db)
+                .await;
+        }
+    }
 
-    let token = auth_header.strip_prefix("Bearer ").unwrap_or(auth_header);
+    let cookie = "token=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0";
+    let mut headers = HeaderMap::new();
+    headers.insert("Set-Cookie", cookie.parse().unwrap());
 
-    sqlx::query("DELETE FROM sessions WHERE id = ?")
-        .bind(token)
-        .execute(&state.db)
-        .await?;
-
-    Ok(StatusCode::OK)
+    Ok((StatusCode::OK, headers))
 }
