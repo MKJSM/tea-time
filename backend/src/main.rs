@@ -6,6 +6,7 @@ use axum::{
 use sailfish::TemplateOnce;
 use sqlx::migrate::MigrateDatabase;
 use sqlx::{sqlite::SqlitePoolOptions, Sqlite};
+use tower_http::cors::CorsLayer;
 use tower_http::services::ServeDir;
 use std::net::SocketAddr;
 use crate::state::AppState;
@@ -60,7 +61,14 @@ async fn main() {
     // build our application with a route
     let app = Router::new()
         // API routes
+        // Allow CORS
+        .layer(CorsLayer::permissive())
+        .route("/api/auth/signup", axum::routing::post(handlers::auth::signup))
+        .route("/api/auth/login", axum::routing::post(handlers::auth::login))
+        .route("/api/auth/logout", axum::routing::post(handlers::auth::logout))
+        .route("/api/auth/me", get(handlers::auth::get_me))
         .route("/api/products", get(handlers::products::get_products))
+        .route("/api/products/:id", get(handlers::products::get_product_by_id))
         .route("/api/products/:id/customizations", get(handlers::products::get_product_customizations))
         .with_state(state)
         // Serve static files from backend/static/assets
