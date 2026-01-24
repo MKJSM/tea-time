@@ -14,6 +14,8 @@ import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { addItem } from '../features/cart/cartSlice';
 import { TeaLoader } from '../components/common/TeaLoader';
+import { useAppSelector, useAppDispatch } from '../store/hooks';
+import { setAuthModalOpen } from '../features/auth/authSlice';
 
 const OrderDetailsPage: React.FC = () => {
   const { id } = useParams();
@@ -21,6 +23,24 @@ const OrderDetailsPage: React.FC = () => {
   const { data: order, isLoading, error } = useGetOrderByIdQuery(id || '');
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const dispatch = useDispatch();
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const appDispatch = useAppDispatch(); // Use typed dispatch for auth actions if needed
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-cream flex flex-col items-center justify-center p-4">
+        <div className="bg-white p-10 rounded-[3rem] shadow-xl text-center">
+          <h2 className="text-2xl font-serif font-bold text-tea-900 mb-4">Authentication Required</h2>
+          <button
+            onClick={() => appDispatch(setAuthModalOpen(true))}
+            className="px-8 py-3 bg-tea-800 text-white rounded-2xl font-bold"
+          >
+            Sign In
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return <TeaLoader type="kettle" size="fullscreen" message="Pouring your journey details..." />;

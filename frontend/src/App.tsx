@@ -1,5 +1,4 @@
-
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
@@ -11,6 +10,9 @@ import LoadingSpinner from './components/common/LoadingSpinner';
 import AuthModal from './components/auth/AuthModal';
 import { CartDrawer } from './components/layout/CartDrawer';
 import { MobileQuickCart } from './components/layout/MobileQuickCart';
+import { useAppDispatch } from './store/hooks';
+import { loadCartFromStorage } from './features/cart/cartSlice';
+import { initCartDB, migrateCartFromLocalStorage } from './utils/indexedDB';
 
 // Lazy load core pages
 const ProductsPage = lazy(() => import('./pages/ProductsPage'));
@@ -37,6 +39,28 @@ const PageWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 const App: React.FC = () => {
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    // Initialize IndexedDB and load cart on app startup
+    const initializeCart = async () => {
+      try {
+        // Initialize IndexedDB
+        await initCartDB();
+
+        // Migrate from localStorage if needed (one-time operation)
+        await migrateCartFromLocalStorage();
+
+        // Load cart from storage (IndexedDB for guests, backend for authenticated)
+        dispatch(loadCartFromStorage());
+      } catch (error) {
+        console.error('Failed to initialize cart:', error);
+      }
+    };
+
+    initializeCart();
+  }, [dispatch]);
+
   return (
     <Router>
       <div className="flex flex-col min-h-screen font-sans bg-cream relative">

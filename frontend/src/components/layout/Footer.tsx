@@ -13,7 +13,7 @@ const Footer: React.FC = () => {
               <div className="bg-tea-700 p-1.5 rounded-lg">
                 <Leaf className="w-5 h-5 text-white" />
               </div>
-              <span className="text-2xl font-serif font-bold text-tea-900">Tea Haven</span>
+              <span className="text-2xl font-serif font-bold text-tea-900">Tea Time</span>
             </Link>
             <p className="text-gray-500 text-sm leading-relaxed mb-8">
               Curating the world's most exceptional tea experiences, connecting heritage estates with modern tea lovers.

@@ -53,14 +53,13 @@ const Navbar: React.FC = () => {
             <div className="bg-tea-800 p-1.5 rounded-lg group-hover:scale-110 transition-transform shadow-lg shadow-tea-900/20">
               <Leaf className="w-5 h-5 text-white" />
             </div>
-            <span className="text-2xl font-serif font-bold text-tea-950 tracking-tight">Tea Haven</span>
+            <span className="text-2xl font-serif font-bold text-tea-950 tracking-tight">Tea Time</span>
           </Link>
 
           {/* Desktop Links */}
           <div className="hidden lg:flex items-center space-x-10">
             <Link to="/shop" className="text-tea-950/80 hover:text-tea-800 font-bold text-xs uppercase tracking-widest transition-colors">Collection</Link>
-            <Link to="/orders" className="text-tea-950/80 hover:text-tea-800 font-bold text-xs uppercase tracking-widest transition-colors">Journey</Link>
-            <button onClick={handleAuthClick} className="text-tea-950/80 hover:text-tea-800 font-bold text-xs uppercase tracking-widest transition-colors">Journal</button>
+            <Link to="/orders" className="text-tea-950/80 hover:text-tea-800 font-bold text-xs uppercase tracking-widest transition-colors">Orders</Link>
           </div>
 
           {/* Icons */}

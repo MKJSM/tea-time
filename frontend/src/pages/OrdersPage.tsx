@@ -5,7 +5,32 @@ import { motion } from 'framer-motion';
 import { Package, Truck, CheckCircle, MapPin, ExternalLink, RefreshCw, ChevronRight } from 'lucide-react';
 import { OrderStatus } from '../types';
 
+import { useNavigate } from 'react-router-dom';
+import { useAppSelector, useAppDispatch } from '../store/hooks';
+import { setAuthModalOpen } from '../features/auth/authSlice';
+
 const OrdersPage: React.FC = () => {
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-cream flex flex-col items-center justify-center p-6">
+        <div className="bg-white p-12 rounded-[3.5rem] shadow-2xl text-center max-w-lg border border-gray-100">
+          <h2 className="text-3xl font-serif font-bold text-tea-900 mb-4">Sanctuary Access Required</h2>
+          <p className="text-gray-500 mb-8 font-light">Please sign in to view your journey history and active shipments.</p>
+          <button
+            onClick={() => dispatch(setAuthModalOpen(true))}
+            className="px-10 py-4 bg-tea-800 text-white font-bold rounded-2xl shadow-lg hover:bg-tea-950 transition-all uppercase tracking-widest text-xs"
+          >
+            Access Portal
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const activeOrder = {
     id: 'TH-98421',
     status: OrderStatus.OUT_FOR_DELIVERY,

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
    ChevronLeft, Truck, MapPin, Navigation,
    Phone, MessageSquare, Clock, ShieldCheck,
-   Edit3, Share2, Info, CheckCircle2, Cloud,
+   Edit3, Share2, Info, Cloud,
    Zap, AlertCircle
 } from 'lucide-react';
 import { useGetOrderByIdQuery } from '../features/orders/ordersApi';

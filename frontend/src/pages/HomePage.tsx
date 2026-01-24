@@ -111,7 +111,7 @@ const HomePage: React.FC = () => {
           <div className="md:w-1/2">
             <h2 className="text-5xl font-serif font-bold mb-8">The Art of <br /> Mindful Brewing</h2>
             <p className="text-tea-100/80 text-lg mb-8 leading-relaxed">
-              At Tea Haven, we believe every cup is a meditation. Our journey began in the mist-covered mountains of Kyoto, where we learned that the finest teas are not just grown, but cultivated with soul.
+              At Tea Time, we believe every cup is a meditation. Our journey began in the mist-covered mountains of Kyoto, where we learned that the finest teas are not just grown, but cultivated with soul.
             </p>
             <ul className="space-y-4 mb-10">
               <li className="flex items-center gap-3">

@@ -82,7 +82,7 @@ export const BlendingLab: React.FC = () => {
       brewing: { temperature: 85, time: 180, instructions: 'Expertly blended for your unique palate.' },
       story: `A one-of-a-kind creation merging ${activeBlend.baseTeas[0].name} with delicate botanicals.`,
       caffeine: 'Medium',
-      origin: 'Tea Haven Lab',
+      origin: 'Tea Time Lab',
       format: 'Custom Blend'
     };
     addItem(customProduct, 1, activeBlend);

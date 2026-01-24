@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 const AuthModal: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const dispatch = useAppDispatch();
   const { isLoading, isAuthModalOpen } = useAppSelector((state) => state.auth);
@@ -30,13 +31,27 @@ const AuthModal: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return toast.error('Email is required');
+    if (!password) return toast.error('Password is required');
 
     try {
-      await dispatch(loginUser({ email })).unwrap();
-      toast.success(isLogin ? 'Welcome back to your sanctuary!' : 'Your journey begins now.', {
-        icon: '🍃',
-        style: { borderRadius: '12px', background: '#1B5E20', color: '#fff' }
-      });
+      if (isLogin) {
+        await dispatch(loginUser({ email, password })).unwrap();
+        toast.success('Welcome back to your sanctuary!', {
+          icon: '🍃',
+          style: { borderRadius: '12px', background: '#1B5E20', color: '#fff' }
+        });
+      } else {
+        if (!name) return toast.error('Name is required');
+        // import signupUser from authSlice
+        // We need to make sure signupUser is exported and imported
+        // Assuming it's in the same file as loginUser
+        const { signupUser } = await import('../../features/auth/authSlice');
+        await dispatch(signupUser({ name, email, password })).unwrap();
+        toast.success('Your journey begins now.', {
+          icon: '🍃',
+          style: { borderRadius: '12px', background: '#1B5E20', color: '#fff' }
+        });
+      }
       onClose();
     } catch (err) {
       toast.error('Authentication failed. Please check your coordinates.');
@@ -46,7 +61,7 @@ const AuthModal: React.FC = () => {
   const handleSocialLogin = (provider: string) => {
     const toastId = toast.loading(`Connecting to ${provider}...`);
     setTimeout(() => {
-      dispatch(loginUser({ email: `social_${provider.toLowerCase()}@teahaven.com` }));
+      dispatch(loginUser({ email: `social_${provider.toLowerCase()}@teahaven.com`, password: 'social_dummy_password' }));
       toast.success(`Successfully connected via ${provider}`, { id: toastId });
       onClose();
     }, 1200);
@@ -185,6 +200,8 @@ const AuthModal: React.FC = () => {
                       <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-tea-700 transition-colors w-5 h-5" />
                       <input
                         type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
                         placeholder="Password"
                         className="w-full pl-14 pr-6 py-5 bg-gray-50/50 border border-gray-100 rounded-3xl outline-none focus:bg-white focus:ring-[6px] focus:ring-tea-500/5 focus:border-tea-200 transition-all text-base text-tea-950 placeholder:text-gray-300 shadow-sm"
                         required
