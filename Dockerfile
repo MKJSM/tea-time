@@ -1,14 +1,15 @@
 # Stage 1: Build Frontend
-FROM node:20-slim AS frontend-builder
+FROM oven/bun:1 AS frontend-builder
 WORKDIR /app/frontend
 
-# Copy package files and install dependencies
-COPY frontend/package*.json ./
-RUN npm ci
+# Copy package files
+COPY frontend/package.json frontend/bun.lockb* ./
+# Install dependencies
+RUN bun install --frozen-lockfile
 
 # Copy source and build
 COPY frontend/ .
-RUN npm run build
+RUN bun run build
 
 # Stage 2: Build Backend
 FROM rust:slim-bookworm AS backend-builder
@@ -25,23 +26,17 @@ COPY backend/src ./src
 COPY backend/templates ./templates
 COPY backend/migrations ./migrations
 
-# Create static directory (will be populated by frontend builder)
-RUN mkdir -p static
+# Create static directory
+RUN mkdir -p static/assets
 
-# Copy schema if needed (though migrations usually handle it)
+# Copy schema if needed
 COPY backend/schema.sql ./
 
-# Copy built frontend assets to backend static directory (for runtime serving)
+# Copy built frontend assets
 COPY --from=frontend-builder /app/frontend/dist/assets ./static/assets
 
-# Update index.stpl with new asset filenames
-# We use a temporary shell script to find the files and update the template
-COPY --from=frontend-builder /app/frontend/dist/assets /tmp/assets
-RUN JS_FILE=$(ls /tmp/assets/*.js | head -n 1 | xargs basename) && \
-    CSS_FILE=$(ls /tmp/assets/*.css | head -n 1 | xargs basename) && \
-    echo "Updating template with JS: $JS_FILE and CSS: $CSS_FILE" && \
-    sed -i "s|src=\"/assets/.*\.js\"|src=\"/assets/$JS_FILE\"|" templates/index.stpl && \
-    sed -i "s|href=\"/assets/.*\.css\"|href=\"/assets/$CSS_FILE\"|" templates/index.stpl
+# Copy index.html as index.stpl (Vite already handles asset hashing in index.html)
+COPY --from=frontend-builder /app/frontend/dist/index.html ./templates/index.stpl
 
 # Build the release binary
 RUN cargo build --release
@@ -56,10 +51,12 @@ RUN apt-get update && apt-get install -y ca-certificates libssl3 sqlite3 && rm -
 # Copy the binary
 COPY --from=backend-builder /app/backend/target/release/backend /app/teatime-backend
 
-# Copy static assets (frontend build)
+# Copy static assets and templates (templates might be needed if using Sailfish at runtime, although compiled in, sometimes good to keep structure if code references paths)
+# Sailfish compiles templates into the binary, so we strictly don't need the templates folder at runtime unless dynamically reloading.
+# But we DO need the static assets served by ServeDir
 COPY --from=backend-builder /app/backend/static /app/static
 
-# Create directory for database (if using volume)
+# Create directory for database
 RUN mkdir -p /app/data
 
 # Environment variables
