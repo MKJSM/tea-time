@@ -1,0 +1,7 @@
+{
+  "name": "Tea Haven",
+  "description": "A luxury mobile-first tea e-commerce platform offering a premium shopping experience with interactive tea discovery, advanced order tracking, and a personalized tea journal.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
