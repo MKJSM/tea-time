@@ -98,16 +98,34 @@ pub async fn login(
         return Err(AppError::InternalServerError("Password required".into()));
     }
 
-    // Create new session
-    let token = Uuid::new_v4().to_string();
-    let expires_at = Utc::now() + Duration::days(SESSION_DURATION_DAYS);
-
-    sqlx::query("INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)")
-        .bind(&token)
+    // Check for existing valid session
+    let existing_session = sqlx::query_as::<_, Session>("SELECT * FROM sessions WHERE user_id = ? AND expires_at > CURRENT_TIMESTAMP LIMIT 1")
         .bind(user.id)
-        .bind(expires_at)
-        .execute(&state.db)
+        .fetch_optional(&state.db)
         .await?;
+
+    let token = if let Some(session) = existing_session {
+        // Extend the session
+        let expires_at = Utc::now() + Duration::days(SESSION_DURATION_DAYS);
+        sqlx::query("UPDATE sessions SET expires_at = ? WHERE id = ?")
+            .bind(expires_at)
+            .bind(&session.id)
+            .execute(&state.db)
+            .await?;
+        session.id
+    } else {
+        // Create new session
+        let token = Uuid::new_v4().to_string();
+        let expires_at = Utc::now() + Duration::days(SESSION_DURATION_DAYS);
+
+        sqlx::query("INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)")
+            .bind(&token)
+            .bind(user.id)
+            .bind(expires_at)
+            .execute(&state.db)
+            .await?;
+        token
+    };
 
     Ok(Json(AuthResponse { user, token }))
 }

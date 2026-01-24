@@ -7,6 +7,7 @@ use sailfish::TemplateOnce;
 use sqlx::migrate::MigrateDatabase;
 use sqlx::{sqlite::SqlitePoolOptions, Sqlite};
 use tower_http::cors::CorsLayer;
+use tower_http::compression::CompressionLayer;
 use tower_http::services::ServeDir;
 use std::net::SocketAddr;
 use crate::state::AppState;
@@ -63,6 +64,7 @@ async fn main() {
         // API routes
         // Allow CORS
         .layer(CorsLayer::permissive())
+        .layer(CompressionLayer::new())
         .route("/api/auth/signup", axum::routing::post(handlers::auth::signup))
         .route("/api/auth/login", axum::routing::post(handlers::auth::login))
         .route("/api/auth/logout", axum::routing::post(handlers::auth::logout))

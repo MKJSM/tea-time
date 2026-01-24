@@ -12,6 +12,7 @@ import { CartDrawer } from './components/layout/CartDrawer';
 import { MobileQuickCart } from './components/layout/MobileQuickCart';
 import { useAppDispatch } from './store/hooks';
 import { loadCartFromStorage } from './features/cart/cartSlice';
+import { fetchCurrentUser } from './features/auth/authSlice';
 import { initCartDB, migrateCartFromLocalStorage } from './utils/indexedDB';
 
 // Lazy load core pages
@@ -53,6 +54,9 @@ const App: React.FC = () => {
 
         // Load cart from storage (IndexedDB for guests, backend for authenticated)
         dispatch(loadCartFromStorage());
+
+        // Verify session / fetch user profile
+        dispatch(fetchCurrentUser());
       } catch (error) {
         console.error('Failed to initialize cart:', error);
       }
