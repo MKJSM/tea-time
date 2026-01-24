@@ -70,8 +70,14 @@ async fn main() {
                     "http://localhost:3001".parse().unwrap(),
                     "https://tea-time-production.up.railway.app".parse().unwrap() // Added prod url
                 ])
-                .allow_methods(tower_http::cors::Any)
-                .allow_headers(tower_http::cors::Any)
+                .allow_methods([
+                    axum::http::Method::GET,
+                    axum::http::Method::POST,
+                    axum::http::Method::PUT,
+                    axum::http::Method::DELETE,
+                    axum::http::Method::OPTIONS,
+                ])
+                .allow_headers([axum::http::header::CONTENT_TYPE])
                 .allow_credentials(true)
         )
         .layer(CompressionLayer::new())
