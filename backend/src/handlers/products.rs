@@ -1,4 +1,4 @@
-use axum::{extract::{State, Path}, Json};
+use axum::{extract::{State, Path, Query}, Json};
 use serde::{Serialize, Deserialize};
 use crate::domain::models::{Product, CustomizationGroup, CustomizationOption, ProductCustomization};
 use crate::state::AppState;
@@ -72,6 +72,14 @@ pub struct ProductResponse {
     
     pub story: Option<String>,
     pub tags: Vec<String>,
+}
+
+#[derive(Deserialize)]
+pub struct ProductQuery {
+    pub page: Option<i64>,
+    pub limit: Option<i64>,
+    pub q: Option<String>,
+    pub category: Option<String>,
 }
 
 // Helper struct for query results
@@ -224,15 +232,52 @@ fn map_to_response(p: Product, attributes: Vec<ProductAttributeResponse>) -> Pro
     }
 }
 
+
 pub async fn get_products(
     State(state): State<AppState>,
+    Query(query): Query<ProductQuery>,
 ) -> Result<Json<Vec<ProductResponse>>, AppError> {
-    let products = sqlx::query_as::<_, Product>(
-        "SELECT * FROM products WHERE is_active = 1"
-    )
-    .fetch_all(&state.db)
-    .await?;
+    // Note: building a dynamic query with `sqlx` and `bind` correctly requires `QueryBuilder`
+    // or careful manual construction. For simplicity in this demo, we'll build the string
+    // and bind parameters sequentially.
 
+    let mut query_builder = sqlx::QueryBuilder::new("SELECT * FROM products WHERE is_active = 1");
+
+    if let Some(ref q) = query.q {
+        if !q.trim().is_empty() {
+            let search = format!("%{}%", q.trim().to_lowercase());
+            query_builder.push(" AND (LOWER(name) LIKE ");
+            query_builder.push_bind(search.clone());
+            query_builder.push(" OR LOWER(origin) LIKE ");
+            query_builder.push_bind(search.clone()); // Bind the same search string again
+            query_builder.push(" OR LOWER(category) LIKE ");
+            query_builder.push_bind(search);
+            query_builder.push(")");
+        }
+    }
+
+    if let Some(ref cat) = query.category {
+        if cat != "All" {
+            query_builder.push(" AND category = ");
+            query_builder.push_bind(cat);
+        }
+    }
+
+    // Pagination
+    let page = query.page.unwrap_or(1).max(1);
+    let limit = query.limit.unwrap_or(12).max(1);
+    let offset = (page - 1) * limit;
+
+    query_builder.push(" LIMIT ");
+    query_builder.push_bind(limit);
+    query_builder.push(" OFFSET ");
+    query_builder.push_bind(offset);
+
+    let products = query_builder.build_query_as::<Product>()
+        .fetch_all(&state.db)
+        .await?;
+
+    // Fetch attributes
     let product_ids: Vec<i32> = products.iter().map(|p| p.id).collect();
     let attributes_map = fetch_attributes_for_products(&state.db, &product_ids).await?;
 
