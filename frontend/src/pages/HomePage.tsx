@@ -6,6 +6,8 @@ import { ArrowRight, Leaf, Truck, Award, ShieldCheck } from 'lucide-react';
 import { useProductStore } from '../store';
 import ProductCard from '../components/products/ProductCard';
 
+import { getOptimizedImageUrl, PLACEHOLDER_TEA_IMAGE } from '../utils/images';
+
 const HomePage: React.FC = () => {
   const products = useProductStore((state) => state.products).slice(0, 4);
 
@@ -15,9 +17,17 @@ const HomePage: React.FC = () => {
       <section className="relative h-[90vh] overflow-hidden flex items-center">
         <div className="absolute inset-0 z-0">
           <img
-            src="https://images.unsplash.com/photo-1594631252845-29fc458695d7?auto=format&fit=crop&q=80&w=2000"
+            src={getOptimizedImageUrl(PLACEHOLDER_TEA_IMAGE, 2000)}
+            srcSet={`
+              ${getOptimizedImageUrl(PLACEHOLDER_TEA_IMAGE, 800)} 800w,
+              ${getOptimizedImageUrl(PLACEHOLDER_TEA_IMAGE, 1200)} 1200w,
+              ${getOptimizedImageUrl(PLACEHOLDER_TEA_IMAGE, 2000)} 2000w
+            `}
+            sizes="100vw"
             className="w-full h-full object-cover"
             alt="Tea plantation"
+            fetchPriority="high"
+            loading="eager"
           />
           <div className="absolute inset-0 bg-black/40" />
         </div>
@@ -102,7 +112,7 @@ const HomePage: React.FC = () => {
               className="relative rounded-3xl overflow-hidden"
             >
               <img
-                src="https://images.unsplash.com/photo-1544787210-2213d2429f77?auto=format&fit=crop&q=80&w=800"
+                src={getOptimizedImageUrl(PLACEHOLDER_TEA_IMAGE, 800)}
                 alt="Brewing tea"
                 className="w-full h-[500px] object-cover"
               />
@@ -132,8 +142,8 @@ const HomePage: React.FC = () => {
             </button>
           </div>
         </div>
-      </section>
-    </div>
+      </section >
+    </div >
   );
 };
 

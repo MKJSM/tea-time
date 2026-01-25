@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '../../utils/cn';
+import { PLACEHOLDER_TEA_IMAGE } from '../../utils/images';
 
 interface ImageSliderProps {
   images: string[];
@@ -13,8 +14,6 @@ interface ImageSliderProps {
   showDots?: boolean;
   aspectRatio?: string;
 }
-
-const PLACEHOLDER_TEA_IMAGE = "https://images.unsplash.com/photo-1544787210-2213d2429f77?auto=format&fit=crop&q=80&w=800";
 
 export const ImageSlider: React.FC<ImageSliderProps> = ({
   images,

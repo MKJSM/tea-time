@@ -1,3 +1,6 @@
+// @ts-ignore
+import teaPlaceholder from '../assets/tea-placeholder.jpg';
+
 /**
  * Optimizes an image URL for specific dimensions.
  * Currently optimized for Unsplash URLs.
@@ -20,3 +23,5 @@ export const getOptimizedImageUrl = (url: string, width: number = 400): string =
         return url;
     }
 };
+
+export const PLACEHOLDER_TEA_IMAGE = teaPlaceholder;
