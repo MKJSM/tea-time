@@ -24,7 +24,7 @@ COPY backend/Cargo.toml backend/Cargo.lock ./
 # Copy source code and templates
 COPY backend/src ./src
 COPY backend/templates ./templates
-COPY backend/migrations ./migrations
+COPY backend/db/migration ./db/migration
 
 # Create static directory
 RUN mkdir -p static/assets
