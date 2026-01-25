@@ -1,6 +1,6 @@
 -- Seed Data
 
-INSERT INTO products (
+INSERT OR IGNORE INTO products (
     name, description, base_price, category, image_url, stock_quantity, sku,
     rating, origin, caffeine, format, 
     brewing_guide,
@@ -93,13 +93,13 @@ INSERT INTO products (
 );
 
 -- Seed Customization Groups
-INSERT INTO customization_groups (id, name, description, input_type, min_selections, max_selections, is_required) VALUES
+INSERT OR IGNORE INTO customization_groups (id, name, description, input_type, min_selections, max_selections, is_required) VALUES
 (1, 'Size', 'Select cup size', 'radio', 1, 1, 1),
 (2, 'Sugar Level', 'Select sugar preference', 'radio', 1, 1, 1),
 (3, 'Temperature', 'Select serving temperature', 'radio', 1, 1, 1);
 
 -- Seed Customization Options
-INSERT INTO customization_options (group_id, name, price_modifier, is_default, display_order) VALUES
+INSERT OR IGNORE INTO customization_options (group_id, name, price_modifier, is_default, display_order) VALUES
 -- Size
 (1, 'Small (250ml)', 0.0, 1, 1),
 (1, 'Medium (350ml)', 20.0, 0, 2),
@@ -115,13 +115,13 @@ INSERT INTO customization_options (group_id, name, price_modifier, is_default, d
 
 -- Link Customizations to Products
 -- Tea/Coffee (1,2,3) -> All groups
-INSERT INTO product_customizations (product_id, group_id, display_order) VALUES
+INSERT OR IGNORE INTO product_customizations (product_id, group_id, display_order) VALUES
 (1, 1, 1), (1, 2, 2), (1, 3, 3),
 (2, 1, 1), (2, 2, 2), (2, 3, 3),
 (3, 1, 1), (3, 2, 2), (3, 3, 3);
 
 -- Milk/Shake (4,5,6) -> Size, Sugar
-INSERT INTO product_customizations (product_id, group_id, display_order) VALUES
+INSERT OR IGNORE INTO product_customizations (product_id, group_id, display_order) VALUES
 (4, 1, 1), (4, 2, 2),
 (5, 1, 1), (5, 2, 2),
 (6, 1, 1), (6, 2, 2);
