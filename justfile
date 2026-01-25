@@ -37,3 +37,9 @@ run: deploy-frontend
 
 # 'all' is an alias for 'run'
 all: run
+
+# Seed the database with initial data
+seed:
+    @echo "Seeding database..."
+    sqlite3 backend/db.sqlite < backend/db/data/seed.sql
+    @echo "Database seeded."
