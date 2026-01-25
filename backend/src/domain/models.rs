@@ -1,6 +1,7 @@
-use serde::{Serialize, Deserialize};
-use sqlx::FromRow;
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
+use validator::Validate;
 
 #[derive(Serialize, Deserialize, FromRow, Clone, Debug)]
 pub struct Product {
@@ -13,20 +14,20 @@ pub struct Product {
     pub is_active: bool,
     pub sku: Option<String>,
     pub stock_quantity: i32,
-    
+
     // Rich Data Fields
     pub rating: f64,
     pub origin: Option<String>,
     pub caffeine: Option<String>,
     pub format: Option<String>,
-    
+
     // Brewing
     pub brewing_guide: Option<String>,
-    
+
     // Story/Marketing
     pub story: Option<String>,
     pub tags: Option<String>,
-    
+
     // Flavor Profile
     pub flavor_profile: Option<String>,
 
@@ -66,7 +67,7 @@ pub struct ProductCustomization {
 
 #[derive(Serialize, Deserialize, FromRow, Clone, Debug)]
 pub struct User {
-    pub id: i32,
+    pub id: String, // UUID
     pub name: String,
     pub email: String,
     pub phone: String,
@@ -80,36 +81,53 @@ pub struct User {
 #[derive(Serialize, Deserialize, FromRow, Clone, Debug)]
 pub struct Session {
     pub id: String,
-    pub user_id: i32,
+    pub user_id: String, // UUID
     pub expires_at: DateTime<Utc>,
     pub created_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize, Validate)]
 pub struct CreateUserRequest {
+    #[validate(length(
+        min = 1,
+        max = 100,
+        message = "Name must be between 1 and 100 characters"
+    ))]
     pub name: String,
+    #[validate(email(message = "Invalid email format"))]
     pub email: String,
+    #[validate(length(
+        min = 8,
+        max = 128,
+        message = "Password must be between 8 and 128 characters"
+    ))]
     pub password: String,
-    // phone is optional in current frontend modal, we can default it or ask for it
-    pub phone: Option<String>, 
+    #[validate(length(max = 20, message = "Phone must be at most 20 characters"))]
+    pub phone: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize, Validate)]
 pub struct LoginUserRequest {
+    #[validate(email(message = "Invalid email format"))]
     pub email: String,
-    pub password: Option<String>, // Making optional to support "social" login simul (if needed later)
+    #[validate(length(min = 1, message = "Password is required"))]
+    pub password: String,
 }
 
 #[derive(Serialize)]
 pub struct AuthResponse {
     pub user: User,
-    pub token: String,
 }
 
 #[derive(Serialize, Deserialize, FromRow, Clone, Debug)]
 pub struct Favorite {
     pub id: i32,
-    pub user_id: i32,
+    pub user_id: String, // UUID
     pub product_id: i32,
     pub created_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Deserialize)]
+pub struct LogoutDeviceRequest {
+    pub session_id: String,
 }

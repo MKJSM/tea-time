@@ -3,6 +3,15 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 import { Product } from '../../types';
 import { axiosBaseQuery } from '../../api/client';
 
+// Backend paginated response type
+interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export const productsApi = createApi({
   reducerPath: 'productsApi',
   baseQuery: axiosBaseQuery(),
@@ -14,6 +23,8 @@ export const productsApi = createApi({
         method: 'GET',
         params: params || {}
       }),
+      // Transform paginated response to array
+      transformResponse: (response: PaginatedResponse<Product>) => response.data,
       providesTags: (result) =>
         result
           ? [...result.map(({ id }) => ({ type: 'Product' as const, id })), { type: 'Product', id: 'LIST' }]
@@ -38,7 +49,7 @@ export const productsApi = createApi({
     }),
     getFeaturedProducts: builder.query({
       query: () => ({ url: '/products', method: 'GET' }),
-      transformResponse: (response: Product[]) => response.slice(0, 4),
+      transformResponse: (response: PaginatedResponse<Product>) => response.data.slice(0, 4),
     }),
   }),
 });

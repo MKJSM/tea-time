@@ -1,1 +1,8 @@
 /target
+
+# Database files
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+db/*.sqlite*
