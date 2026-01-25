@@ -3,7 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, Leaf, Truck, Award, ShieldCheck } from 'lucide-react';
-import { useProductStore } from '../../../store';
+import { useProductStore } from '../store';
 import ProductCard from '../components/products/ProductCard';
 
 const HomePage: React.FC = () => {
