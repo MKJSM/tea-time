@@ -1,5 +1,6 @@
 // @ts-ignore
-import teaPlaceholder from '../assets/tea-placeholder.jpg';
+import teaPlaceholder from '../assets/home.png';
+import config from '../config';
 
 /**
  * Optimizes an image URL for specific dimensions.
@@ -25,3 +26,30 @@ export const getOptimizedImageUrl = (url: string, width: number = 400): string =
 };
 
 export const PLACEHOLDER_TEA_IMAGE = teaPlaceholder;
+
+export const AWS_BASE_URL = config.storage.s3BaseUrl;
+
+/**
+ * gets the full image URL. 
+ * If it's an absolute URL (http/https), returns it.
+ * If it's a relative path, appends it to the AWS Base URL.
+ */
+export const getProductImageUrl = (imagePath: string | undefined): string => {
+    if (!imagePath) return PLACEHOLDER_TEA_IMAGE;
+    // Return absolute URLs, blob URLs, and local assets as is
+    if (imagePath.startsWith('http') || imagePath.startsWith('blob:') || imagePath.startsWith('/assets/')) {
+        return imagePath;
+    }
+    // Remove leading slash if present in DB to avoid double slashes
+    const cleanPath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
+    return `${AWS_BASE_URL}/${cleanPath}`;
+};
+
+export const transformProduct = <T extends { image?: string; images?: string[] }>(product: T): T => {
+    return {
+        ...product,
+        image: getProductImageUrl(product.image),
+        images: product.images?.map(img => getProductImageUrl(img))
+    };
+};
+

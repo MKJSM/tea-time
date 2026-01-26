@@ -62,7 +62,7 @@ pub struct ProductResponse {
     pub name: String,
     pub description: Option<String>,
     pub price: f64,
-    pub category: String,
+    pub categories: Vec<String>,
     pub image: String,
     pub is_active: bool,
     pub sku: Option<String>,
@@ -109,8 +109,8 @@ pub struct ProductQuery {
 // Helper struct for query results
 #[derive(sqlx::FromRow)]
 struct ProductGroupRow {
-    product_id: i32,
-    id: i32, // group id
+    product_id: String, // UUID
+    id: String,         // group id (UUID)
     name: String,
     description: Option<String>,
     input_type: String,
@@ -120,8 +120,8 @@ struct ProductGroupRow {
 // Helper struct for shared logic (fetching attributes for a list of product IDs)
 async fn fetch_attributes_for_products(
     db: &sqlx::SqlitePool,
-    product_ids: &[i32],
-) -> Result<HashMap<i32, Vec<ProductAttributeResponse>>, AppError> {
+    product_ids: &[String],
+) -> Result<HashMap<String, Vec<ProductAttributeResponse>>, AppError> {
     if product_ids.is_empty() {
         return Ok(HashMap::new());
     }
@@ -150,7 +150,7 @@ async fn fetch_attributes_for_products(
     }
 
     // Now fetch options for the groups found
-    let group_ids: Vec<i32> = product_groups.iter().map(|g| g.id).collect();
+    let group_ids: Vec<String> = product_groups.iter().map(|g| g.id.clone()).collect();
     let mut unique_group_ids = group_ids.clone();
     unique_group_ids.sort();
     unique_group_ids.dedup();
@@ -168,14 +168,20 @@ async fn fetch_attributes_for_products(
     let all_options = query_o.fetch_all(db).await?;
 
     // Processing
-    let mut options_by_group: HashMap<i32, Vec<CustomizationOption>> = HashMap::new();
+    let mut options_by_group: HashMap<String, Vec<CustomizationOption>> = HashMap::new();
     for opt in all_options {
-        options_by_group.entry(opt.group_id).or_default().push(opt);
+        options_by_group
+            .entry(opt.group_id.clone())
+            .or_default()
+            .push(opt);
     }
 
-    let mut groups_by_product: HashMap<i32, Vec<ProductGroupRow>> = HashMap::new();
+    let mut groups_by_product: HashMap<String, Vec<ProductGroupRow>> = HashMap::new();
     for pg in product_groups {
-        groups_by_product.entry(pg.product_id).or_default().push(pg);
+        groups_by_product
+            .entry(pg.product_id.clone())
+            .or_default()
+            .push(pg);
     }
 
     let mut result = HashMap::new();
@@ -189,7 +195,7 @@ async fn fetch_attributes_for_products(
                     .map(|opts| {
                         opts.iter()
                             .map(|o| AttributeOptionResponse {
-                                id: o.id.to_string(),
+                                id: o.id.clone(),
                                 value: o.name.clone(),
                                 display_name: o.name.clone(),
                                 price_adjustment: o.price_modifier,
@@ -202,7 +208,7 @@ async fn fetch_attributes_for_products(
                     .unwrap_or_default();
 
                 attributes.push(ProductAttributeResponse {
-                    id: group.id.to_string(),
+                    id: group.id.clone(),
                     name: group.name.clone(),
                     type_: if group.input_type == "radio" {
                         "select".to_string()
@@ -215,7 +221,7 @@ async fn fetch_attributes_for_products(
                 });
             }
         }
-        result.insert(*product_id, attributes);
+        result.insert(product_id.clone(), attributes);
     }
 
     Ok(result)
@@ -240,12 +246,14 @@ fn map_to_response(p: Product, attributes: Vec<ProductAttributeResponse>) -> Pro
         .and_then(|json| serde_json::from_str(json).ok())
         .unwrap_or_default();
 
+    let categories = p.category.0;
+
     ProductResponse {
-        id: p.id.to_string(),
+        id: p.id,
         name: p.name,
         description: p.description,
         price: p.base_price,
-        category: p.category,
+        categories,
         image: p.image_url.unwrap_or_default(),
         is_active: p.is_active,
         sku: p.sku,
@@ -262,24 +270,6 @@ fn map_to_response(p: Product, attributes: Vec<ProductAttributeResponse>) -> Pro
     }
 }
 
-/// Check if FTS table exists and use it for search, otherwise fallback to LIKE
-async fn search_product_ids_fts(
-    db: &sqlx::SqlitePool,
-    search_term: &str,
-) -> Result<Option<Vec<i32>>, AppError> {
-    // Try FTS search - if the table doesn't exist, this will fail and we'll fallback
-    let fts_result: Result<Vec<(i32,)>, _> =
-        sqlx::query_as("SELECT rowid FROM products_fts WHERE products_fts MATCH ? ORDER BY rank")
-            .bind(format!("{}*", search_term.trim()))
-            .fetch_all(db)
-            .await;
-
-    match fts_result {
-        Ok(rows) => Ok(Some(rows.into_iter().map(|(id,)| id).collect())),
-        Err(_) => Ok(None), // FTS not available, use fallback
-    }
-}
-
 #[tracing::instrument(skip(state))]
 pub async fn get_products(
     State(state): State<AppState>,
@@ -293,40 +283,13 @@ pub async fn get_products(
         .clamp(1, MAX_PAGE_LIMIT);
     let offset = (page - 1) * limit;
 
-    // Try FTS search first if search query provided
-    let fts_ids = if let Some(ref q) = query.q {
-        if !q.trim().is_empty() {
-            search_product_ids_fts(&state.db, q).await?
-        } else {
-            None
-        }
-    } else {
-        None
-    };
-
     // Build query
     let mut query_builder = sqlx::QueryBuilder::new("SELECT * FROM products WHERE is_active = 1");
     let mut count_builder =
         sqlx::QueryBuilder::new("SELECT COUNT(*) FROM products WHERE is_active = 1");
 
-    // If FTS found results, filter by those IDs
-    if let Some(ref ids) = fts_ids {
-        if ids.is_empty() {
-            // FTS returned no results
-            return Ok(Json(PaginatedResponse {
-                data: vec![],
-                total: 0,
-                page,
-                limit,
-                total_pages: 0,
-            }));
-        }
-        let placeholders: Vec<String> = ids.iter().map(|_| "?".to_string()).collect();
-        let in_clause = format!(" AND id IN ({})", placeholders.join(","));
-        query_builder.push(&in_clause);
-        count_builder.push(&in_clause);
-    } else if let Some(ref q) = query.q {
-        // Fallback to LIKE search
+    // Search filter using LIKE (FTS removed for UUID migration simplicity)
+    if let Some(ref q) = query.q {
         if !q.trim().is_empty() {
             let search = format!("%{}%", q.trim().to_lowercase());
             query_builder.push(" AND (LOWER(name) LIKE ");
@@ -348,13 +311,18 @@ pub async fn get_products(
         }
     }
 
-    // Category filter
+    // Category filter - updated for JSON array
     if let Some(ref cat) = query.category {
         if cat != CATEGORY_ALL {
-            query_builder.push(" AND category = ");
+            query_builder
+                .push(" AND EXISTS (SELECT 1 FROM json_each(products.category) WHERE value = ");
             query_builder.push_bind(cat);
-            count_builder.push(" AND category = ");
+            query_builder.push(")");
+
+            count_builder
+                .push(" AND EXISTS (SELECT 1 FROM json_each(products.category) WHERE value = ");
             count_builder.push_bind(cat);
+            count_builder.push(")");
         }
     }
 
@@ -368,25 +336,14 @@ pub async fn get_products(
     query_builder.push(" OFFSET ");
     query_builder.push_bind(offset);
 
-    // Build and bind FTS IDs if needed
-    let products = if let Some(ref ids) = fts_ids {
-        let sql = query_builder.sql();
-        let mut q = sqlx::query_as::<_, Product>(sql);
-        for id in ids {
-            q = q.bind(id);
-        }
-        q = q.bind(limit).bind(offset);
-        q.fetch_all(&state.db).await?
-    } else {
-        query_builder
-            .build_query_as::<Product>()
-            .fetch_all(&state.db)
-            .await?
-    };
+    let products = query_builder
+        .build_query_as::<Product>()
+        .fetch_all(&state.db)
+        .await?;
 
     // Fetch attributes only if requested
     let attributes_map = if query.include_attributes {
-        let product_ids: Vec<i32> = products.iter().map(|p| p.id).collect();
+        let product_ids: Vec<String> = products.iter().map(|p| p.id.clone()).collect();
         fetch_attributes_for_products(&state.db, &product_ids).await?
     } else {
         HashMap::new()
@@ -414,15 +371,15 @@ pub async fn get_products(
 #[tracing::instrument(skip(state))]
 pub async fn get_product_by_id(
     State(state): State<AppState>,
-    Path(id): Path<i32>,
+    Path(id): Path<String>,
 ) -> Result<Json<ProductResponse>, AppError> {
     let product = sqlx::query_as::<_, Product>("SELECT * FROM products WHERE id = ?")
-        .bind(id)
+        .bind(&id)
         .fetch_optional(&state.db)
         .await?
         .ok_or_else(|| AppError::NotFound("Product not found".into()))?;
 
-    let attributes_map = fetch_attributes_for_products(&state.db, &[product.id]).await?;
+    let attributes_map = fetch_attributes_for_products(&state.db, std::slice::from_ref(&product.id)).await?;
     let attributes = attributes_map.get(&product.id).cloned().unwrap_or_default();
 
     Ok(Json(map_to_response(product, attributes)))
@@ -432,7 +389,7 @@ pub async fn get_product_by_id(
 #[tracing::instrument(skip(state))]
 pub async fn get_product_customizations(
     State(state): State<AppState>,
-    Path(product_id): Path<i32>,
+    Path(product_id): Path<String>,
 ) -> Result<Json<Vec<ProductCustomization>>, AppError> {
     // Fetch groups for this product
     let groups = sqlx::query_as::<_, CustomizationGroup>(
@@ -444,7 +401,7 @@ pub async fn get_product_customizations(
         ORDER BY pc.display_order
         "#,
     )
-    .bind(product_id)
+    .bind(&product_id)
     .fetch_all(&state.db)
     .await?;
 
@@ -453,7 +410,7 @@ pub async fn get_product_customizations(
     }
 
     // Batch fetch all options for all groups in ONE query (fixes N+1)
-    let group_ids: Vec<i32> = groups.iter().map(|g| g.id).collect();
+    let group_ids: Vec<String> = groups.iter().map(|g| g.id.clone()).collect();
     let placeholders: Vec<String> = group_ids.iter().map(|_| "?".to_string()).collect();
     let query_opts = format!(
         "SELECT * FROM customization_options WHERE group_id IN ({}) ORDER BY group_id, display_order",
@@ -467,9 +424,12 @@ pub async fn get_product_customizations(
     let all_options = query.fetch_all(&state.db).await?;
 
     // Group options by group_id
-    let mut options_by_group: HashMap<i32, Vec<CustomizationOption>> = HashMap::new();
+    let mut options_by_group: HashMap<String, Vec<CustomizationOption>> = HashMap::new();
     for opt in all_options {
-        options_by_group.entry(opt.group_id).or_default().push(opt);
+        options_by_group
+            .entry(opt.group_id.clone())
+            .or_default()
+            .push(opt);
     }
 
     // Build result
@@ -482,6 +442,17 @@ pub async fn get_product_customizations(
         .collect();
 
     Ok(Json(result))
+}
+
+#[tracing::instrument(skip(state))]
+pub async fn get_categories(State(state): State<AppState>) -> Result<Json<Vec<String>>, AppError> {
+    let categories = sqlx::query_scalar::<_, String>(
+        "SELECT DISTINCT value FROM products, json_each(products.category) WHERE products.is_active = 1 ORDER BY value"
+    )
+    .fetch_all(&state.db)
+    .await?;
+
+    Ok(Json(categories))
 }
 
 #[cfg(test)]

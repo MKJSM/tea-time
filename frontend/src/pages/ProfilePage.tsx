@@ -39,14 +39,14 @@ const ProfilePage: React.FC = () => {
           <div className="w-20 h-20 bg-tea-50 text-tea-700 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
             <Shield size={32} />
           </div>
-          <h2 className="text-4xl font-serif font-bold text-tea-900 mb-4 tracking-tight">Your Sanctuary Awaits</h2>
-          <p className="text-gray-500 mb-10 font-light text-lg">Sign in to access your curated collection, rewards, and personal tea journal.</p>
+          <h2 className="text-4xl font-serif font-bold text-tea-900 mb-4 tracking-tight">Sign In Required</h2>
+          <p className="text-gray-500 mb-10 font-light text-lg">Sign in to view your orders, favorites, and account details.</p>
           <button
             onClick={() => dispatch(setAuthModalOpen(true))}
             className="w-full py-5 bg-tea-800 text-white font-bold rounded-2xl hover:bg-tea-950 transition-all flex items-center justify-center gap-3 shadow-xl"
           >
             <LogIn size={20} />
-            Enter Sign In Portal
+            Sign In
           </button>
         </motion.div>
       </div>
@@ -64,7 +64,7 @@ const ProfilePage: React.FC = () => {
 
   const handleLogout = async () => {
     await dispatch(logoutUser());
-    toast.success('Ritual complete. Safely logged out.', { icon: '👋' });
+    toast.success('Logged out successfully!', { icon: '👋' });
     navigate('/');
   };
 
@@ -117,8 +117,8 @@ const ProfilePage: React.FC = () => {
               <Heart size={20} />
             </div>
             <div>
-              <p className="text-sm font-bold text-tea-950">Wishlist & Favorites</p>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{favorites.length} Saved Teas</p>
+              <p className="text-sm font-bold text-tea-950">Favorites</p>
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{favorites.length} Saved Items</p>
             </div>
           </div>
           <ChevronRight size={18} className="text-gray-300" />
@@ -142,41 +142,41 @@ const ProfilePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-cream-paper pb-32">
       {/* 1. Elegant Header */}
-      <div className="bg-white px-6 pt-12 pb-10 border-b border-tea-50">
+      <div className="bg-white px-4 sm:px-6 pt-8 sm:pt-12 pb-8 sm:pb-10 border-b border-tea-50">
         <div className="max-w-3xl mx-auto flex flex-col items-center">
-          <div className="relative mb-6">
-            <div className="w-28 h-28 rounded-full p-1 bg-gradient-to-tr from-tea-800 to-accent-500">
+          <div className="relative mb-4 sm:mb-6">
+            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full p-1 bg-gradient-to-tr from-tea-800 to-accent-500">
               <img src={user.avatar} alt="Profile" className="w-full h-full object-cover rounded-full border-4 border-white" />
             </div>
-            <button className="absolute bottom-0 right-0 bg-tea-800 text-white p-2 rounded-full shadow-lg border-2 border-white">
+            <button className="absolute bottom-0 right-0 bg-tea-800 text-white p-2.5 rounded-full shadow-lg border-2 border-white active:scale-90 transition-transform">
               <Edit3 size={14} />
             </button>
           </div>
 
-          <h1 className="text-3xl font-serif font-bold text-tea-950 mb-1">{user.name}</h1>
-          <p className="text-sm text-gray-400 font-medium mb-6">{user.email}</p>
+          <h1 className="text-2xl sm:text-3xl font-serif font-bold text-tea-950 mb-1">{user.name}</h1>
+          <p className="text-xs sm:text-sm text-gray-400 font-bold uppercase tracking-widest mb-6">{user.email}</p>
 
-          <div className="w-full bg-gray-50 rounded-2xl p-4 border border-gray-100 flex items-center justify-around">
+          <div className="w-full bg-gray-50 rounded-2xl p-4 sm:p-6 border border-gray-100 flex items-center justify-around shadow-inner">
             <div className="text-center">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Rituals</p>
-              <p className="text-lg font-serif font-bold text-tea-900">{user.stats.teasTried}</p>
+              <p className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Orders</p>
+              <p className="text-base sm:text-lg font-serif font-bold text-tea-900">{user.stats.teasTried}</p>
             </div>
             <div className="w-px h-8 bg-gray-200" />
             <div className="text-center">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Credits</p>
-              <p className="text-lg font-serif font-bold text-tea-900">{user.loyaltyPoints}</p>
+              <p className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Points</p>
+              <p className="text-base sm:text-lg font-serif font-bold text-tea-900">{user.loyaltyPoints}</p>
             </div>
             <div className="w-px h-8 bg-gray-200" />
             <div className="text-center">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Mastery</p>
-              <p className="text-lg font-serif font-bold text-tea-900">Lvl {user.level}</p>
+              <p className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Level</p>
+              <p className="text-base sm:text-lg font-serif font-bold text-tea-900">Lvl {user.level}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-6 mt-8 space-y-8">
-        {/* 2. Active Journey Highlight */}
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8 space-y-6 sm:space-y-8">
+        {/* 2. Current Offer */}
         <motion.section
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -186,59 +186,55 @@ const ProfilePage: React.FC = () => {
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-4">
               <Sparkles size={16} className="text-accent-400" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-tea-200">Current Exploration</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-tea-200">Special Offer</span>
             </div>
-            <h3 className="text-xl font-serif font-bold mb-1">Japanese Green Mastery</h3>
-            <p className="text-xs text-tea-100/70 mb-6 font-light">Complete 3 Sencha tastings to unlock Kyoto badge.</p>
+            <h3 className="text-xl font-serif font-bold mb-1">Get 20% Off on First Order</h3>
+            <p className="text-xs text-tea-100/70 mb-6 font-light">Use code WELCOME20 at checkout.</p>
             <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
               <div className="h-full bg-accent-500 w-[65%]" />
             </div>
           </div>
         </motion.section>
 
-        {/* 3. The Journey Group */}
+        {/* 3. My Orders */}
         <section className="bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-gray-100">
           <div className="px-6 py-4 bg-gray-50/50 border-b border-gray-100">
-            <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">The Journey</h4>
+            <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">My Orders</h4>
           </div>
           <div className="divide-y divide-gray-50">
             <SettingItem icon={Package} label="Order History" value="2 Active • 24 Past" onClick={() => navigate('/orders')} />
-            <SettingItem icon={MapIcon} label="Tea Passport" value="5 Regions Explored" />
-            <SettingItem icon={Award} label="Achievements" value="12 Badges Unlocked" />
+            <SettingItem icon={Award} label="Rewards" value="12 Points Earned" />
           </div>
         </section>
 
-        {/* 4. The Vault Group */}
+        {/* 4. My Favorites */}
         <section className="bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-gray-100">
           <div className="px-6 py-4 bg-gray-50/50 border-b border-gray-100">
-            <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">The Vault</h4>
+            <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">My Favorites</h4>
           </div>
           <div className="divide-y divide-gray-50">
-            <SettingItem icon={BookOpen} label="Tasting Journal" value="18 Entries" />
-            <SettingItem icon={Bookmark} label="My Collection" value="8 Saved Teas" />
             <FavoritesSection />
           </div>
         </section>
 
-        {/* 5. Account Settings Group */}
+        {/* 5. Account Settings */}
         <section className="bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-gray-100">
           <div className="px-6 py-4 bg-gray-50/50 border-b border-gray-100">
-            <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Account Vault</h4>
+            <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Account Settings</h4>
           </div>
           <div className="divide-y divide-gray-50">
-            <SettingItem icon={MapPin} label="Shipping Coordinates" />
+            <SettingItem icon={MapPin} label="Delivery Address" onClick={() => dispatch(setAuthModalOpen(false)) || dispatch(setAddressModalOpen(true))} />
             <SettingItem icon={CreditCard} label="Payment Methods" />
-            <SettingItem icon={Shield} label="Sanctuary Security" />
-            <SettingItem icon={Settings} label="App Preferences" />
+            <SettingItem icon={Shield} label="Security" />
+            <SettingItem icon={Settings} label="Preferences" />
           </div>
         </section>
 
         {/* 6. Support & Legal */}
         <section className="bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-gray-100">
           <div className="divide-y divide-gray-50">
-            <SettingItem icon={HelpCircle} label="Help Center" />
-            <SettingItem icon={Leaf} label="Sustainability Charter" />
-            <SettingItem icon={Info} label="About Tea Time" />
+            <SettingItem icon={HelpCircle} label="Help & Support" />
+            <SettingItem icon={Info} label="About Us" />
           </div>
         </section>
 
@@ -249,12 +245,12 @@ const ProfilePage: React.FC = () => {
             className="w-full flex items-center justify-center gap-3 p-5 bg-red-50 text-red-600 font-bold rounded-[2.5rem] hover:bg-red-500 hover:text-white transition-all shadow-sm border border-red-100 active:scale-[0.98]"
           >
             <LogOut size={20} />
-            <span className="text-sm uppercase tracking-widest">Conclude Ritual</span>
+            <span className="text-sm uppercase tracking-widest">Log Out</span>
           </button>
         </section>
 
         <p className="text-center text-[10px] text-gray-300 font-medium uppercase tracking-widest pb-10">
-          Tea Time Version 2.4.0 • Built for Conscious Brewers
+          Tea Time v2.4.0
         </p>
       </div>
 
@@ -278,19 +274,19 @@ const ProfilePage: React.FC = () => {
               <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <LogOut size={32} />
               </div>
-              <h3 className="text-2xl font-serif font-bold text-tea-900 mb-2">Safe Travels?</h3>
-              <p className="text-gray-500 mb-8 font-light leading-relaxed">Are you certain you wish to conclude your session and exit the digital sanctuary?</p>
+              <h3 className="text-2xl font-serif font-bold text-tea-900 mb-2">Log Out?</h3>
+              <p className="text-gray-500 mb-8 font-light leading-relaxed">Are you sure you want to log out of your account?</p>
               <div className="flex flex-col gap-3">
                 <button
                   onClick={handleLogout}
                   className="w-full py-4 bg-red-500 text-white font-bold rounded-2xl shadow-lg hover:bg-red-600 transition-all"
                 >
-                  Confirm Logout
+                  Yes, Log Out
                 </button>
                 <button
                   onClick={() => setShowLogoutConfirm(false)}
                   className="w-full py-4 bg-white text-gray-400 font-bold text-sm rounded-2xl hover:bg-gray-50 transition-all"
-                >Return to Sanctuary</button>
+                >Cancel</button>
               </div>
             </motion.div>
           </div>

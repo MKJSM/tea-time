@@ -7,8 +7,8 @@ export const favoritesApi = createApi({
     baseQuery: axiosBaseQuery(),
     tagTypes: ['Favorites'],
     endpoints: (builder) => ({
-        // Get list of favorited product IDs (for quick UI check)
-        getFavoriteIds: builder.query<number[], void>({
+        // Get list of favorited product IDs (UUIDs) for quick UI check
+        getFavoriteIds: builder.query<string[], void>({
             query: () => ({ url: '/favorites/ids', method: 'GET' }),
             providesTags: ['Favorites'],
         }),
@@ -17,11 +17,11 @@ export const favoritesApi = createApi({
             query: () => ({ url: '/favorites', method: 'GET' }),
             providesTags: ['Favorites'],
         }),
-        addFavorite: builder.mutation<void, number>({
+        addFavorite: builder.mutation<void, string>({
             query: (productId) => ({ url: `/products/${productId}/favorite`, method: 'POST' }),
             invalidatesTags: ['Favorites'],
         }),
-        removeFavorite: builder.mutation<void, number>({
+        removeFavorite: builder.mutation<void, string>({
             query: (productId) => ({ url: `/products/${productId}/favorite`, method: 'DELETE' }),
             invalidatesTags: ['Favorites'],
         }),

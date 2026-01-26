@@ -19,9 +19,9 @@ export const ProductCustomizer: React.FC<ProductCustomizerProps> = ({
   const renderOption = (attr: ProductAttribute, opt: AttributeOption) => {
     const isSelected = selections[attr.id] === opt.value;
     const priceDisplay = opt.priceAdjustment > 0
-      ? `+ $${opt.priceAdjustment.toFixed(2)}`
+      ? `+ ₹${opt.priceAdjustment.toFixed(2)}`
       : opt.priceAdjustment < 0
-        ? `- $${Math.abs(opt.priceAdjustment).toFixed(2)}`
+        ? `- ₹${Math.abs(opt.priceAdjustment).toFixed(2)}`
         : null;
 
     if (attr.type === 'color') {

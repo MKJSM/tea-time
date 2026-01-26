@@ -8,6 +8,7 @@ use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
+use chrono::Utc;
 use axum::{
     extract::{Json, State},
     http::{HeaderMap, StatusCode},
@@ -174,6 +175,13 @@ pub async fn login(
     Argon2::default()
         .verify_password(payload.password.as_bytes(), &parsed_hash)
         .map_err(|_| AppError::Unauthorized("Invalid credentials".into()))?;
+
+    // Update last_login_at
+    sqlx::query("UPDATE users SET last_login_at = ? WHERE id = ?")
+        .bind(Utc::now())
+        .bind(&user.id)
+        .execute(&state.db)
+        .await?;
 
     // Login (create session)
     let auth_user = AuthUser {

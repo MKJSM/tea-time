@@ -8,6 +8,7 @@ import MobileBottomNav from './components/layout/MobileBottomNav';
 import Footer from './components/layout/Footer';
 import LoadingSpinner from './components/common/LoadingSpinner';
 import AuthModal from './components/auth/AuthModal';
+import GlobalAddressModal from './components/address/GlobalAddressModal';
 import { CartDrawer } from './components/layout/CartDrawer';
 import { MobileQuickCart } from './components/layout/MobileQuickCart';
 import { useAppDispatch } from './store/hooks';
@@ -16,6 +17,7 @@ import { fetchCurrentUser } from './features/auth/authSlice';
 import { initCartDB, migrateCartFromLocalStorage } from './utils/indexedDB';
 
 // Lazy load core pages
+const HomePage = lazy(() => import('./pages/HomePage'));
 const ProductsPage = lazy(() => import('./pages/ProductsPage'));
 const ProductDetailPage = lazy(() => import('./pages/ProductDetailPage'));
 const CartPage = lazy(() => import('./pages/CartPage'));
@@ -73,7 +75,7 @@ const App: React.FC = () => {
           <Suspense fallback={<LoadingSpinner fullPage />}>
             <AnimatePresence mode="wait">
               <Routes>
-                <Route path="/" element={<PageWrapper><ProductsPage /></PageWrapper>} />
+                <Route path="/" element={<PageWrapper><HomePage /></PageWrapper>} />
                 <Route path="/shop" element={<PageWrapper><ProductsPage /></PageWrapper>} />
                 <Route path="/product/:id" element={<PageWrapper><ProductDetailPage /></PageWrapper>} />
                 <Route path="/cart" element={<PageWrapper><CartPage /></PageWrapper>} />
@@ -89,6 +91,7 @@ const App: React.FC = () => {
         <Footer />
         <MobileBottomNav />
         <AuthModal />
+        <GlobalAddressModal />
 
         {/* Global Cart UI Components */}
         <CartDrawer />

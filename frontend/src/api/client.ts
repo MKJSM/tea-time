@@ -1,11 +1,9 @@
 import axios from 'axios';
-
-// Base configuration
-const API_URL = '/api';
+import { config } from '../config';
 
 const apiClient = axios.create({
-  baseURL: API_URL,
-  timeout: 10000,
+  baseURL: config.api.baseUrl,
+  timeout: config.api.timeout,
   withCredentials: true, // Send cookies with requests
   headers: {
     'Content-Type': 'application/json',

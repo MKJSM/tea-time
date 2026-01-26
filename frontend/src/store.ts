@@ -23,13 +23,13 @@ export const useCartStore = create<CartState>()(
         if (existing) {
           set({
             items: get().items.map((i) =>
-              (customization ? i.customization?.id === customization.id : i.id === product.id) 
-                ? { ...i, quantity: i.quantity + quantity } 
+              (customization ? i.customization?.id === customization.id : i.id === product.id)
+                ? { ...i, quantity: i.quantity + quantity }
                 : i
             ),
           });
         } else {
-          set({ items: [...get().items, { ...product, quantity, customization }] });
+          set({ items: [...get().items, { ...product, itemKey, quantity, customization }] });
         }
       },
       removeItem: (id) => set({ items: get().items.filter((i) => i.id !== id) }),
@@ -85,8 +85,25 @@ export const useAuthStore = create<AuthState>()(
             name: email.split('@')[0],
             email,
             avatar: 'https://picsum.photos/seed/teauser/200',
-            preferences: ['Green Tea', 'Oolong'],
+            level: 1,
+            xp: 0,
+            xpToNext: 100,
             loyaltyPoints: 450,
+            stats: {
+              teasTried: 0,
+              notesWritten: 0,
+              streakDays: 0,
+              regionsExplored: 0,
+            },
+            journal: [],
+            achievements: [],
+            passport: [],
+            preferences: ['Green Tea', 'Oolong'],
+            sessions: [],
+            security: {
+              twoFactorEnabled: false,
+              lastPasswordChange: new Date().toISOString(),
+            },
           },
           isAuthenticated: true,
         }),

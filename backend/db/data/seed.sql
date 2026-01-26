@@ -1,127 +1,116 @@
--- Seed Data
+-- Seed data for Mobilitea menu
+-- All IDs are UUIDs
 
-INSERT OR IGNORE INTO products (
-    name, description, base_price, category, image_url, stock_quantity, sku,
-    rating, origin, caffeine, format, 
-    brewing_guide,
-    story, tags,
-    flavor_profile
-) VALUES
-(
-    'Hot Masala Tea', 
-    'Aromatic blend of premium tea leaves with traditional Indian spices', 
-    45.0, 
-    'Tea', 
-    'https://images.unsplash.com/photo-1571934811356-5cc061b6821f?q=80&w=1167&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', 
-    100, 
-    'TEA-001',
-    4.8, 'Assam, India', 'High', 'Loose Leaf',
-    '{"temperature": 95.0, "time": 4.0, "instructions": "Boil water, add 1tsp tea, steep for 4 mins. Add milk and sugar to taste."}',
-    'A traditional Indian chai blend, passed down through generations. Perfect for starting your day with energy and warmth.',
-    '["Spiced", "Traditional", "Morning"]',
-    '{"floral": 0.3, "grassy": 0.2, "nutty": 0.4, "sweet": 0.5, "earthy": 0.6, "spicy": 0.8}'
-),
-(
-    'Strong Filter Coffee', 
-    'South Indian style filter coffee with rich aroma and bold flavor', 
-    60.0, 
-    'Coffee', 
-    'https://images.unsplash.com/photo-1544787219-7f47ccb76574?q=80&w=721&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', 
-    100, 
-    'COF-001',
-    4.9, 'Coorg, India', 'High', 'Powder',
-    '{"temperature": 90.0, "time": 5.0, "instructions": "Use a traditional coffee filter. Add powder, pour hot water, let it drip. Mix with hot milk and sugar."}',
-    'Sourced from the hills of Coorg, our filter coffee offers an authentic South Indian experience in every sip.',
-    '["Bold", "Traditional", "Energy"]',
-    '{"floral": 0.1, "grassy": 0.1, "nutty": 0.7, "sweet": 0.2, "earthy": 0.8, "spicy": 0.1}'
-),
-(
-    'Plain Tea', 
-    'Classic Plain Tea with perfect blend of tea leaves and milk', 
-    35.0, 
-    'Tea', 
-    'https://images.unsplash.com/photo-1562547256-2c5ee93b60b7?q=80&w=741&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', 
-    100, 
-    'TEA-002',
-    4.5, 'Darjeeling, India', 'Medium', 'Tea Bags',
-    '{"temperature": 85.0, "time": 3.0, "instructions": "Steep tea bag in hot water for 3 minutes. Remove and enjoy."}',
-    'Simple, elegant, and timeless. Our plain tea allows the pure flavor of the leaves to shine through.',
-    '["Classic", "Simple", "Everyday"]',
-    '{"floral": 0.6, "grassy": 0.4, "nutty": 0.2, "sweet": 0.3, "earthy": 0.2, "spicy": 0.0}'
-),
-(
-    'Rose Milk', 
-    'Refreshing rose-flavored milk with a delicate floral aroma', 
-    50.0, 
-    'Milk', 
-    'https://images.unsplash.com/photo-1556679343-c7306c1976bc?q=80&w=800&auto=format&fit=crop', 
-    100, 
-    'MILK-001',
-    4.7, 'Local Dairy', 'None', 'Ready to Drink',
-    '{"temperature": 0.0, "time": 0.0, "instructions": "Serve chilled."}',
-    'A cooling summer drink made with fresh milk and premium rose syrup.',
-    '["Sweet", "Cooling", "Floral"]',
-    '{"floral": 1.0, "grassy": 0.0, "nutty": 0.1, "sweet": 0.9, "earthy": 0.0, "spicy": 0.0}'
-),
-(
-    'Strawberry Thick Shake', 
-    'A cool & creamy summer delight with fresh strawberry flavor', 
-    80.0, 
-    'Shake', 
-    'https://images.unsplash.com/photo-1597481499666-130f8eb2c9cd?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', 
-    100, 
-    'SHK-001',
-    4.8, 'Local Dairy', 'None', 'Ready to Drink',
-    '{"temperature": 0.0, "time": 0.0, "instructions": "Serve chilled."}',
-    'Thick, creamy, and bursting with real strawberry flavor. A favorite for kids and adults alike.',
-    '["Fruity", "Sweet", "Indulgent"]',
-    '{"floral": 0.4, "grassy": 0.0, "nutty": 0.1, "sweet": 0.9, "earthy": 0.0, "spicy": 0.0}'
-),
-(
-    'Palm Fruit Thick Shake', 
-    'A cool & creamy summer delight with natural palm fruit', 
-    85.0, 
-    'Shake', 
-    'https://images.unsplash.com/photo-1572490122747-3968b75cc699?q=80&w=800&auto=format&fit=crop', 
-    100, 
-    'SHK-002',
-    4.6, 'Tropical', 'None', 'Ready to Drink',
-    '{"temperature": 0.0, "time": 0.0, "instructions": "Serve chilled."}',
-    'Exotic, refreshing, and unique. Experience the taste of the tropics with our Palm Fruit Shake.',
-    '["Tropical", "Unique", "Summer"]',
-    '{"floral": 0.2, "grassy": 0.1, "nutty": 0.3, "sweet": 0.8, "earthy": 0.1, "spicy": 0.0}'
-);
+-- Clean existing data
+DELETE FROM cart_item_customizations;
+DELETE FROM cart_items;
+DELETE FROM carts;
+DELETE FROM favorites;
+DELETE FROM product_customizations;
+DELETE FROM customization_options;
+DELETE FROM customization_groups;
+DELETE FROM products;
+DELETE FROM sessions;
+DELETE FROM addresses;
+DELETE FROM users;
 
--- Seed Customization Groups
-INSERT OR IGNORE INTO customization_groups (id, name, description, input_type, min_selections, max_selections, is_required) VALUES
-(1, 'Size', 'Select cup size', 'radio', 1, 1, 1),
-(2, 'Sugar Level', 'Select sugar preference', 'radio', 1, 1, 1),
-(3, 'Temperature', 'Select serving temperature', 'radio', 1, 1, 1);
+-- ============================================
+-- USERS
+-- ============================================
 
--- Seed Customization Options
-INSERT OR IGNORE INTO customization_options (group_id, name, price_modifier, is_default, display_order) VALUES
--- Size
-(1, 'Small (250ml)', 0.0, 1, 1),
-(1, 'Medium (350ml)', 20.0, 0, 2),
-(1, 'Large (500ml)', 40.0, 0, 3),
--- Sugar
-(2, 'No Sugar', 0.0, 0, 1),
-(2, 'Less Sugar', 0.0, 0, 2),
-(2, 'Normal', 0.0, 1, 3),
-(2, 'Extra Sweet', 0.0, 0, 4),
--- Temperature
-(3, 'Hot', 0.0, 1, 1),
-(3, 'Cold', 0.0, 0, 2);
+-- Admin User (Password: password123)
+INSERT INTO users (id, name, email, phone, password_hash, role) VALUES
+('u1111111-1111-4000-8000-000000000001', 'Admin User', 'admin@mobilitea.com', '1234567890', '$argon2id$v=19$m=19456,t=2,p=1$zlgMba7c1asJ7QFblU3AhQ$EEn0akx+COpoNo+T9CYDT+x4niiJuLDq4bsK+8cnIYI', 'admin');
 
--- Link Customizations to Products
--- Tea/Coffee (1,2,3) -> All groups
-INSERT OR IGNORE INTO product_customizations (product_id, group_id, display_order) VALUES
-(1, 1, 1), (1, 2, 2), (1, 3, 3),
-(2, 1, 1), (2, 2, 2), (2, 3, 3),
-(3, 1, 1), (3, 2, 2), (3, 3, 3);
+-- Regular Customer (Password: password123)
+INSERT INTO users (id, name, email, phone, password_hash, role) VALUES
+('u2222222-2222-4000-8000-000000000002', 'Test Customer', 'customer@example.com', '9876543210', '$argon2id$v=19$m=19456,t=2,p=1$zlgMba7c1asJ7QFblU3AhQ$EEn0akx+COpoNo+T9CYDT+x4niiJuLDq4bsK+8cnIYI', 'customer');
 
--- Milk/Shake (4,5,6) -> Size, Sugar
-INSERT OR IGNORE INTO product_customizations (product_id, group_id, display_order) VALUES
-(4, 1, 1), (4, 2, 2),
-(5, 1, 1), (5, 2, 2),
-(6, 1, 1), (6, 2, 2);
+-- ============================================
+-- CUSTOMIZATION GROUPS (UUIDs)
+-- ============================================
+
+-- Group 1: Tea Size
+INSERT INTO customization_groups (id, name, description, input_type, min_selections, max_selections, is_required) VALUES
+('a1b2c3d4-1111-4000-8000-000000000001', 'Size', 'Select flask size', 'radio', 1, 1, 1);
+
+-- Group 2: Quality
+INSERT INTO customization_groups (id, name, description, input_type, min_selections, max_selections, is_required) VALUES
+('a1b2c3d4-2222-4000-8000-000000000002', 'Quality', 'Select quality tier', 'radio', 1, 1, 1);
+
+-- Group 3: Coffee Size
+INSERT INTO customization_groups (id, name, description, input_type, min_selections, max_selections, is_required) VALUES
+('a1b2c3d4-3333-4000-8000-000000000003', 'Size', 'Select flask size', 'radio', 1, 1, 1);
+
+-- ============================================
+-- CUSTOMIZATION OPTIONS (UUIDs)
+-- ============================================
+
+-- Tea Size Options (Group 1)
+INSERT INTO customization_options (id, group_id, name, price_modifier, is_default, display_order) VALUES
+('b1b2c3d4-1001-4000-8000-000000000001', 'a1b2c3d4-1111-4000-8000-000000000001', '350 ml', 0.00, 1, 1),
+('b1b2c3d4-1002-4000-8000-000000000002', 'a1b2c3d4-1111-4000-8000-000000000001', '500 ml', 15.00, 0, 2),
+('b1b2c3d4-1003-4000-8000-000000000003', 'a1b2c3d4-1111-4000-8000-000000000001', '1 Liter', 75.00, 0, 3);
+
+-- Quality Options (Group 2)
+INSERT INTO customization_options (id, group_id, name, price_modifier, is_default, display_order) VALUES
+('b1b2c3d4-2001-4000-8000-000000000004', 'a1b2c3d4-2222-4000-8000-000000000002', 'Economy', 0.00, 1, 1),
+('b1b2c3d4-2002-4000-8000-000000000005', 'a1b2c3d4-2222-4000-8000-000000000002', 'Premium', 15.00, 0, 2);
+
+-- Coffee Size Options (Group 3)
+INSERT INTO customization_options (id, group_id, name, price_modifier, is_default, display_order) VALUES
+('b1b2c3d4-3001-4000-8000-000000000006', 'a1b2c3d4-3333-4000-8000-000000000003', '350 ml', 0.00, 1, 1),
+('b1b2c3d4-3002-4000-8000-000000000007', 'a1b2c3d4-3333-4000-8000-000000000003', '500 ml', 20.00, 0, 2),
+('b1b2c3d4-3003-4000-8000-000000000008', 'a1b2c3d4-3333-4000-8000-000000000003', '1 Liter', 85.00, 0, 3);
+
+-- ============================================
+-- PRODUCTS - CORE FLASKS (UUIDs)
+-- ============================================
+
+-- Tea Flask
+INSERT INTO products (id, name, description, base_price, category, image_url, is_active, sku, stock_quantity, rating, origin, caffeine, format, tags, flavor_profile)
+VALUES ('c1c2c3d4-0001-4000-8000-000000000001', 'Tea Flask', 'Fresh brewed tea delivered in a convenient flask. Select size and quality.', 45.00, '["Flask", "Hot Beverage", "Tea"]', '/2026/product/tea-flask.png', 1, 'TEA-FLASK', 999, 4.8, 'India', 'Medium', 'Flask', 'tea,flask,hot-beverage', 'Bold, Aromatic');
+
+-- Coffee Flask
+INSERT INTO products (id, name, description, base_price, category, image_url, is_active, sku, stock_quantity, rating, origin, caffeine, format, tags, flavor_profile)
+VALUES ('c1c2c3d4-0002-4000-8000-000000000002', 'Coffee Flask', 'Fresh brewed coffee delivered in a convenient flask. Select size and quality.', 50.00, '["Flask", "Hot Beverage", "Coffee"]', '/2026/product/coffee-flask.png', 1, 'COF-FLASK', 999, 4.7, 'India', 'High', 'Flask', 'coffee,flask,hot-beverage', 'Strong, Robust');
+
+-- ============================================
+-- PRODUCT CUSTOMIZATIONS LINKS
+-- ============================================
+
+-- Tea Flask -> Size (Group 1), Quality (Group 2)
+INSERT INTO product_customizations (product_id, group_id, display_order) VALUES
+('c1c2c3d4-0001-4000-8000-000000000001', 'a1b2c3d4-1111-4000-8000-000000000001', 1),
+('c1c2c3d4-0001-4000-8000-000000000001', 'a1b2c3d4-2222-4000-8000-000000000002', 2);
+
+-- Coffee Flask -> Size (Group 3), Quality (Group 2)
+INSERT INTO product_customizations (product_id, group_id, display_order) VALUES
+('c1c2c3d4-0002-4000-8000-000000000002', 'a1b2c3d4-3333-4000-8000-000000000003', 1),
+('c1c2c3d4-0002-4000-8000-000000000002', 'a1b2c3d4-2222-4000-8000-000000000002', 2);
+
+-- ============================================
+-- PRODUCTS - SNACKS & BISCUITS (UUIDs)
+-- ============================================
+
+INSERT INTO products (id, name, description, base_price, category, image_url, is_active, sku, stock_quantity, rating, origin, format, tags, flavor_profile) VALUES
+('c1c2c3d4-0013-4000-8000-000000000013', 'Osmania Biscuits', 'Traditional Osmania biscuits - crispy and delicious.', 5.00, '["Biscuits"]', '/2026/product/Osmania+Biscuits.png', 1, 'BSC-OSM-001', 500, 4.6, 'India', 'Pack', 'biscuits,snacks', 'Crispy, Sweet'),
+('c1c2c3d4-0014-4000-8000-000000000014', 'Ragi Biscuits', 'Healthy ragi biscuits made with finger millet.', 5.00, '["Biscuits"]', '/2026/product/Ragi+Biscuits.png', 1, 'BSC-RAG-001', 500, 4.5, 'India', 'Pack', 'biscuits,snacks,healthy', 'Nutty, Wholesome'),
+('c1c2c3d4-0015-4000-8000-000000000015', 'Cashew Biscuits', 'Premium biscuits loaded with cashew nuts.', 5.00, '["Biscuits"]', '/2026/product/Cashew+Biscuits.png', 1, 'BSC-CSH-001', 500, 4.7, 'India', 'Pack', 'biscuits,snacks,cashew', 'Buttery, Nutty'),
+('c1c2c3d4-0016-4000-8000-000000000016', 'Cashew Rusk', 'Crunchy rusk with cashew pieces.', 6.00, '["Biscuits"]', '/2026/product/Cashew+Rusk.png', 1, 'RSK-CSH-001', 500, 4.5, 'India', 'Pack', 'rusk,snacks', 'Crunchy, Nutty'),
+('c1c2c3d4-0017-4000-8000-000000000017', 'Ooty Varki', 'Famous Ooty style layered biscuit.', 7.00, '["Biscuits"]', '/2026/product/Ooty+Varki.png', 1, 'BSC-OOT-001', 300, 4.8, 'Ooty, India', 'Pack', 'biscuits,snacks', 'Flaky, Buttery'),
+('c1c2c3d4-0018-4000-8000-000000000018', 'Tea Cake', 'Classic tea cake - soft and moist.', 15.00, '["Cakes"]', '/2026/product/Tea+Cake.png', 1, 'CAK-TEA-001', 200, 4.5, 'India', 'Piece', 'cake,sweet', 'Soft, Sweet'),
+('c1c2c3d4-0019-4000-8000-000000000019', 'Banana Cake', 'Moist banana cake made with fresh bananas.', 23.00, '["Cakes"]', '/2026/product/Banana+Cake.png', 1, 'CAK-BAN-001', 150, 4.7, 'India', 'Piece', 'cake,sweet', 'Fruity, Moist'),
+('c1c2c3d4-0020-4000-8000-000000000020', 'Cashew Pudding', 'Creamy pudding topped with roasted cashews.', 20.00, '["Cakes", "Dessert"]', '/2026/product/Cashew+Pudding.png', 1, 'DES-CPD-001', 100, 4.6, 'India', 'Cup', 'dessert,sweet', 'Creamy, Nutty'),
+('c1c2c3d4-0021-4000-8000-000000000021', 'Jam Bun', 'Soft bun filled with sweet fruit jam.', 23.00, '["Cakes", "Bun"]', '/2026/product/Jam+Bun.png', 1, 'BUN-JAM-001', 200, 4.4, 'India', 'Piece', 'bun,sweet', 'Sweet, Fruity'),
+('c1c2c3d4-0022-4000-8000-000000000022', 'Cream Bun', 'Fluffy bun filled with fresh cream.', 23.00, '["Cakes", "Bun"]', '/2026/product/Cream+Bun.png', 1, 'BUN-CRM-001', 200, 4.5, 'India', 'Piece', 'bun,sweet', 'Creamy, Light'),
+('c1c2c3d4-0023-4000-8000-000000000023', 'Butter Bun', 'Soft bun generously topped with butter.', 23.00, '["Cakes", "Bun"]', '/2026/product/butter-bun.png', 1, 'BUN-BTR-001', 200, 4.4, 'India', 'Piece', 'bun,butter', 'Buttery, Soft'),
+('c1c2c3d4-0024-4000-8000-000000000024', 'Masala Peanut', 'Crunchy peanuts coated with spicy masala.', 10.00, '["Snacks", "Savory"]', '/2026/product/masala-peanut.png', 1, 'SNK-MPN-001', 300, 4.5, 'India', 'Pack', 'snacks,savory', 'Spicy, Crunchy'),
+('c1c2c3d4-0025-4000-8000-000000000025', 'Butter Murku', 'Traditional South Indian murukku.', 10.00, '["Snacks", "Savory"]', '/2026/product/butter-murku.png', 1, 'SNK-BMK-001', 300, 4.6, 'India', 'Pack', 'snacks,savory', 'Buttery, Crispy'),
+('c1c2c3d4-0026-4000-8000-000000000026', 'Moong Dal', 'Crispy fried moong dal.', 10.00, '["Snacks", "Savory"]', '/2026/product/moong-dal.png', 1, 'SNK-MDL-001', 300, 4.4, 'India', 'Pack', 'snacks,savory', 'Salty, Crunchy'),
+('c1c2c3d4-0027-4000-8000-000000000027', 'Madras Mixture', 'Classic South Indian mixture.', 10.00, '["Snacks", "Savory"]', '/2026/product/Madras-mixture.png', 1, 'SNK-MMX-001', 300, 4.7, 'India', 'Pack', 'snacks,savory', 'Spicy, Mixed'),
+('c1c2c3d4-0028-4000-8000-000000000028', 'Onion Samosa', 'Crispy samosa filled with spiced onion.', 13.00, '["Snacks", "Hot Snacks"]', '/2026/product/onion-samosa.png', 1, 'SNK-OSM-001', 150, 4.5, 'India', 'Piece', 'snacks,savory', 'Spicy, Crispy'),
+('c1c2c3d4-0029-4000-8000-000000000029', 'Potato Samosa', 'Classic potato-filled samosa.', 16.00, '["Snacks", "Hot Snacks"]', '/2026/product/potato-samosa.png', 1, 'SNK-PSM-001', 150, 4.6, 'India', 'Piece', 'snacks,savory', 'Spicy, Savory'),
+('c1c2c3d4-0030-4000-8000-000000000030', 'Masala Bread', 'Toasted bread with spicy masala.', 20.00, '["Snacks", "Hot Snacks"]', '/2026/product/masala-bread.png', 1, 'SNK-MBD-001', 100, 4.3, 'India', 'Piece', 'snacks,savory', 'Spicy, Toasted'),
+('c1c2c3d4-0031-4000-8000-000000000031', 'Egg Puff', 'Flaky puff pastry filled with egg.', 25.00, '["Snacks", "Hot Snacks"]', '/2026/product/egg-puff.png', 1, 'SNK-EPF-001', 100, 4.5, 'India', 'Piece', 'snacks,savory', 'Flaky, Savory'),
+('c1c2c3d4-0032-4000-8000-000000000032', 'Veg Puff', 'Flaky puff pastry with veg filling.', 20.00, '["Snacks", "Hot Snacks"]', '/2026/product/veg-puff.png', 1, 'SNK-VPF-001', 120, 4.4, 'India', 'Piece', 'snacks,savory', 'Flaky, Savory');

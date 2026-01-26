@@ -5,7 +5,7 @@ import { useGetProductByIdQuery, useGetProductsQuery } from '../features/product
 import { useGetFavoriteIdsQuery, useAddFavoriteMutation, useRemoveFavoriteMutation } from '../features/favorites/favoritesApi';
 import { setAuthModalOpen } from '../features/auth/authSlice';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { addItem } from '../features/cart/cartSlice';
+import { useCart } from '../features/cart/useCart';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, ShoppingCart, Star, Heart,
@@ -18,6 +18,7 @@ import { ProductCustomizer } from '../components/products/ProductCustomizer';
 import { ImageSlider } from '../components/common/ImageSlider';
 import { SelectedAttributes } from '../types';
 import { cn } from '../utils/cn';
+import { getOptimizedImageUrl } from '../utils/images';
 import ProductCard from '../components/products/ProductCard';
 
 const Accordion = ({ title, children, isOpen, onToggle }: { title: string, children: React.ReactNode, isOpen: boolean, onToggle: () => void }) => (
@@ -54,6 +55,8 @@ const ProductDetailPage: React.FC = () => {
   const { data: allProducts = [] } = useGetProductsQuery(undefined);
 
   const dispatch = useAppDispatch();
+  // Use custom cart hook
+  const { addToCart } = useCart();
   // Adapted to use our existing favorites implementation
   const { isAuthenticated } = useAppSelector((state) => state.auth);
   const { data: favoriteIds = [] } = useGetFavoriteIdsQuery(undefined, { skip: !isAuthenticated });
@@ -91,7 +94,7 @@ const ProductDetailPage: React.FC = () => {
 
   const handleAddToCart = () => {
     if (!product) return;
-    dispatch(addItem({ product: product, quantity: qty, selectedAttributes: selections }));
+    addToCart(product, qty, undefined, selections);
     toast.success(`${product.name} added to cart`, {
       icon: '🍃',
       style: { borderRadius: '8px', background: '#2E7D32', color: '#fff', fontSize: '14px' }
@@ -103,7 +106,7 @@ const ProductDetailPage: React.FC = () => {
     navigate('/checkout');
   };
 
-  const isFavorited = product ? favoriteIds.includes(parseInt(product.id)) : false;
+  const isFavorited = product ? favoriteIds.includes(product.id) : false;
 
   const handleToggleFavorite = async () => {
     if (!isAuthenticated) {
@@ -111,13 +114,12 @@ const ProductDetailPage: React.FC = () => {
       return;
     }
     if (product) {
-      const id = parseInt(product.id);
       if (isFavorited) {
-        await removeFavorite(id);
-        toast.success('Removed from sanctuary', { icon: '🍃' });
+        await removeFavorite(product.id);
+        toast.success('Removed from favorites', { icon: '🍃' });
       } else {
-        await addFavorite(id);
-        toast.success('Saved to sanctuary', { icon: '❤️' });
+        await addFavorite(product.id);
+        toast.success('Added to favorites', { icon: '❤️' });
       }
     }
   };
@@ -125,7 +127,7 @@ const ProductDetailPage: React.FC = () => {
   const relatedProducts = useMemo(() => {
     if (!product) return [];
     return allProducts
-      .filter(p => p.id !== product.id && p.category === product.category)
+      .filter(p => p.id !== product.id && p.categories.some(cat => product.categories.includes(cat)))
       .slice(0, 4);
   }, [allProducts, product]);
 
@@ -135,7 +137,7 @@ const ProductDetailPage: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Product not found</h2>
-          <Link to="/shop" className="text-tea-700 font-bold hover:underline">Return to collection</Link>
+          <Link to="/shop" className="text-tea-700 font-bold hover:underline">Back to shop</Link>
         </div>
       </div>
     );
@@ -143,21 +145,22 @@ const ProductDetailPage: React.FC = () => {
 
   const discountPercent = 15; // Mock discount for sale display
 
-  const productImages = product.images && product.images.length > 0 ? product.images : [product.image];
+  const rawImages = product.images && product.images.length > 0 ? product.images : [product.image];
+  const productImages = rawImages.map(img => getOptimizedImageUrl(img, 800));
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         {/* Breadcrumb - Mobile Only visible */}
         <Link to="/shop" className="inline-flex items-center text-xs font-bold uppercase tracking-widest text-gray-400 mb-8 hover:text-tea-700 transition-colors">
-          <ChevronLeft size={16} className="mr-1" /> Back to Library
+          <ChevronLeft size={16} className="mr-1" /> Back to Shop
         </Link>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 xl:gap-20">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 xl:gap-20">
           {/* Left Column: Image Gallery & Description */}
-          <div className="lg:col-span-7 space-y-12">
+          <div className="lg:col-span-7 space-y-8 md:space-y-12">
             {/* Hero Image Section */}
-            <div className="relative aspect-[16/9] md:aspect-square bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
+            <div className="relative aspect-[4/3] sm:aspect-square bg-white rounded-2xl md:rounded-[2.5rem] overflow-hidden shadow-sm border border-gray-100">
               <ImageSlider
                 images={productImages}
                 autoPlay={false}
@@ -166,9 +169,9 @@ const ProductDetailPage: React.FC = () => {
                 className="w-full h-full"
               />
               <div className="absolute top-4 left-4 flex gap-2">
-                <span className="px-3 py-1 bg-tea-700 text-white text-[10px] font-bold uppercase tracking-widest rounded-md shadow-sm">Organic</span>
+                <span className="px-3 py-1 bg-tea-700/90 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-widest rounded-lg shadow-sm">Organic</span>
                 {product.tags && product.tags.includes('Limited') && (
-                  <span className="px-3 py-1 bg-accent-600 text-black text-[10px] font-bold uppercase tracking-widest rounded-md shadow-sm">Limited</span>
+                  <span className="px-3 py-1 bg-accent-600/90 backdrop-blur-sm text-black text-[10px] font-bold uppercase tracking-widest rounded-lg shadow-sm">Limited</span>
                 )}
               </div>
             </div>
@@ -176,7 +179,7 @@ const ProductDetailPage: React.FC = () => {
             {/* Desktop Only: Full Description */}
             <div className="hidden lg:block space-y-10">
               <section className="space-y-6">
-                <h2 className="text-xl font-bold text-gray-900">About This Tea</h2>
+                <h2 className="text-xl font-bold text-gray-900">About This Product</h2>
                 <div className="text-gray-600 leading-relaxed space-y-4">
                   <p>{product.story}</p>
                 </div>
@@ -228,12 +231,19 @@ const ProductDetailPage: React.FC = () => {
 
           {/* Right Column: Information & Actions */}
           <div className="lg:col-span-5">
-            <div className="lg:sticky lg:top-24 space-y-8">
+            <div className="lg:sticky lg:top-24 space-y-6 md:space-y-8">
               {/* Product Essentials */}
               <div className="space-y-4">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h1 className="text-2xl md:text-[28px] font-bold text-gray-900 leading-tight mb-2">{product.name}</h1>
+                    <h1 className="text-2xl sm:text-3xl lg:text-[28px] font-bold text-gray-900 leading-tight mb-2">{product.name}</h1>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {product.categories.slice(0, 2).map((cat) => (
+                        <span key={cat} className="px-2 py-0.5 bg-tea-50 text-tea-700 text-[9px] font-bold uppercase tracking-widest rounded">
+                          {cat}
+                        </span>
+                      ))}
+                    </div>
                     <div className="flex items-center gap-3">
                       <div className="flex text-accent-600">
                         {[...Array(5)].map((_, i) => <Star key={i} size={14} fill={i < Math.floor(product.rating) ? "currentColor" : "none"} />)}
@@ -243,7 +253,7 @@ const ProductDetailPage: React.FC = () => {
                   </div>
                   <button
                     onClick={handleToggleFavorite}
-                    className="p-3 text-gray-300 hover:text-red-500 transition-colors"
+                    className="p-3 text-gray-300 hover:text-red-500 transition-colors active:scale-90"
                     aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
                   >
                     <Heart size={24} fill={isFavorited ? "currentColor" : "none"} className={isFavorited ? "text-red-500" : ""} />
@@ -254,12 +264,6 @@ const ProductDetailPage: React.FC = () => {
                   <span className="text-3xl font-bold text-tea-900">₹{currentPrice.toFixed(2)}</span>
                   <span className="text-sm text-gray-400 line-through">₹{(currentPrice * 1.2).toFixed(2)}</span>
                   <span className="text-xs font-bold text-tea-700 bg-tea-50 px-2 py-0.5 rounded">Save 20%</span>
-                </div>
-
-                <div className="text-xs text-gray-500 font-medium pb-4 border-b border-gray-100 flex items-center gap-4">
-                  <span>In stock</span>
-                  <span className="w-1 h-1 bg-gray-300 rounded-full" />
-                  <span>Ships tomorrow</span>
                 </div>
               </div>
 
@@ -279,22 +283,22 @@ const ProductDetailPage: React.FC = () => {
                 <div className="flex items-center gap-6">
                   <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Quantity</span>
                   <div className="flex items-center border border-gray-200 rounded-full p-1 bg-white">
-                    <button onClick={() => setQty(Math.max(1, qty - 1))} className="w-10 h-10 flex items-center justify-center hover:bg-gray-50 rounded-full transition-colors"><Minus size={16} /></button>
+                    <button onClick={() => setQty(Math.max(1, qty - 1))} className="w-12 h-12 flex items-center justify-center hover:bg-gray-50 rounded-full transition-colors active:scale-90" aria-label="Decrease quantity"><Minus size={16} /></button>
                     <span className="w-10 text-center font-bold text-gray-900">{qty}</span>
-                    <button onClick={() => setQty(qty + 1)} className="w-10 h-10 flex items-center justify-center hover:bg-gray-50 rounded-full transition-colors"><Plus size={16} /></button>
+                    <button onClick={() => setQty(qty + 1)} className="w-12 h-12 flex items-center justify-center hover:bg-gray-50 rounded-full transition-colors active:scale-90" aria-label="Increase quantity"><Plus size={16} /></button>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-3">
                   <button
                     onClick={handleAddToCart}
-                    className="w-full py-5 bg-tea-700 hover:bg-tea-800 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+                    className="w-full py-5 bg-tea-700 hover:bg-tea-800 text-white font-bold rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
                   >
                     Add to Cart · ₹{(currentPrice * qty).toFixed(2)}
                   </button>
                   <button
                     onClick={handleBuyNow}
-                    className="w-full py-4 bg-white border border-tea-700 text-tea-700 font-bold rounded-xl hover:bg-tea-50 transition-all"
+                    className="w-full py-4 bg-white border border-tea-700 text-tea-700 font-bold rounded-2xl hover:bg-tea-50 transition-all active:scale-[0.98]"
                   >
                     Buy It Now
                   </button>
@@ -360,7 +364,7 @@ const ProductDetailPage: React.FC = () => {
                       <Truck size={14} className="text-tea-600" /> Free shipping on orders over ₹2000
                     </li>
                     <li className="flex items-center gap-2">
-                      <RotateCcw size={14} className="text-tea-600" /> 30-day ritual return policy
+                      <RotateCcw size={14} className="text-tea-600" /> 30-day easy returns
                     </li>
                   </ul>
                 </Accordion>
@@ -384,7 +388,7 @@ const ProductDetailPage: React.FC = () => {
         {/* Mobile Only: Description & Reviews (Moved below if mobile) */}
         <div className="lg:hidden mt-16 space-y-12">
           <section className="space-y-4">
-            <h2 className="text-xl font-bold text-gray-900">About This Tea</h2>
+            <h2 className="text-xl font-bold text-gray-900">About This Product</h2>
             <div className="text-sm text-gray-600 leading-relaxed">
               {product.story}
             </div>

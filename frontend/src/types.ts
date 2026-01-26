@@ -39,7 +39,7 @@ export interface ProductAttribute {
 export interface Product {
   id: string;
   name: string;
-  category: string;
+  categories: string[];
   price: number;
   rating: number;
   image: string;
@@ -86,7 +86,7 @@ export interface JournalEntry {
   id: string;
   teaId: string;
   teaName: string;
-  category: string;
+  categories: string[];
   origin: string;
   date: string;
   rating: number;
@@ -153,6 +153,51 @@ export interface User {
     twoFactorEnabled: boolean;
     lastPasswordChange: string;
   };
+  last_login_at?: string | null;
+}
+
+export type AddressLabel = 'Home' | 'Work' | 'Other';
+
+export interface Address {
+  id: string;
+  user_id: string;
+  label: AddressLabel;
+  recipient_name: string;
+  phone_number: string;
+  street_address: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  latitude?: number;
+  longitude?: number;
+  is_default: boolean;
+  created_at?: string;
+}
+
+export interface CreateAddressRequest {
+  label: AddressLabel;
+  recipient_name: string;
+  phone_number: string;
+  street_address: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  latitude?: number;
+  longitude?: number;
+  is_default?: boolean;
+}
+
+export interface UpdateAddressRequest {
+  label?: AddressLabel;
+  recipient_name?: string;
+  phone_number?: string;
+  street_address?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  latitude?: number;
+  longitude?: number;
+  is_default?: boolean;
 }
 
 export enum OrderStatus {

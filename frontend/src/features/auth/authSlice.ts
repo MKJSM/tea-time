@@ -1,6 +1,8 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { User } from '../../types';
 import apiClient from '../../api/client';
+import { mergeCartOnLogin, setBackendSyncEnabled, clearCart } from '../cart/cartSlice';
+import { clearCartFromIndexedDB } from '../../utils/indexedDB';
 
 interface AuthState {
   user: User | null;
@@ -9,6 +11,8 @@ interface AuthState {
   error: string | null;
   favorites: string[];
   isAuthModalOpen: boolean;
+  isAddressModalOpen: boolean;
+  pendingCheckoutAfterAddress: boolean; // If true, redirect to checkout after address is saved
 }
 
 const initialState: AuthState = {
@@ -18,16 +22,22 @@ const initialState: AuthState = {
   error: null,
   favorites: JSON.parse(localStorage.getItem('tea_favorites') || '[]'),
   isAuthModalOpen: false,
+  isAddressModalOpen: false,
+  pendingCheckoutAfterAddress: false,
 };
 
 export const loginUser = createAsyncThunk(
   'auth/login',
-  async (credentials: { email: string; password?: string }, { rejectWithValue }) => {
+  async (credentials: { email: string; password?: string }, { dispatch, rejectWithValue }) => {
     try {
       const response = await apiClient.post('/auth/login', credentials);
       const { user } = response.data;
       // Token is handled via HttpOnly cookie
       localStorage.setItem('tea_user', JSON.stringify(user));
+
+      // Merge guest cart with user cart on successful login
+      dispatch(mergeCartOnLogin());
+
       return { user };
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.message || 'Login failed');
@@ -37,12 +47,16 @@ export const loginUser = createAsyncThunk(
 
 export const signupUser = createAsyncThunk(
   'auth/signup',
-  async (credentials: { name: string; email: string; password?: string; phone?: string }, { rejectWithValue }) => {
+  async (credentials: { name: string; email: string; password?: string; phone?: string }, { dispatch, rejectWithValue }) => {
     try {
       const response = await apiClient.post('/auth/signup', credentials);
       const { user } = response.data;
       // Token is handled via HttpOnly cookie
       localStorage.setItem('tea_user', JSON.stringify(user));
+
+      // Merge guest cart with user cart on successful signup
+      dispatch(mergeCartOnLogin());
+
       return { user };
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.message || 'Signup failed');
@@ -52,9 +66,13 @@ export const signupUser = createAsyncThunk(
 
 export const fetchCurrentUser = createAsyncThunk(
   'auth/me',
-  async (_, { rejectWithValue }) => {
+  async (_, { dispatch, rejectWithValue }) => {
     try {
       const response = await apiClient.get('/auth/me');
+
+      // If authenticated, merge any local cart with user cart
+      dispatch(mergeCartOnLogin());
+
       return response.data;
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.message || 'Session expired');
@@ -71,6 +89,9 @@ export const logoutUser = createAsyncThunk(
     } catch (err) {
       console.error('Logout failed on server', err);
     }
+    // Clear cart state and disable backend sync
+    dispatch(clearCart());
+    dispatch(setBackendSyncEnabled(false));
     // Always clear client state
     dispatch(authSlice.actions.logout());
   }
@@ -99,6 +120,12 @@ const authSlice = createSlice({
     },
     setAuthModalOpen: (state, action: PayloadAction<boolean>) => {
       state.isAuthModalOpen = action.payload;
+    },
+    setAddressModalOpen: (state, action: PayloadAction<boolean>) => {
+      state.isAddressModalOpen = action.payload;
+    },
+    setPendingCheckoutAfterAddress: (state, action: PayloadAction<boolean>) => {
+      state.pendingCheckoutAfterAddress = action.payload;
     }
   },
   extraReducers: (builder) => {
@@ -149,5 +176,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, toggleFavorite, setAuthModalOpen } = authSlice.actions;
+export const { logout, toggleFavorite, setAuthModalOpen, setAddressModalOpen, setPendingCheckoutAfterAddress } = authSlice.actions;
 export default authSlice.reducer;

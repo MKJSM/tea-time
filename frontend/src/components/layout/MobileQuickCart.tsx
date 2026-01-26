@@ -37,7 +37,7 @@ export const MobileQuickCart: React.FC = () => {
                 <CheckCircle2 size={20} className="text-accent-400" />
               </div>
               <div className="overflow-hidden">
-                <p className="text-[10px] font-bold text-accent-400 uppercase tracking-widest">Added to Ritual</p>
+                <p className="text-[10px] font-bold text-accent-400 uppercase tracking-widest">Added to Cart</p>
                 <p className="text-xs font-bold truncate">{lastAddedItem.name}</p>
               </div>
             </div>

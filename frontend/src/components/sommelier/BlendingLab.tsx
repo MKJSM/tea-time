@@ -2,10 +2,10 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Beaker, Sliders, Sparkles, Plus, Trash2, Info, ChevronRight, Droplets } from 'lucide-react';
-import { useSommelierStore, useCartStore } from '../../../../store';
-import { BlendComponent, Product } from '../../../../types';
+import { useSommelierStore, useCartStore } from '../../store';
+import { BlendComponent, Product } from '../../types';
 import toast from 'react-hot-toast';
-import { cn } from '../../../utils/cn';
+import { cn } from '../../utils/cn';
 
 const BASE_TEAS = [
   { id: 'b1', name: 'Imperial Sencha', color: '#4CAF50', profile: { grassy: 9, floral: 2, sweet: 4 } },
@@ -73,7 +73,7 @@ export const BlendingLab: React.FC = () => {
     const customProduct: Product = {
       id: `custom-${Date.now()}`,
       name: activeBlend.name,
-      category: 'Custom Blend',
+      categories: ['Custom Blend'],
       price: 34.99,
       rating: 5,
       image: 'https://images.unsplash.com/photo-1594631252845-29fc458695d7?auto=format&fit=crop&q=80&w=800',

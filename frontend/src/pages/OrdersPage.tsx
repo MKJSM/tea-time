@@ -18,13 +18,13 @@ const OrdersPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-cream flex flex-col items-center justify-center p-6">
         <div className="bg-white p-12 rounded-[3.5rem] shadow-2xl text-center max-w-lg border border-gray-100">
-          <h2 className="text-3xl font-serif font-bold text-tea-900 mb-4">Sanctuary Access Required</h2>
-          <p className="text-gray-500 mb-8 font-light">Please sign in to view your journey history and active shipments.</p>
+          <h2 className="text-3xl font-serif font-bold text-tea-900 mb-4">Sign In Required</h2>
+          <p className="text-gray-500 mb-8 font-light">Please sign in to view your orders and track your deliveries.</p>
           <button
             onClick={() => dispatch(setAuthModalOpen(true))}
             className="px-10 py-4 bg-tea-800 text-white font-bold rounded-2xl shadow-lg hover:bg-tea-950 transition-all uppercase tracking-widest text-xs"
           >
-            Access Portal
+            Sign In
           </button>
         </div>
       </div>
@@ -53,7 +53,7 @@ const OrdersPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-cream py-12 px-4">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-serif font-bold text-tea-900 mb-10">Your Tea Journey</h1>
+        <h1 className="text-4xl font-serif font-bold text-tea-900 mb-10">My Orders</h1>
 
         {/* Active Order Card */}
         <Link to={`/order/${activeOrder.id}`} className="block group">
@@ -116,7 +116,7 @@ const OrdersPage: React.FC = () => {
         </Link>
 
         {/* History List */}
-        <h2 className="text-2xl font-serif font-bold text-tea-900 mb-6">Past Discoveries</h2>
+        <h2 className="text-2xl font-serif font-bold text-tea-900 mb-6">Past Orders</h2>
         <div className="space-y-4">
           {[
             { id: 'TH-92100', date: 'April 05, 2024', total: 125.99, items: 4 },
@@ -137,7 +137,7 @@ const OrdersPage: React.FC = () => {
                 </div>
               </Link>
               <div className="flex items-center gap-6">
-                <span className="font-bold text-tea-800 text-lg">${order.total.toFixed(2)}</span>
+                <span className="font-bold text-tea-800 text-lg">₹{order.total.toFixed(2)}</span>
                 <button className="px-4 py-2 bg-tea-50 text-tea-700 font-bold text-xs rounded-xl flex items-center gap-2 hover:bg-tea-100 transition-colors">
                   <RefreshCw size={14} /> Reorder
                 </button>

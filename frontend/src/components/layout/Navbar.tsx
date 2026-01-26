@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingCart, User, Search, Leaf, X } from 'lucide-react';
+import { ShoppingCart, User, Search, X } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { motion, AnimatePresence } from 'framer-motion';
 import { setAuthModalOpen } from '../../features/auth/authSlice';
@@ -49,25 +49,27 @@ const Navbar: React.FC = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 group">
-            <div className="bg-tea-800 p-1.5 rounded-lg group-hover:scale-110 transition-transform shadow-lg shadow-tea-900/20">
-              <Leaf className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-2xl font-serif font-bold text-tea-950 tracking-tight">Tea Time</span>
+            <img
+              src="/logo.png"
+              alt="Tea Time"
+              className="h-10 w-auto object-contain scale-110 group-hover:scale-115 transition-transform"
+            />
           </Link>
 
           {/* Desktop Links */}
-          <div className="hidden lg:flex items-center space-x-10">
-            <Link to="/shop" className="text-tea-950/80 hover:text-tea-800 font-bold text-xs uppercase tracking-widest transition-colors">Collection</Link>
+          <div className="hidden md:flex items-center space-x-8 lg:space-x-10">
+            <Link to="/shop" className="text-tea-950/80 hover:text-tea-800 font-bold text-[10px] lg:text-xs uppercase tracking-widest transition-colors">Shop</Link>
             {isAuthenticated && (
-              <Link to="/orders" className="text-tea-950/80 hover:text-tea-800 font-bold text-xs uppercase tracking-widest transition-colors">Orders</Link>
+              <Link to="/orders" className="text-tea-950/80 hover:text-tea-800 font-bold text-[10px] lg:text-xs uppercase tracking-widest transition-colors">Orders</Link>
             )}
           </div>
 
           {/* Icons */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-1 sm:space-x-4">
             <button
               onClick={() => setIsSearchOpen(!isSearchOpen)}
-              className="p-2 text-tea-950/70 hover:text-tea-800 transition-colors"
+              className="p-3 text-tea-950/70 hover:text-tea-800 transition-colors"
+              aria-label="Search"
             >
               {isSearchOpen ? <X className="w-5 h-5" /> : <Search className="w-5 h-5" />}
             </button>
@@ -75,21 +77,26 @@ const Navbar: React.FC = () => {
             <Link
               to="/cart"
               onClick={handleCartClick}
-              className="p-2 text-tea-950/70 hover:text-tea-800 transition-colors relative"
+              className="p-3 text-tea-950/70 hover:text-tea-800 transition-colors relative"
+              aria-label="Cart"
             >
               <ShoppingCart className="w-5 h-5" />
               {itemCount > 0 && (
                 <motion.span
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="absolute -top-1 -right-1 bg-tea-800 text-white text-[9px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-lg border-2 border-white leading-none" // Fix: Perfected padding and centering
+                  className="absolute top-2 right-2 bg-tea-800 text-white text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-lg border border-white leading-none"
                 >
                   {itemCount}
                 </motion.span>
               )}
             </Link>
 
-            <button onClick={handleAuthClick} className="hidden sm:flex items-center p-2 text-tea-950/70 hover:text-tea-800 transition-colors">
+            <button 
+              onClick={handleAuthClick} 
+              className="p-3 text-tea-950/70 hover:text-tea-800 transition-colors"
+              aria-label="User Profile"
+            >
               <User className="w-5 h-5" />
             </button>
           </div>
@@ -109,7 +116,7 @@ const Navbar: React.FC = () => {
               <Search className="w-5 h-5 text-gray-400 mr-3" />
               <input
                 type="text"
-                placeholder="Search rare harvests..."
+                placeholder="Search tea, snacks..."
                 className="bg-transparent w-full outline-none text-tea-950 font-medium py-1 placeholder:text-gray-300"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}

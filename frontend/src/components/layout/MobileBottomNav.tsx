@@ -1,17 +1,18 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Search, ShoppingBag, User, Package } from 'lucide-react';
+import { Search, ShoppingBag, User, Package, Home } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
 const MobileBottomNav: React.FC = () => {
   const { pathname } = useLocation();
 
   const navItems = [
-    { icon: Search, label: 'Collection', path: '/shop' },
+    { icon: Home, label: 'Home', path: '/' },
+    { icon: Search, label: 'Shop', path: '/shop' },
     { icon: ShoppingBag, label: 'Cart', path: '/cart' },
     { icon: Package, label: 'Orders', path: '/orders' },
-    { icon: User, label: 'Profile', path: '/profile' },
+    { icon: User, label: 'Account', path: '/profile' },
   ];
 
   return (

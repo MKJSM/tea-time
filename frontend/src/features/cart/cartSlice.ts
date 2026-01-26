@@ -1,12 +1,14 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { CartItem, Product, CustomBlend, SelectedAttributes } from '../../types';
-import { loadCartFromIndexedDB } from '../../utils/indexedDB';
+import { loadCartFromIndexedDB, saveCartToIndexedDB, clearCartFromIndexedDB } from '../../utils/indexedDB';
+import { cartApi, CartDto, CartItemDto, AddToCartRequest, CartCustomizationRequest, MergeCartItem } from './cartApi';
 
 interface CartState {
   items: CartItem[];
   isDrawerOpen: boolean;
   lastAddedItem: CartItem | null;
   isLoading: boolean;
+  backendSyncEnabled: boolean; // Track if we're syncing with backend
 }
 
 const initialState: CartState = {
@@ -14,6 +16,7 @@ const initialState: CartState = {
   isDrawerOpen: false,
   lastAddedItem: null,
   isLoading: false,
+  backendSyncEnabled: false,
 };
 
 const generateItemKey = (productId: string, attributes?: SelectedAttributes, customizationId?: string) => {
@@ -22,6 +25,98 @@ const generateItemKey = (productId: string, attributes?: SelectedAttributes, cus
     return acc;
   }, {})) : '';
   return `${productId}-${customizationId || 'std'}-${attrPart}`;
+};
+
+/**
+ * Transform frontend CartItem to backend AddToCartRequest
+ */
+const transformToBackendRequest = (product: Product, quantity: number, selectedAttributes?: SelectedAttributes): AddToCartRequest => {
+  const customizations: CartCustomizationRequest[] = [];
+
+  if (product.attributes && selectedAttributes) {
+    product.attributes.forEach(attr => {
+      const selectedValue = selectedAttributes[attr.id];
+      const option = attr.options.find(o => o.value === selectedValue);
+      if (option) {
+        customizations.push({
+          group_id: attr.id,
+          option_id: option.id,
+        });
+      }
+    });
+  }
+
+  return {
+    product_id: product.id,
+    quantity,
+    customizations,
+  };
+};
+
+/**
+ * Transform backend CartDto to frontend CartItem[]
+ */
+const transformFromBackendResponse = (cartDto: CartDto): CartItem[] => {
+  return cartDto.items.map(item => {
+    // Build selected attributes from customizations
+    const selectedAttributes: SelectedAttributes = {};
+    item.customizations.forEach(cust => {
+      selectedAttributes[cust.group_name] = cust.option_name;
+    });
+
+    // Calculate price with customizations
+    const customizationPrice = item.customizations.reduce((sum, c) => sum + c.price_modifier, 0);
+    const totalUnitPrice = item.unit_price + customizationPrice;
+
+    const cartItem: CartItem = {
+      id: item.product_id,
+      itemKey: item.id || `${item.product_id}-${JSON.stringify(selectedAttributes)}`,
+      name: item.name,
+      quantity: item.quantity,
+      price: totalUnitPrice,
+      image: item.image_url || '',
+      categories: [],
+      rating: 0,
+      tags: [],
+      origin: '',
+      caffeine: '',
+      flavorProfile: { floral: 0, grassy: 0, nutty: 0, sweet: 0, earthy: 0 },
+      brewing: { temperature: 0, time: 0, instructions: '' },
+      story: '',
+      format: 'Loose Leaf',
+      selectedAttributes: Object.keys(selectedAttributes).length > 0 ? selectedAttributes : undefined,
+    };
+
+    return cartItem;
+  });
+};
+
+/**
+ * Transform frontend CartItems to backend MergeCartItems for cart merge
+ */
+const transformToMergeItems = (items: CartItem[]): MergeCartItem[] => {
+  return items.map(item => {
+    const customizations: CartCustomizationRequest[] = [];
+
+    if (item.attributes && item.selectedAttributes) {
+      item.attributes.forEach(attr => {
+        const selectedValue = item.selectedAttributes?.[attr.id];
+        const option = attr.options.find(o => o.value === selectedValue);
+        if (option) {
+          customizations.push({
+            group_id: attr.id,
+            option_id: option.id,
+          });
+        }
+      });
+    }
+
+    return {
+      product_id: item.id,
+      quantity: item.quantity,
+      customizations,
+    };
+  });
 };
 
 /**
@@ -37,11 +132,102 @@ export const loadCartFromStorage = createAsyncThunk(
     // Only load from IndexedDB for guest users
     if (!isAuthenticated) {
       const items = await loadCartFromIndexedDB();
-      return items;
+      return { items, isAuthenticated: false };
     }
 
     // For authenticated users, return empty (backend will provide cart)
-    return [];
+    return { items: [], isAuthenticated: true };
+  }
+);
+
+/**
+ * Async thunk to fetch cart from backend for authenticated users
+ */
+export const fetchCartFromBackend = createAsyncThunk(
+  'cart/fetchFromBackend',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await cartApi.getCart();
+      return transformFromBackendResponse(response.data);
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to fetch cart');
+    }
+  }
+);
+
+/**
+ * Async thunk to add item to cart via backend (for authenticated users)
+ */
+export const addItemToBackend = createAsyncThunk(
+  'cart/addToBackend',
+  async (payload: { product: Product; quantity: number; selectedAttributes?: SelectedAttributes }, { rejectWithValue }) => {
+    try {
+      const request = transformToBackendRequest(payload.product, payload.quantity, payload.selectedAttributes);
+      const response = await cartApi.addToCart(request);
+      return transformFromBackendResponse(response.data);
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to add item');
+    }
+  }
+);
+
+/**
+ * Async thunk to update item quantity via backend (for authenticated users)
+ */
+export const updateItemOnBackend = createAsyncThunk(
+  'cart/updateOnBackend',
+  async (payload: { itemId: string; quantity: number }, { rejectWithValue }) => {
+    try {
+      const response = await cartApi.updateItem(payload.itemId, payload.quantity);
+      return transformFromBackendResponse(response.data);
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to update item');
+    }
+  }
+);
+
+/**
+ * Async thunk to remove item via backend (for authenticated users)
+ */
+export const removeItemFromBackend = createAsyncThunk(
+  'cart/removeFromBackend',
+  async (itemId: string, { rejectWithValue }) => {
+    try {
+      const response = await cartApi.removeItem(itemId);
+      return transformFromBackendResponse(response.data);
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to remove item');
+    }
+  }
+);
+
+/**
+ * Async thunk to merge guest cart with user cart on login
+ */
+export const mergeCartOnLogin = createAsyncThunk(
+  'cart/mergeOnLogin',
+  async (_, { getState, rejectWithValue }) => {
+    try {
+      // Get current guest cart items from IndexedDB
+      const guestItems = await loadCartFromIndexedDB();
+
+      if (guestItems.length === 0) {
+        // No guest items, just fetch user cart
+        const response = await cartApi.getCart();
+        return transformFromBackendResponse(response.data);
+      }
+
+      // Merge guest cart with user cart
+      const mergeItems = transformToMergeItems(guestItems);
+      const response = await cartApi.mergeCart({ items: mergeItems });
+
+      // Clear IndexedDB after successful merge
+      await clearCartFromIndexedDB();
+
+      return transformFromBackendResponse(response.data);
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data?.message || 'Failed to merge cart');
+    }
   }
 );
 
@@ -49,6 +235,7 @@ const cartSlice = createSlice({
   name: 'cart',
   initialState,
   reducers: {
+    // For guest users - local state only
     addItem: (state, action: PayloadAction<{ product: Product; quantity: number; customization?: CustomBlend; selectedAttributes?: SelectedAttributes }>) => {
       const { product, quantity, customization, selectedAttributes } = action.payload;
       const itemKey = generateItemKey(product.id, selectedAttributes, customization?.id);
@@ -72,7 +259,7 @@ const cartSlice = createSlice({
 
       state.lastAddedItem = newItem;
       // Auto-open drawer on desktop/tablet, mobile uses a different popup
-      state.isDrawerOpen = window.innerWidth >= 1024;
+      state.isDrawerOpen = typeof window !== 'undefined' && window.innerWidth >= 1024;
 
       // Persistence handled by middleware
     },
@@ -100,23 +287,81 @@ const cartSlice = createSlice({
     },
     clearLastAddedItem: (state) => {
       state.lastAddedItem = null;
+    },
+    setBackendSyncEnabled: (state, action: PayloadAction<boolean>) => {
+      state.backendSyncEnabled = action.payload;
     }
   },
   extraReducers: (builder) => {
     builder
+      // Load from storage (guest)
       .addCase(loadCartFromStorage.pending, (state) => {
         state.isLoading = true;
       })
       .addCase(loadCartFromStorage.fulfilled, (state, action) => {
-        state.items = action.payload;
+        state.items = action.payload.items;
         state.isLoading = false;
+        state.backendSyncEnabled = action.payload.isAuthenticated;
       })
       .addCase(loadCartFromStorage.rejected, (state) => {
         state.isLoading = false;
         console.error('Failed to load cart from storage');
+      })
+      // Fetch from backend (authenticated)
+      .addCase(fetchCartFromBackend.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(fetchCartFromBackend.fulfilled, (state, action) => {
+        state.items = action.payload;
+        state.isLoading = false;
+        state.backendSyncEnabled = true;
+      })
+      .addCase(fetchCartFromBackend.rejected, (state) => {
+        state.isLoading = false;
+        console.error('Failed to fetch cart from backend');
+      })
+      // Add to backend (authenticated)
+      .addCase(addItemToBackend.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(addItemToBackend.fulfilled, (state, action) => {
+        state.items = action.payload;
+        state.isLoading = false;
+        state.isDrawerOpen = typeof window !== 'undefined' && window.innerWidth >= 1024;
+      })
+      .addCase(addItemToBackend.rejected, (state, action) => {
+        state.isLoading = false;
+        console.error('Failed to add item to backend:', action.payload);
+      })
+      // Update on backend (authenticated)
+      .addCase(updateItemOnBackend.fulfilled, (state, action) => {
+        state.items = action.payload;
+      })
+      .addCase(updateItemOnBackend.rejected, (state, action) => {
+        console.error('Failed to update item on backend:', action.payload);
+      })
+      // Remove from backend (authenticated)
+      .addCase(removeItemFromBackend.fulfilled, (state, action) => {
+        state.items = action.payload;
+      })
+      .addCase(removeItemFromBackend.rejected, (state, action) => {
+        console.error('Failed to remove item from backend:', action.payload);
+      })
+      // Merge cart on login
+      .addCase(mergeCartOnLogin.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(mergeCartOnLogin.fulfilled, (state, action) => {
+        state.items = action.payload;
+        state.isLoading = false;
+        state.backendSyncEnabled = true;
+      })
+      .addCase(mergeCartOnLogin.rejected, (state, action) => {
+        state.isLoading = false;
+        console.error('Failed to merge cart:', action.payload);
       });
   },
 });
 
-export const { addItem, removeItem, updateQuantity, clearCart, setCartItems, toggleDrawer, clearLastAddedItem } = cartSlice.actions;
+export const { addItem, removeItem, updateQuantity, clearCart, setCartItems, toggleDrawer, clearLastAddedItem, setBackendSyncEnabled } = cartSlice.actions;
 export default cartSlice.reducer;

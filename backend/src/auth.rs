@@ -21,7 +21,6 @@ pub struct AuthUser {
 
 /// Optional auth - extracts session and user if present
 pub struct AuthSession {
-    pub session: Session,
     pub user: Option<AuthUser>,
 }
 
@@ -46,35 +45,7 @@ where
             (StatusCode::INTERNAL_SERVER_ERROR, "Session get failed")
         })?;
 
-        Ok(AuthSession { session, user })
-    }
-}
-
-/// Required auth with session - use when handler needs both user AND session
-pub struct RequiredAuthSession {
-    pub session: Session,
-    pub user: AuthUser,
-}
-
-#[async_trait]
-impl<S> FromRequestParts<S> for RequiredAuthSession
-where
-    S: Send + Sync,
-{
-    type Rejection = Response;
-
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let auth_session = AuthSession::from_request_parts(parts, state)
-            .await
-            .map_err(|(status, msg)| (status, msg).into_response())?;
-
-        match auth_session.user {
-            Some(user) => Ok(RequiredAuthSession {
-                session: auth_session.session,
-                user,
-            }),
-            None => Err(unauthorized_response()),
-        }
+        Ok(AuthSession { user })
     }
 }
 

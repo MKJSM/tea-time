@@ -2,14 +2,15 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShoppingBag, ArrowRight, Trash2, Minus, Plus } from 'lucide-react';
-import { useAppSelector, useAppDispatch } from '../../store/hooks';
-import { removeItem, updateQuantity, toggleDrawer } from '../../features/cart/cartSlice';
+import { useAppDispatch } from '../../store/hooks';
+import { toggleDrawer } from '../../features/cart/cartSlice';
+import { useCart } from '../../features/cart/useCart';
 import { useNavigate } from 'react-router-dom';
 
 export const CartDrawer: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { items, isDrawerOpen } = useAppSelector((state) => state.cart);
+  const { items, isDrawerOpen, updateItemQuantity, removeFromCart } = useCart();
 
   const total = items.reduce((acc, item) => {
     let unitPrice = item.price;
@@ -65,7 +66,7 @@ export const CartDrawer: React.FC = () => {
             <div className="p-6 border-b border-gray-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <ShoppingBag className="text-tea-700" size={24} />
-                <h3 className="text-xl font-serif font-bold text-tea-900">Your Basket</h3>
+                <h3 className="text-xl font-serif font-bold text-tea-900">Your Cart</h3>
               </div>
               <button
                 onClick={() => dispatch(toggleDrawer(false))}
@@ -80,12 +81,12 @@ export const CartDrawer: React.FC = () => {
               {items.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center p-8">
                   <ShoppingBag size={48} className="text-gray-200 mb-4" />
-                  <p className="text-gray-500 font-medium">Your sanctuary basket is empty.</p>
+                  <p className="text-gray-500 font-medium">Your cart is empty!</p>
                   <button
                     onClick={() => { dispatch(toggleDrawer(false)); navigate('/shop'); }}
                     className="mt-4 text-tea-700 font-bold hover:underline"
                   >
-                    Start Exploring
+                    Browse Teas
                   </button>
                 </div>
               ) : (
@@ -107,17 +108,17 @@ export const CartDrawer: React.FC = () => {
                       <div className="flex-grow min-w-0">
                         <div className="flex justify-between items-start mb-1">
                           <h4 className="font-bold text-tea-900 text-sm truncate pr-2">{item.name}</h4>
-                          <button onClick={() => dispatch(removeItem(item.itemKey))} className="text-gray-300 hover:text-red-500">
+                          <button onClick={() => removeFromCart(item.itemKey)} className="text-gray-300 hover:text-red-500">
                             <Trash2 size={14} />
                           </button>
                         </div>
-                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest mb-1">{item.category}</p>
+                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest mb-1">{item.categories.slice(0, 2).join(', ')}</p>
                         {renderAttributes(item)}
                         <div className="flex justify-between items-center mt-2">
                           <div className="flex items-center bg-gray-50 rounded-lg p-0.5 border border-gray-100 scale-90 -ml-2">
-                            <button onClick={() => dispatch(updateQuantity({ itemKey: item.itemKey, quantity: item.quantity - 1 }))} className="p-1.5 hover:bg-white rounded-md transition-all"><Minus size={12} /></button>
+                            <button onClick={() => updateItemQuantity(item.itemKey, item.quantity - 1)} className="p-1.5 hover:bg-white rounded-md transition-all"><Minus size={12} /></button>
                             <span className="w-8 text-center text-xs font-bold">{item.quantity}</span>
-                            <button onClick={() => dispatch(updateQuantity({ itemKey: item.itemKey, quantity: item.quantity + 1 }))} className="p-1.5 hover:bg-white rounded-md transition-all"><Plus size={12} /></button>
+                            <button onClick={() => updateItemQuantity(item.itemKey, item.quantity + 1)} className="p-1.5 hover:bg-white rounded-md transition-all"><Plus size={12} /></button>
                           </div>
                           <span className="font-bold text-tea-800 text-sm">₹{(unitPrice * item.quantity).toFixed(2)}</span>
                         </div>
@@ -140,14 +141,14 @@ export const CartDrawer: React.FC = () => {
                     onClick={() => { dispatch(toggleDrawer(false)); navigate('/checkout'); }}
                     className="w-full py-4 bg-tea-800 text-white font-bold rounded-xl shadow-lg hover:bg-tea-950 transition-all flex items-center justify-center gap-2 group"
                   >
-                    Checkout Now
+                    Checkout
                     <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                   </button>
                   <button
                     onClick={() => { dispatch(toggleDrawer(false)); navigate('/cart'); }}
                     className="w-full py-3 bg-white text-tea-700 font-bold text-sm rounded-xl border border-gray-100 hover:bg-gray-50 transition-all"
                   >
-                    View Full Basket
+                    View Full Cart
                   </button>
                 </div>
               </div>

@@ -7,6 +7,7 @@ use axum::{
     http::StatusCode,
     Json,
 };
+use uuid::Uuid;
 
 #[tracing::instrument(skip(state, user))]
 pub async fn list_favorites(
@@ -33,11 +34,11 @@ pub async fn list_favorites(
 pub async fn add_favorite(
     user: RequiredAuthUser,
     State(state): State<AppState>,
-    Path(product_id): Path<i32>,
+    Path(product_id): Path<String>,
 ) -> Result<StatusCode, AppError> {
     // Check if product exists first
     let product_exists = sqlx::query("SELECT 1 FROM products WHERE id = ?")
-        .bind(product_id)
+        .bind(&product_id)
         .fetch_optional(&state.db)
         .await?;
 
@@ -45,10 +46,14 @@ pub async fn add_favorite(
         return Err(AppError::NotFound("Product not found".into()));
     }
 
+    // Generate UUID for the favorite
+    let favorite_id = Uuid::new_v4().to_string();
+
     // INSERT OR IGNORE handles duplicates gracefully
-    sqlx::query("INSERT OR IGNORE INTO favorites (user_id, product_id) VALUES (?, ?)")
+    sqlx::query("INSERT OR IGNORE INTO favorites (id, user_id, product_id) VALUES (?, ?, ?)")
+        .bind(&favorite_id)
         .bind(&user.id)
-        .bind(product_id)
+        .bind(&product_id)
         .execute(&state.db)
         .await?;
 
@@ -59,11 +64,11 @@ pub async fn add_favorite(
 pub async fn remove_favorite(
     user: RequiredAuthUser,
     State(state): State<AppState>,
-    Path(product_id): Path<i32>,
+    Path(product_id): Path<String>,
 ) -> Result<StatusCode, AppError> {
     sqlx::query("DELETE FROM favorites WHERE user_id = ? AND product_id = ?")
         .bind(&user.id)
-        .bind(product_id)
+        .bind(&product_id)
         .execute(&state.db)
         .await?;
 
@@ -74,8 +79,8 @@ pub async fn remove_favorite(
 pub async fn get_favorite_ids(
     user: RequiredAuthUser,
     State(state): State<AppState>,
-) -> Result<Json<Vec<i32>>, AppError> {
-    let ids: Vec<i32> = sqlx::query_scalar("SELECT product_id FROM favorites WHERE user_id = ?")
+) -> Result<Json<Vec<String>>, AppError> {
+    let ids: Vec<String> = sqlx::query_scalar("SELECT product_id FROM favorites WHERE user_id = ?")
         .bind(&user.id)
         .fetch_all(&state.db)
         .await?;

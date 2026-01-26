@@ -239,9 +239,9 @@ const OrderDetailsPage: React.FC = () => {
                       <div className="flex justify-between items-start">
                         <div>
                           <h4 className="text-xl font-serif font-bold text-tea-900">{item.name}</h4>
-                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{item.origin} • {item.category}</p>
+                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{item.origin} • {item.categories[0]}</p>
                         </div>
-                        <span className="font-bold text-tea-800 text-xl">${(item.price * item.quantity).toFixed(2)}</span>
+                        <span className="font-bold text-tea-800 text-xl">₹{(item.price * item.quantity).toFixed(2)}</span>
                       </div>
 
                       {order.status === OrderStatus.DELIVERED && (
@@ -276,7 +276,7 @@ const OrderDetailsPage: React.FC = () => {
                 <div className="space-y-4 mb-10">
                   <div className="flex justify-between text-gray-500 text-sm font-medium">
                     <span>Artifact Subtotal</span>
-                    <span className="text-gray-900">${order.subtotal.toFixed(2)}</span>
+                    <span className="text-gray-900">₹{order.subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-gray-500 text-sm font-medium">
                     <span>Curation & Transit</span>
@@ -284,12 +284,12 @@ const OrderDetailsPage: React.FC = () => {
                   </div>
                   <div className="flex justify-between text-gray-500 text-sm font-medium">
                     <span>Tax (VAT)</span>
-                    <span className="text-gray-900">${order.tax.toFixed(2)}</span>
+                    <span className="text-gray-900">₹{order.tax.toFixed(2)}</span>
                   </div>
                   <div className="h-px bg-gray-50 my-6" />
                   <div className="flex justify-between text-3xl font-serif font-bold text-tea-900">
                     <span>Final</span>
-                    <span>${order.total.toFixed(2)}</span>
+                    <span>₹{order.total.toFixed(2)}</span>
                   </div>
                 </div>
 

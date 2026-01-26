@@ -11,7 +11,9 @@ yarn-debug.log*
 yarn-error.log*
 
 # Backend generated static/templates
-backend/static/*
+backend/static/assets/*
+backend/static/uploads/*
+backend/templates/index.stpl
 !backend/static/.gitkeep
 !backend/templates/.gitkeep
 
@@ -56,3 +58,4 @@ dist-ssr
 *.sqlite-wal
 *.db
 db/*.sqlite*
+others/*

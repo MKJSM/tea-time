@@ -3,8 +3,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Brain, Clock, Sun, Moon, Coffee, Heart, Wind, ChevronRight, Share2, Info } from 'lucide-react';
 import { BlendingLab } from '../components/sommelier/BlendingLab';
-import { useSommelierStore } from '../../../store';
-import { cn } from '../../utils/cn';
+import { useSommelierStore } from '../store';
+import { cn } from '../utils/cn';
 
 const MOODS = [
   { id: 'focus', label: 'Focused', icon: Brain, color: '#2E7D32', desc: 'Sharpen your cognitive baseline' },

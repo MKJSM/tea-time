@@ -4,8 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShoppingCart, Info, Plus, Minus, ArrowRight } from 'lucide-react';
 import { Product, SelectedAttributes } from '../../types';
 import { ProductCustomizer } from './ProductCustomizer';
-import { useAppDispatch } from '../../store/hooks';
-import { addItem } from '../../features/cart/cartSlice';
+import { useCart } from '../../features/cart/useCart';
 import toast from 'react-hot-toast';
 
 interface QuickAddModalProps {
@@ -15,7 +14,7 @@ interface QuickAddModalProps {
 }
 
 export const QuickAddModal: React.FC<QuickAddModalProps> = ({ product, isOpen, onClose }) => {
-  const dispatch = useAppDispatch();
+  const { addToCart } = useCart();
   const [qty, setQty] = useState(1);
   const [selections, setSelections] = useState<SelectedAttributes>({});
 
@@ -53,7 +52,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({ product, isOpen, o
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    dispatch(addItem({ product, quantity: qty, selectedAttributes: selections }));
+    addToCart(product, qty, undefined, selections);
     toast.success(`${product.name} added to cart!`, {
       icon: '🍃',
       style: { borderRadius: '12px', background: '#1B5E20', color: '#fff' }
@@ -90,7 +89,7 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({ product, isOpen, o
                 </div>
                 <div>
                   <h3 className="text-xl font-serif font-bold text-tea-900 leading-tight">{product.name}</h3>
-                  <p className="text-[10px] font-bold text-tea-700 uppercase tracking-widest mt-1">{product.category}</p>
+                  <p className="text-[10px] font-bold text-tea-700 uppercase tracking-widest mt-1">{product.categories.slice(0, 2).join(', ')}</p>
                 </div>
               </div>
               <button
@@ -104,11 +103,11 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({ product, isOpen, o
             {/* Content Area */}
             <div className="flex-grow overflow-y-auto custom-scrollbar p-6 sm:p-8">
               <div className="space-y-8">
-                {/* Ritual Intro */}
+                {/* Info */}
                 <div className="flex items-start gap-3 p-4 bg-tea-50/50 rounded-2xl border border-tea-100/50">
                   <Info size={18} className="text-tea-700 mt-0.5 shrink-0" />
                   <p className="text-xs text-tea-900/70 italic leading-relaxed">
-                    Personalize your tea ritual. Choose your preferred batch size and packaging to maintain peak harvest freshness.
+                    Choose your preferred size and options below.
                   </p>
                 </div>
 
@@ -148,9 +147,9 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({ product, isOpen, o
                   onClick={handleAddToCart}
                   className="w-full sm:flex-grow py-4 bg-tea-800 hover:bg-tea-950 text-white font-bold rounded-2xl transition-all shadow-xl flex items-center justify-center gap-3 group active:scale-[0.98]"
                 >
-                  <span className="tracking-widest text-xs uppercase">Add to Collection</span>
+                  <span className="tracking-widest text-xs uppercase">Add to Cart</span>
                   <span className="h-4 w-px bg-white/20" />
-                  <span className="text-accent-400">${(currentPrice * qty).toFixed(2)}</span>
+                  <span className="text-accent-400">₹{(currentPrice * qty).toFixed(2)}</span>
                   <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                 </button>
               </div>
