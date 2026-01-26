@@ -26,8 +26,9 @@ COPY backend/src ./src
 COPY backend/templates ./templates
 COPY backend/db/migration ./db/migration
 
-# Create static directory
+# Create static directory and copy specific assets
 RUN mkdir -p static/assets
+COPY backend/static/logo.png backend/static/favicon.ico ./static/
 
 # Copy schema if needed
 COPY backend/schema.sql ./
