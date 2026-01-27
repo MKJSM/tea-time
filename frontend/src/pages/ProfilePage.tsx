@@ -149,7 +149,15 @@ const ProfilePage: React.FC = () => {
         <div className="max-w-3xl mx-auto flex flex-col items-center">
           <div className="relative mb-4 sm:mb-6">
             <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full p-1 bg-gradient-to-tr from-tea-800 to-accent-500">
-              <img src={user.avatar} alt="Profile" className="w-full h-full object-cover rounded-full border-4 border-white" />
+              {user.avatar ? (
+                <img src={user.avatar} alt="Profile" className="w-full h-full object-cover rounded-full border-4 border-white" />
+              ) : (
+                <div className="w-full h-full rounded-full border-4 border-white bg-tea-50 flex items-center justify-center">
+                  <span className="text-3xl sm:text-4xl font-serif font-bold text-tea-800">
+                    {user.name?.charAt(0).toUpperCase() || 'U'}
+                  </span>
+                </div>
+              )}
             </div>
             <button
               onClick={() => setIsEditModalOpen(true)}
