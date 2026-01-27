@@ -21,31 +21,6 @@ const AuthModal: React.FC = () => {
     dispatch(setAuthModalOpen(false));
   }, [dispatch]);
 
-  // Handle ESC key is now handled by ResponsiveModal internally via AnimatePresence/Close logic? 
-  // Wait, ResponsiveModal might not handle ESC unless we add it there. 
-  // Let's rely on ResponsiveModal or add the listener there if needed.
-  // Actually ResponsiveModal does NOT currently have ESC listener. 
-  // We can add it to ResponsiveModal later or keep it here if strictly needed, 
-  // but usually a modal library handles it.
-  // For now, I'll keep the listener in ResponsiveModal logic if I could edit it, 
-  // but since I already wrote it, I might add it here or just assume user clicks backdrop/X.
-  // UPDATE: I will add ESC listener to ResponsiveModal in a future step if requested, 
-  // or I can leave it here. However, `ResponsiveModal` is mounted only when open.
-
-  // Let's add the ESC listener back here just to be safe if ResponsiveModal doesn't cover it yet.
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    if (isAuthModalOpen) {
-      window.addEventListener('keydown', handleEsc);
-    }
-    return () => {
-      window.removeEventListener('keydown', handleEsc);
-    };
-  }, [isAuthModalOpen, onClose]);
-
-
   const checkAddressesAndProceed = async () => {
     try {
       // Fetch user addresses

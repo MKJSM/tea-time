@@ -5,6 +5,7 @@ import { X, ShoppingCart, Info, Plus, Minus, ArrowRight } from 'lucide-react';
 import { Product, SelectedAttributes } from '../../types';
 import { ProductCustomizer } from './ProductCustomizer';
 import { useCart } from '../../features/cart/useCart';
+import useEscapeKey from '../../hooks/useEscapeKey';
 import toast from 'react-hot-toast';
 
 interface QuickAddModalProps {
@@ -14,6 +15,7 @@ interface QuickAddModalProps {
 }
 
 export const QuickAddModal: React.FC<QuickAddModalProps> = ({ product, isOpen, onClose }) => {
+  useEscapeKey(onClose, isOpen);
   const { addToCart } = useCart();
   const [qty, setQty] = useState(1);
   const [selections, setSelections] = useState<SelectedAttributes>({});

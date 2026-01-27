@@ -13,6 +13,8 @@ interface ResponsiveModalProps {
     customHeader?: React.ReactNode;
 }
 
+import useEscapeKey from '../../hooks/useEscapeKey';
+
 const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
     isOpen,
     onClose,
@@ -23,6 +25,7 @@ const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
     customHeader
 }) => {
     useScrollLock(isOpen);
+    useEscapeKey(onClose, isOpen);
     const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {

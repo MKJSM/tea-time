@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Leaf, Award, Users, Globe, Recycle, Heart } from 'lucide-react';
+import aboutImage from '../assets/about.webp';
 
 const AboutPage: React.FC = () => {
     return (
@@ -9,7 +10,7 @@ const AboutPage: React.FC = () => {
             <div className="relative h-[60vh] overflow-hidden">
                 <div className="absolute inset-0">
                     <img
-                        src="https://images.unsplash.com/photo-1597481499750-3e6b22637e12?q=80&w=2070&auto=format&fit=crop"
+                        src={aboutImage}
                         alt="Tea Plantation"
                         className="w-full h-full object-cover"
                     />
