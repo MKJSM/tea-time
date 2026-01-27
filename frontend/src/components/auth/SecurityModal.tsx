@@ -58,6 +58,42 @@ const SecurityModal: React.FC<SecurityModalProps> = ({ isOpen, onClose }) => {
         return <Globe size={20} />;
     };
 
+    // Password strength logic
+    const checkStrength = (pass: string) => {
+        let score = 0;
+        const checks = {
+            length: pass.length >= 8,
+            hasUpper: /[A-Z]/.test(pass),
+            hasLower: /[a-z]/.test(pass),
+            hasNumber: /\d/.test(pass),
+        };
+
+        if (checks.length) score++;
+        if (checks.hasUpper) score++;
+        if (checks.hasLower) score++;
+        if (checks.hasNumber) score++;
+
+        return { score, checks };
+    };
+
+    const { score, checks } = checkStrength(passwordData.newPassword);
+    const passwordsMatch = passwordData.newPassword === passwordData.confirmPassword;
+    const isDifferent = passwordData.currentPassword !== passwordData.newPassword;
+    const isFormValid = score === 4 && passwordsMatch && isDifferent && passwordData.currentPassword.length > 0;
+
+    const getStrengthColor = (s: number) => {
+        if (s <= 2) return 'bg-red-500';
+        if (s === 3) return 'bg-yellow-500';
+        return 'bg-green-500';
+    };
+
+    const getStrengthLabel = (s: number) => {
+        if (s === 0) return '';
+        if (s <= 2) return 'Weak';
+        if (s === 3) return 'Medium';
+        return 'Strong';
+    };
+
     return (
         <ResponsiveModal
             isOpen={isOpen}
@@ -204,15 +240,63 @@ const SecurityModal: React.FC<SecurityModalProps> = ({ isOpen, onClose }) => {
                         </div>
 
                         <div>
-                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">New Password</label>
+                            <div className="flex justify-between items-end mb-2">
+                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">New Password</label>
+                                {passwordData.newPassword && (
+                                    <span className={`text-xs font-bold transition-colors ${score <= 2 ? 'text-red-500' : score === 3 ? 'text-yellow-500' : 'text-green-500'}`}>
+                                        {getStrengthLabel(score)}
+                                    </span>
+                                )}
+                            </div>
                             <input
                                 type="password"
                                 required
                                 value={passwordData.newPassword}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                                className="w-full px-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-tea-500 focus:border-transparent outline-none transition-all font-medium"
-                                placeholder="Min 8 characters"
+                                className={`w-full px-4 py-4 bg-gray-50 border rounded-2xl outline-none transition-all font-medium ${passwordData.newPassword && !isDifferent
+                                        ? 'border-red-300 focus:ring-2 focus:ring-red-200'
+                                        : 'border-gray-100 focus:ring-2 focus:ring-tea-500 focus:border-transparent'
+                                    }`}
+                                placeholder="Min 8 characters, numbers & symbols"
                             />
+                            {passwordData.newPassword && !isDifferent && (
+                                <p className="text-xs text-red-500 font-medium mt-2 ml-1 flex items-center gap-1">
+                                    <AlertCircle size={12} />
+                                    New password cannot be the same as current password
+                                </p>
+                            )}
+
+                            {/* Strength Meter */}
+                            {passwordData.newPassword && (
+                                <div className="mt-3 space-y-2">
+                                    <div className="flex gap-1 h-1">
+                                        {[1, 2, 3, 4].map((i) => (
+                                            <div
+                                                key={i}
+                                                className={`flex-1 rounded-full transition-all duration-300 ${score >= i ? getStrengthColor(score) : 'bg-gray-200'}`}
+                                            />
+                                        ))}
+                                    </div>
+                                    <div className="flex flex-wrap gap-2 pt-1">
+                                        <div className={`flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider ${checks.length ? 'text-green-600' : 'text-gray-400'}`}>
+                                            <CheckCircle2 size={12} className={checks.length ? 'text-green-500' : 'text-gray-300'} />
+                                            8+ chars
+                                        </div>
+                                        <div className={`flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider ${checks.hasUpper ? 'text-green-600' : 'text-gray-400'}`}>
+                                            <CheckCircle2 size={12} className={checks.hasUpper ? 'text-green-500' : 'text-gray-300'} />
+                                            Uppercase
+                                        </div>
+                                        <div className={`flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider ${checks.hasLower ? 'text-green-600' : 'text-gray-400'}`}>
+                                            <CheckCircle2 size={12} className={checks.hasLower ? 'text-green-500' : 'text-gray-300'} />
+                                            Lowercase
+                                        </div>
+                                        <div className={`flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider ${checks.hasNumber ? 'text-green-600' : 'text-gray-400'}`}>
+                                            <CheckCircle2 size={12} className={checks.hasNumber ? 'text-green-500' : 'text-gray-300'} />
+                                            Number
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div>
@@ -222,23 +306,35 @@ const SecurityModal: React.FC<SecurityModalProps> = ({ isOpen, onClose }) => {
                                 required
                                 value={passwordData.confirmPassword}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                                className="w-full px-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-tea-500 focus:border-transparent outline-none transition-all font-medium"
+                                className={`w-full px-4 py-4 bg-gray-50 border rounded-2xl outline-none transition-all font-medium ${passwordData.confirmPassword && !passwordsMatch
+                                        ? 'border-red-300 focus:ring-2 focus:ring-red-200'
+                                        : 'border-gray-100 focus:ring-2 focus:ring-tea-500 focus:border-transparent'
+                                    }`}
                                 placeholder="Re-enter new password"
                             />
+                            {passwordData.confirmPassword && !passwordsMatch && (
+                                <p className="text-xs text-red-500 font-medium mt-2 ml-1 flex items-center gap-1">
+                                    <AlertCircle size={12} />
+                                    Passwords do not match
+                                </p>
+                            )}
                         </div>
 
                         <div className="pt-4 flex gap-4">
                             <button
                                 type="button"
-                                onClick={() => setView('main')}
+                                onClick={() => {
+                                    setView('main');
+                                    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                                }}
                                 className="flex-1 py-4 bg-gray-50 text-gray-500 font-bold rounded-2xl hover:bg-gray-100 transition-colors"
                             >
                                 Back
                             </button>
                             <button
                                 type="submit"
-                                disabled={isLoading}
-                                className="flex-[2] py-4 bg-tea-800 text-white font-bold rounded-2xl shadow-xl hover:bg-tea-950 transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+                                disabled={isLoading || !isFormValid}
+                                className="flex-[2] py-4 bg-tea-800 text-white font-bold rounded-2xl shadow-xl hover:bg-tea-950 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isLoading ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
                                 Update Password

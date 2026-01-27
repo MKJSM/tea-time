@@ -149,6 +149,12 @@ pub async fn change_password(
         .validate()
         .map_err(|e| AppError::BadRequest(e.to_string()))?;
 
+    if payload.old_password == payload.new_password {
+        return Err(AppError::BadRequest(
+            "New password cannot be the same as the current password".into(),
+        ));
+    }
+
     let user_data = sqlx::query("SELECT password_hash FROM users WHERE id = $1")
         .bind(user.id)
         .fetch_optional(&state.db)
