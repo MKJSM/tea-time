@@ -53,6 +53,8 @@ const Navbar: React.FC = () => {
             <img
               src={logo}
               alt="Tea Time"
+              width="108"
+              height="40"
               className="h-10 w-auto object-contain scale-110 group-hover:scale-115 transition-transform"
             />
           </Link>

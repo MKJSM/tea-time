@@ -41,7 +41,7 @@ export const useSecurity = (isOpen: boolean) => {
             await dispatch(logoutDevice(sessionId)).unwrap();
             toast.success('Logged out from device');
         } catch (err: unknown) {
-            toast.error(getErrorMessage(err, 'Failed to logout'));
+            // Error handled by global middleware
         }
     }, [dispatch]);
 
@@ -60,7 +60,7 @@ export const useSecurity = (isOpen: boolean) => {
             if (pendingLogoutAllCallback) pendingLogoutAllCallback();
             window.location.reload();
         } catch (err: unknown) {
-            toast.error(getErrorMessage(err, 'Failed to logout all devices'));
+            // Error handled by global middleware
             setView('main');
         } finally {
             setIsLoading(false);
@@ -99,7 +99,7 @@ export const useSecurity = (isOpen: boolean) => {
             setView('main');
             setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
         } catch (err: unknown) {
-            toast.error(getErrorMessage(err, 'Failed to change password'));
+            // Error handled by global middleware
         } finally {
             setIsLoading(false);
         }

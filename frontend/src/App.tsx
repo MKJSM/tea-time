@@ -37,7 +37,7 @@ const PageWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.3 }}
-      className="pb-24 lg:pb-0"
+      className="pb-24 lg:pb-0 min-h-[60vh]"
     >
       {children}
     </motion.div>
