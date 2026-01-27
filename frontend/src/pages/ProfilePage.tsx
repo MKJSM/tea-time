@@ -15,6 +15,7 @@ import { cn } from '../utils/cn';
 import toast from 'react-hot-toast';
 import { useNavigate, Link } from 'react-router-dom';
 import { useGetFavoritesQuery } from '../features/favorites/favoritesApi';
+import { useGetAddressesQuery } from '../features/addresses/addressesApi';
 import EditProfileModal from '../components/auth/EditProfileModal';
 import SecurityModal from '../components/auth/SecurityModal';
 
@@ -113,7 +114,7 @@ const ProfilePage: React.FC = () => {
       <div className="p-5 border-t border-gray-50">
         <div className="flex items-center justify-between mb-4" onClick={() => navigate('/shop')}>
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-gray-50 text-tea-800 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-tea-50 text-tea-800 rounded-xl flex items-center justify-center">
               <Heart size={20} />
             </div>
             <div>
@@ -138,6 +139,8 @@ const ProfilePage: React.FC = () => {
       </div>
     );
   };
+
+  const { data: addresses = [] } = useGetAddressesQuery(undefined, { skip: !isAuthenticated });
 
   return (
     <div className="min-h-screen bg-cream-paper pb-32">
@@ -227,9 +230,9 @@ const ProfilePage: React.FC = () => {
               <SettingItem
                 icon={MapPin}
                 label="Delivery Address"
-                value={user.addresses && user.addresses.length > 0 ? `${user.addresses.length} Saved` : 'Add New'}
+                value={addresses && addresses.length > 0 ? `${addresses.length} Saved` : 'Add New'}
                 onClick={() => {
-                  if (user.addresses && user.addresses.length > 0) {
+                  if (addresses && addresses.length > 0) {
                     setIsAddressesExpanded(!isAddressesExpanded);
                   } else {
                     dispatch(setEditingAddress(null));
@@ -238,7 +241,7 @@ const ProfilePage: React.FC = () => {
                 }}
               />
               <AnimatePresence>
-                {isAddressesExpanded && user.addresses && (
+                {isAddressesExpanded && addresses && (
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
@@ -246,7 +249,7 @@ const ProfilePage: React.FC = () => {
                     className="overflow-hidden bg-gray-50/50 border-t border-gray-100"
                   >
                     <div className="p-4 space-y-3">
-                      {user.addresses.map((addr) => (
+                      {addresses.map((addr) => (
                         <div key={addr.id} className="p-3 bg-white rounded-xl border border-gray-100 flex justify-between items-center shadow-sm">
                           <div>
                             <div className="flex items-center gap-2 mb-1">
