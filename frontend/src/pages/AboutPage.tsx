@@ -64,11 +64,6 @@ const AboutPage: React.FC = () => {
                     <div className="order-2 lg:order-1">
                         <div className="relative">
                             <div className="absolute -inset-4 bg-tea-100 rounded-[3rem] -rotate-2" />
-                            <img
-                                src="https://images.unsplash.com/photo-1576092768241-dec231854f74?q=80&w=2074&auto=format&fit=crop"
-                                alt="Tea Ceremony"
-                                className="relative rounded-[2.5rem] shadow-2xl rotate-2 hover:rotate-0 transition-transform duration-700"
-                            />
                         </div>
                     </div>
                     <div className="order-1 lg:order-2 space-y-6">
