@@ -2,6 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Instagram, Twitter, Facebook, Mail } from 'lucide-react';
+import logo from '../../assets/logo.webp';
 
 const Footer: React.FC = () => {
   return (
@@ -10,7 +11,7 @@ const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-20">
           <div className="col-span-1 md:col-span-1">
             <Link to="/" className="flex items-center space-x-2 mb-6 group">
-              <img src="/logo.png" alt="Tea Time" className="h-10 w-auto object-contain scale-110" />
+              <img src={logo} alt="Tea Time" className="h-10 w-auto object-contain scale-110" />
             </Link>
             <p className="text-gray-500 text-sm leading-relaxed mb-8">
               Premium quality tea and snacks delivered fresh to your doorstep. Shop with us for the best prices!

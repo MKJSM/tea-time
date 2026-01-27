@@ -1,5 +1,5 @@
 // @ts-ignore
-import teaPlaceholder from '../assets/home.png';
+import teaPlaceholder from '../assets/home.webp';
 import config from '../config';
 
 /**

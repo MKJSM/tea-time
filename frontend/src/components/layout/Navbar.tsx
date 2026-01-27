@@ -6,6 +6,7 @@ import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { motion, AnimatePresence } from 'framer-motion';
 import { setAuthModalOpen } from '../../features/auth/authSlice';
 import { toggleDrawer } from '../../features/cart/cartSlice';
+import logo from '../../assets/logo.webp';
 
 const Navbar: React.FC = () => {
   const cartItems = useAppSelector((state) => state.cart.items);
@@ -50,7 +51,7 @@ const Navbar: React.FC = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 group">
             <img
-              src="/logo.png"
+              src={logo}
               alt="Tea Time"
               className="h-10 w-auto object-contain scale-110 group-hover:scale-115 transition-transform"
             />
