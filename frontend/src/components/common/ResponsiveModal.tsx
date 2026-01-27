@@ -88,7 +88,7 @@ const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
 
                         {/* Title / Close Button Header (Optional) or Custom Header */}
                         {customHeader ? (
-                            <div className="shrink-0 z-20 bg-white relative">
+                            <div className="flex-none w-full z-50 bg-white relative">
                                 {customHeader}
                             </div>
                         ) : (title || showCloseButton) ? (

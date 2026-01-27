@@ -143,7 +143,30 @@ const AddressModal: React.FC<AddressModalProps> = ({ isOpen, onClose, editAddres
   };
 
   // Generate OpenStreetMap embed URL centered on the selected location
-  const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${longitude - 0.01}%2C${latitude - 0.005}%2C${longitude + 0.01}%2C${latitude + 0.005}&layer=mapnik&marker=${latitude}%2C${longitude}`;
+  // const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${longitude - 0.01}%2C${latitude - 0.005}%2C${longitude + 0.01}%2C${latitude + 0.005}&layer=mapnik&marker=${latitude}%2C${longitude}`;
+
+  const headerContent = React.useMemo(() => (
+    <div className="bg-white p-5 flex justify-between items-center shrink-0 border-b border-gray-100 shadow-[0_4px_20px_-12px_rgba(0,0,0,0.1)]">
+      <div className="flex items-center gap-3">
+        <div className="bg-tea-50 p-3 rounded-2xl shadow-sm border border-tea-100">
+          <MapPin className="text-tea-700" size={24} />
+        </div>
+        <h2 className="text-2xl font-serif font-bold text-tea-900 tracking-tight">
+          {editAddress ? 'Edit Address' : 'Add New Address'}
+        </h2>
+      </div>
+
+      <button
+        onClick={onClose}
+        className="p-3 bg-gray-50 hover:bg-gray-100 text-gray-500 hover:text-tea-800 rounded-full transition-all group"
+        aria-label="Close modal"
+      >
+        <div className="relative">
+          <X size={22} className="group-hover:scale-110 transition-transform" />
+        </div>
+      </button>
+    </div>
+  ), [editAddress, onClose]);
 
   return (
     <ResponsiveModal
@@ -151,60 +174,11 @@ const AddressModal: React.FC<AddressModalProps> = ({ isOpen, onClose, editAddres
       onClose={onClose}
       className="md:max-w-2xl"
       showCloseButton={false}
-      customHeader={
-        <div className="bg-white p-8 flex justify-between items-center shrink-0 border-b border-gray-100 shadow-[0_4px_20px_-12px_rgba(0,0,0,0.1)]">
-          <div className="flex items-center gap-3">
-            <div className="bg-tea-50 p-3 rounded-2xl shadow-sm border border-tea-100">
-              <MapPin className="text-tea-700" size={24} />
-            </div>
-            <h2 className="text-2xl font-serif font-bold text-tea-900 tracking-tight">
-              {editAddress ? 'Edit Address' : 'Add New Address'}
-            </h2>
-          </div>
-
-          <button
-            onClick={onClose}
-            className="p-3 bg-gray-50 hover:bg-gray-100 text-gray-500 hover:text-tea-800 rounded-full transition-all group"
-            aria-label="Close modal"
-          >
-            <div className="relative">
-              <X size={22} className="group-hover:scale-110 transition-transform" />
-            </div>
-          </button>
-        </div>
-      }
+      customHeader={headerContent}
     >
 
       {/* Form Body */}
       <div className="px-6 pt-6 pb-2 md:px-8 md:pt-8 md:pb-6 space-y-6">
-
-        {/* Map Section */}
-        <div className="rounded-[2rem] overflow-hidden border border-gray-100 shadow-inner group relative">
-          <div className="h-56 relative">
-            <iframe
-              src={mapUrl}
-              className="w-full h-full border-0 grayscale-[20%] group-hover:grayscale-0 transition-all duration-700"
-              title="Location Map"
-              loading="lazy"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
-
-            <button
-              type="button"
-              onClick={handleUseCurrentLocation}
-              className="absolute bottom-4 right-4 bg-white hover:bg-tea-50 text-tea-700 px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-xl hover:shadow-tea-900/10 transition-all active:scale-95 border border-tea-100"
-            >
-              <Navigation size={14} className="animate-pulse" />
-              Use My Current Location
-            </button>
-
-            <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg text-[10px] font-bold text-tea-800 uppercase tracking-widest flex items-center gap-1.5 shadow-sm border border-white/50">
-              <MapPin size={10} />
-              Selected Location
-            </div>
-          </div>
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Address Type Selection */}
           <div>
