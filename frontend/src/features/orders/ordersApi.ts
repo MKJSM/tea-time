@@ -84,7 +84,7 @@ export const ordersApi = createApi({
       query: (data) => ({
         url: '/orders',
         method: 'POST',
-        data,
+        body: data,
       }),
     }),
     initiatePayment: builder.mutation<InitiatePaymentResponse, string>({
@@ -97,7 +97,7 @@ export const ordersApi = createApi({
       query: (data) => ({
         url: '/payments/verify',
         method: 'POST',
-        data,
+        body: data,
       }),
       invalidatesTags: ['Orders'],
     }),
@@ -105,7 +105,7 @@ export const ordersApi = createApi({
       query: ({ id, reason }) => ({
         url: `/orders/${id}/cancel`,
         method: 'POST',
-        data: { reason },
+        body: { reason },
       }),
       invalidatesTags: (result, error, { id }) => ['Orders'],
     }),
