@@ -149,9 +149,9 @@ export const QuickAddModal: React.FC<QuickAddModalProps> = ({ product, isOpen, o
                   onClick={handleAddToCart}
                   className="w-full sm:flex-grow py-4 bg-tea-800 hover:bg-tea-950 text-white font-bold rounded-2xl transition-all shadow-xl flex items-center justify-center gap-3 group active:scale-[0.98]"
                 >
-                  <span className="tracking-widest text-xs uppercase">Add to Cart</span>
+                  <span className="tracking-widest text-sm uppercase">Add to Cart</span>
                   <span className="h-4 w-px bg-white/20" />
-                  <span className="text-accent-400">₹{(currentPrice * qty).toFixed(2)}</span>
+                  <span className="text-accent-400 text-lg">₹{(currentPrice * qty).toFixed(2)}</span>
                   <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                 </button>
               </div>

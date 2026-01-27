@@ -12,7 +12,6 @@ import { useCart } from '../../features/cart/useCart';
 import { QuickAddModal } from './QuickAddModal';
 import { ImageSlider } from '../common/ImageSlider';
 import toast from 'react-hot-toast';
-// Fix: Added missing import for cn utility
 import { cn } from '../../utils/cn';
 import { getOptimizedImageUrl } from '../../utils/images';
 
@@ -146,7 +145,7 @@ const ProductCard: React.FC<Props> = ({ product }) => {
 
             <div className="mt-auto flex items-center justify-between gap-2">
               <div className="flex flex-col min-w-0">
-                <span className="text-base sm:text-2xl font-serif font-bold text-tea-900 truncate">₹{product.price.toFixed(2)}</span>
+                <span className="text-lg sm:text-2xl font-serif font-bold text-tea-900 leading-tight">₹{product.price.toFixed(2)}</span>
                 {hasAttributes && (
                   <span className="text-[8px] sm:text-[9px] text-tea-600 font-bold uppercase tracking-widest mt-0.5 opacity-60 truncate">Options</span>
                 )}
@@ -156,7 +155,7 @@ const ProductCard: React.FC<Props> = ({ product }) => {
                 whileTap={{ scale: 0.95 }}
                 onClick={handleAddToCart}
                 className={cn(
-                  "flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-[9px] sm:text-[10px] uppercase tracking-widest transition-all shrink-0 min-w-[80px] sm:min-w-[100px]",
+                  "flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-[9px] sm:text-[10px] uppercase tracking-widest transition-all shrink-0 min-w-[40px] sm:min-w-[100px]",
                   isInCart
                     ? 'bg-tea-50 text-tea-800 border border-tea-100'
                     : hasAttributes
