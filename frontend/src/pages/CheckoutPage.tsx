@@ -3,14 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../features/cart/useCart';
 import { motion } from 'framer-motion';
-import { ShieldCheck, CreditCard, Truck, CheckCircle, Apple, Plus, MapPin, Home, Briefcase, MoreHorizontal, Check, Edit2 } from 'lucide-react';
+import { ShieldCheck, CreditCard, Truck, CheckCircle, Plus, MapPin, Home, Briefcase, MoreHorizontal, Check, Edit2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { TeaLoader } from '../components/common/TeaLoader';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { setAuthModalOpen, setPendingCheckoutAfterAddress } from '../features/auth/authSlice';
 import { useRazorpayPayment } from '../features/orders/useRazorpayPayment';
 import { formatPrice } from '../utils/format';
-import { useGetAddressesQuery, useSetDefaultAddressMutation } from '../features/addresses/addressesApi';
+import { useGetAddressesQuery } from '../features/addresses/addressesApi';
 import { Address, AddressLabel } from '../types';
 import AddressModal from '../components/address/AddressModal';
 
@@ -40,7 +40,7 @@ const CheckoutPage: React.FC = () => {
   const { data: addresses = [], isLoading: isLoadingAddresses, refetch } = useGetAddressesQuery(undefined, {
     skip: !isAuthenticated,
   });
-  const [setDefaultAddress] = useSetDefaultAddressMutation();
+
 
   const handlePaymentSuccess = React.useCallback((orderId: string) => {
     clearEntireCart();

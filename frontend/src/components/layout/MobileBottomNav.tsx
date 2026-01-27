@@ -3,22 +3,26 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Search, ShoppingBag, User, Package, Home } from 'lucide-react';
 import { cn } from '../../utils/cn';
+import { useAppSelector } from '../../store/hooks';
 
 const MobileBottomNav: React.FC = () => {
   const { pathname } = useLocation();
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
 
   const navItems = [
     { icon: Home, label: 'Home', path: '/' },
     { icon: Search, label: 'Shop', path: '/shop' },
     { icon: ShoppingBag, label: 'Cart', path: '/cart' },
-    { icon: Package, label: 'Orders', path: '/orders' },
-    { icon: User, label: 'Account', path: '/profile' },
+    { icon: Package, label: 'Orders', path: '/orders', requiresAuth: true },
+    { icon: User, label: 'Account', path: '/profile', requiresAuth: true },
   ];
+
+  const visibleNavItems = navItems.filter(item => !item.requiresAuth || isAuthenticated);
 
   return (
     <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 glass border-t safe-area-bottom">
       <div className="flex items-center justify-around h-16">
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const isActive = pathname === item.path || (item.path === '/shop' && pathname === '/');
           return (
             <Link

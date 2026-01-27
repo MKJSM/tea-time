@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapPin, Home, Briefcase, MoreHorizontal, Check, Navigation, X } from 'lucide-react';
 import { useCreateAddressMutation, useUpdateAddressMutation } from '../../features/addresses/addressesApi';
 import { Address, AddressLabel, CreateAddressRequest } from '../../types';
@@ -143,7 +143,6 @@ const AddressModal: React.FC<AddressModalProps> = ({ isOpen, onClose, editAddres
   };
 
   // Generate OpenStreetMap embed URL centered on the selected location
-  // const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${longitude - 0.01}%2C${latitude - 0.005}%2C${longitude + 0.01}%2C${latitude + 0.005}&layer=mapnik&marker=${latitude}%2C${longitude}`;
 
   const headerContent = React.useMemo(() => (
     <div className="bg-white p-5 flex justify-between items-center shrink-0 border-b border-gray-100 shadow-[0_4px_20px_-12px_rgba(0,0,0,0.1)]">

@@ -1,8 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ShoppingCart, Star, Heart, Check, Settings2, ArrowRight } from 'lucide-react';
+import { ShoppingCart, Star, Heart, Check, Settings2 } from 'lucide-react';
 import { Product } from '../../types';
 import { useDispatch } from 'react-redux';
 import { setAuthModalOpen } from '../../features/auth/authSlice';
@@ -24,7 +24,7 @@ const ProductCard: React.FC<Props> = ({ product }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   // Using favorites API instead of auth slice for favorites list
-  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
   // Fetch favorite IDs if authenticated
   const { data: favoriteIds = [] } = useGetFavoriteIdsQuery(undefined, { skip: !isAuthenticated });
   const [addFavorite] = useAddFavoriteMutation();
@@ -37,7 +37,12 @@ const ProductCard: React.FC<Props> = ({ product }) => {
   const isFavorited = favoriteIds.includes(product.id);
   const isInCart = cartItems.some((item) => item.id === product.id);
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const sliderImages = useMemo(() => {
+    const images = product.images && product.images.length > 0 ? product.images : [product.image];
+    return images.map(img => getOptimizedImageUrl(img, 400));
+  }, [product.images, product.image]);
+
+  const handleAddToCart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -52,9 +57,9 @@ const ProductCard: React.FC<Props> = ({ product }) => {
       icon: '🍃',
       style: { borderRadius: '10px', background: '#FFF8F0', color: '#2E7D32' },
     });
-  };
+  }, [product, addToCart]);
 
-  const handleToggleFavorite = async (e: React.MouseEvent) => {
+  const handleToggleFavorite = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -74,7 +79,7 @@ const ProductCard: React.FC<Props> = ({ product }) => {
     } catch (error) {
       toast.error('Something went wrong');
     }
-  };
+  }, [isAuthenticated, isFavorited, product.id, dispatch, removeFavorite, addFavorite]);
 
   const hasAttributes = product.attributes && product.attributes.length > 0;
 
@@ -88,7 +93,7 @@ const ProductCard: React.FC<Props> = ({ product }) => {
           {/* Enhanced Image Carousel */}
           <div className="relative aspect-square overflow-hidden shrink-0">
             <ImageSlider
-              images={(product.images && product.images.length > 0 ? product.images : [product.image]).map(img => getOptimizedImageUrl(img, 400))}
+              images={sliderImages}
               autoPlay={true}
               showDots={true}
               className="w-full h-full"
