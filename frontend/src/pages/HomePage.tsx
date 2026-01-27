@@ -3,7 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, Leaf, Truck, Award, ShieldCheck } from 'lucide-react';
-import { useProductStore } from '../store';
+import { useGetFeaturedProductsQuery } from '../features/products/productsApi';
 import { useAppSelector } from '../store/hooks';
 import ProductCard from '../components/products/ProductCard';
 
@@ -17,7 +17,7 @@ const getTimeBasedGreeting = () => {
 };
 
 const HomePage: React.FC = () => {
-  const products = useProductStore((state) => state.products).slice(0, 4);
+  const { data: products = [] } = useGetFeaturedProductsQuery(undefined);
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
   const [greeting, setGreeting] = React.useState(getTimeBasedGreeting());
 

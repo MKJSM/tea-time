@@ -69,6 +69,8 @@ export const ordersApi = createApi({
         timeline: order.timeline || [],
         items: order.items.map((item: any) => ({
           ...item,
+          id: item.product_id, // Use Product ID for cart compatibility
+          orderItemId: item.id, // Preserve Order Item ID
           name: item.product_name,
           price: item.unit_price,
           quantity: item.quantity,

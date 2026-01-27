@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => {
           manualChunks: {
             vendor: ['react', 'react-dom', 'react-router-dom'],
             ui: ['lucide-react', 'framer-motion', 'react-hot-toast'],
-            state: ['@reduxjs/toolkit', 'react-redux', 'axios']
+            state: ['@reduxjs/toolkit', 'react-redux']
           }
         }
       }

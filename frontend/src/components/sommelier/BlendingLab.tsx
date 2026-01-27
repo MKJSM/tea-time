@@ -1,9 +1,9 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Beaker, Sliders, Sparkles, Plus, Trash2, Info, ChevronRight, Droplets } from 'lucide-react';
-import { useSommelierStore, useCartStore } from '../../store';
-import { BlendComponent, Product } from '../../types';
+import { useCart } from '../../features/cart/useCart';
+import { BlendComponent, Product, CustomBlend } from '../../types';
 import toast from 'react-hot-toast';
 import { cn } from '../../utils/cn';
 
@@ -21,9 +21,23 @@ const BOTANICALS = [
   { id: 'bot4', name: 'Lavender Buds', color: '#E1BEE7', profile: { floral: 8, earthy: 3 } },
 ];
 
+const INITIAL_BLEND: CustomBlend = {
+  id: 'blend-new',
+  name: 'Untitled Masterpiece',
+  baseTeas: [{ id: 'b1', name: 'Japanese Sencha', type: 'base', ratio: 100, color: '#4CAF50' }],
+  botanicals: [],
+  intensity: 5,
+  caffeineLevel: 'Medium',
+  predictedProfile: { floral: 2, grassy: 8, nutty: 3, sweet: 4, earthy: 1 }
+};
+
 export const BlendingLab: React.FC = () => {
-  const { activeBlend, updateBlend } = useSommelierStore();
-  const addItem = useCartStore(state => state.addItem);
+  const [activeBlend, setActiveBlend] = useState<CustomBlend>(INITIAL_BLEND);
+  const { addToCart } = useCart();
+
+  const updateBlend = (updates: Partial<CustomBlend>) => {
+    setActiveBlend(prev => ({ ...prev, ...updates }));
+  };
 
   const calculateProfile = (bases: BlendComponent[], bots: BlendComponent[]) => {
     // Mock molecular calculation logic
@@ -85,7 +99,7 @@ export const BlendingLab: React.FC = () => {
       origin: 'Tea Time Lab',
       format: 'Custom Blend'
     };
-    addItem(customProduct, 1, activeBlend);
+    addToCart(customProduct, 1, activeBlend);
     toast.success("Artisanal blend added to vault!", { icon: '🧪' });
   };
 

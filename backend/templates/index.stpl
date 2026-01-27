@@ -6,11 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tea Time | Premium Global Teas</title>
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap"
-    rel="stylesheet">
   <meta name="description"
     content="Discover premium, ethically sourced teas from the world's finest estates. Hand-plucked, artisanally crafted, and delivered to your doorstep." />
   <meta name="theme-color" content="#1B5E20" />
@@ -18,11 +13,11 @@
   <meta property="og:description"
     content="Experience the art of mindful brewing with our curated collection of single-estate teas." />
   <meta property="og:type" content="website" />
-  <script type="module" crossorigin src="/assets/index-DrKvKics.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/state-DA3U1HQ7.js">
-  <link rel="modulepreload" crossorigin href="/assets/ui-BpTiMA1A.js">
-  <link rel="modulepreload" crossorigin href="/assets/vendor-bVwvch6A.js">
-  <link rel="stylesheet" crossorigin href="/assets/index-BFdB8-_L.css">
+  <script type="module" crossorigin src="/assets/index-BRI1FWbA.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/state-BlOZmjfd.js">
+  <link rel="modulepreload" crossorigin href="/assets/ui-lmmpxTCK.js">
+  <link rel="modulepreload" crossorigin href="/assets/vendor-BTM4eBqK.js">
+  <link rel="stylesheet" crossorigin href="/assets/index-8UMw9UH3.css">
 </head>
 
 <body>
