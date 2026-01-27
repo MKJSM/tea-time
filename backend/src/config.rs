@@ -24,7 +24,7 @@ impl Config {
         let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
         // Ensure the database URL starts with postgres://
-        if !database_url.starts_with("postgres://") {
+        if !(database_url.starts_with("postgres://") || database_url.starts_with("postgresql://")) {
             panic!("DATABASE_URL must start with postgres://");
         }
 
