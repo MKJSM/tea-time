@@ -130,8 +130,8 @@ const ProductCard: React.FC<Props> = ({ product }) => {
           </div>
 
           {/* Premium Content */}
-          <div className="p-4 sm:p-6 flex flex-col flex-grow">
-            <h3 className="font-serif text-lg sm:text-xl text-tea-950 group-hover:text-tea-700 transition-colors line-clamp-1 mb-1">
+          <div className="p-3 sm:p-6 flex flex-col flex-grow">
+            <h3 className="font-serif text-sm sm:text-xl text-tea-950 group-hover:text-tea-700 transition-colors line-clamp-1 mb-1">
               {product.name}
             </h3>
 
@@ -146,7 +146,7 @@ const ProductCard: React.FC<Props> = ({ product }) => {
 
             <div className="mt-auto flex items-center justify-between gap-2">
               <div className="flex flex-col min-w-0">
-                <span className="text-xl sm:text-2xl font-serif font-bold text-tea-900 truncate">₹{product.price.toFixed(2)}</span>
+                <span className="text-base sm:text-2xl font-serif font-bold text-tea-900 truncate">₹{product.price.toFixed(2)}</span>
                 {hasAttributes && (
                   <span className="text-[8px] sm:text-[9px] text-tea-600 font-bold uppercase tracking-widest mt-0.5 opacity-60 truncate">Options</span>
                 )}
