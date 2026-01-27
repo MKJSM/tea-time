@@ -57,27 +57,38 @@ const transformToBackendRequest = (product: Product, quantity: number, selectedA
 
 /**
  * Transform backend CartDto to frontend CartItem[]
+ *
+ * Note: Backend items have price that already includes customizations.
+ * The itemKey is set to the backend cart_item ID for authenticated users,
+ * which is required for update/remove operations.
  */
 const transformFromBackendResponse = (cartDto: CartDto): CartItem[] => {
   return cartDto.items.map(item => {
     // Build selected attributes from customizations
+    // Note: Keys are group_name, not attr.id - this differs from local items
     const selectedAttributes: SelectedAttributes = {};
     item.customizations.forEach(cust => {
       selectedAttributes[cust.group_name] = cust.option_name;
     });
 
-    // Calculate price with customizations
+    // Calculate price with customizations already included
     const customizationPrice = item.customizations.reduce((sum, c) => sum + c.price_modifier, 0);
     const totalUnitPrice = item.unit_price + customizationPrice;
 
+    // Get image URL safely (handle empty array)
+    const imageUrls = item.image_urls || [];
+    const primaryImage = imageUrls.length > 0 ? getProductImageUrl(imageUrls[0]) : '';
+
     const cartItem: CartItem = {
       id: item.product_id,
+      // Use backend item ID as itemKey - required for authenticated user operations
       itemKey: item.id || `${item.product_id}-${JSON.stringify(selectedAttributes)}`,
       name: item.name,
       quantity: item.quantity,
+      // Price already includes customizations for backend items
       price: totalUnitPrice,
-      image: getProductImageUrl(item.image_urls[0]),
-      images: item.image_urls.map(img => getProductImageUrl(img)),
+      image: primaryImage,
+      images: imageUrls.map(img => getProductImageUrl(img)),
       categories: [],
       rating: 0,
       tags: [],
@@ -88,6 +99,8 @@ const transformFromBackendResponse = (cartDto: CartDto): CartItem[] => {
       story: '',
       format: 'Loose Leaf',
       selectedAttributes: Object.keys(selectedAttributes).length > 0 ? selectedAttributes : undefined,
+      // Note: attributes array is empty for backend items - price calculation uses
+      // the already-computed totalUnitPrice instead of recalculating from attributes
     };
 
     return cartItem;
@@ -245,9 +258,15 @@ const cartSlice = createSlice({
       // Persistence handled by middleware
     },
     updateQuantity: (state, action: PayloadAction<{ itemKey: string; quantity: number }>) => {
-      const item = state.items.find((i) => i.itemKey === action.payload.itemKey);
-      if (item) {
-        item.quantity = Math.max(1, action.payload.quantity);
+      const { itemKey, quantity } = action.payload;
+      // Remove item if quantity is 0 or less (consistent with backend behavior)
+      if (quantity <= 0) {
+        state.items = state.items.filter((i) => i.itemKey !== itemKey);
+      } else {
+        const item = state.items.find((i) => i.itemKey === itemKey);
+        if (item) {
+          item.quantity = quantity;
+        }
       }
       // Persistence handled by middleware
     },

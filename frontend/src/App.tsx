@@ -13,7 +13,7 @@ import { CartDrawer } from './components/layout/CartDrawer';
 import { MobileQuickCart } from './components/layout/MobileQuickCart';
 import ScrollToTop from './components/common/ScrollToTop';
 import { useAppDispatch } from './store/hooks';
-import { loadCartFromStorage } from './features/cart/cartSlice';
+import { loadCartFromStorage, fetchCartFromBackend } from './features/cart/cartSlice';
 import { fetchCurrentUser } from './features/auth/authSlice';
 import { initCartDB, migrateCartFromLocalStorage } from './utils/indexedDB';
 
@@ -49,7 +49,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     // Initialize IndexedDB and load cart on app startup
-    const initializeCart = async () => {
+    const initializeApp = async () => {
       try {
         // Initialize IndexedDB
         await initCartDB();
@@ -57,17 +57,24 @@ const App: React.FC = () => {
         // Migrate from localStorage if needed (one-time operation)
         await migrateCartFromLocalStorage();
 
-        // Load cart from storage (IndexedDB for guests, backend for authenticated)
-        dispatch(loadCartFromStorage());
+        // Verify session / fetch user profile first
+        const result = await dispatch(fetchCurrentUser());
 
-        // Verify session / fetch user profile
-        dispatch(fetchCurrentUser());
+        // If user is authenticated, fetch cart from backend
+        // Otherwise, load from IndexedDB (guest cart)
+        if (fetchCurrentUser.fulfilled.match(result)) {
+          dispatch(fetchCartFromBackend());
+        } else {
+          dispatch(loadCartFromStorage());
+        }
       } catch (error) {
-        console.error('Failed to initialize cart:', error);
+        console.error('Failed to initialize app:', error);
+        // Fall back to loading local cart on error
+        dispatch(loadCartFromStorage());
       }
     };
 
-    initializeCart();
+    initializeApp();
   }, [dispatch]);
 
   return (

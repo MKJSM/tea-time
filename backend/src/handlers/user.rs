@@ -1,7 +1,7 @@
 use crate::auth::RequiredAuthUser;
 use crate::domain::models::{
-    Address, AddressResponse, ChangePasswordRequest, DeviceResponse, UpdateThemeRequest,
-    UpdateUserProfileRequest, UserProfileResponse,
+    Address, ChangePasswordRequest, DeviceResponse, UpdateThemeRequest, UpdateUserProfileRequest,
+    UserProfileResponseFull,
 };
 use crate::error::AppError;
 use crate::state::AppState;
@@ -20,13 +20,13 @@ use validator::Validate;
 ///
 /// Returns a consolidated view of the authenticated user including:
 /// - Identity: name, email, phone, image_url, theme
-/// - Addresses: Array of address objects
+/// - Addresses: Array of full address objects
 /// - Activity: active_orders_count, wishlist_count
 #[tracing::instrument(skip(user, state))]
 pub async fn get_user_profile(
     user: RequiredAuthUser,
     State(state): State<AppState>,
-) -> Result<Json<UserProfileResponse>, AppError> {
+) -> Result<Json<UserProfileResponseFull>, AppError> {
     // Fetch user details
     let db_user =
         sqlx::query("SELECT name, email, phone, image_url, theme FROM users WHERE id = $1")
@@ -41,7 +41,7 @@ pub async fn get_user_profile(
     let image_url: Option<String> = db_user.get("image_url");
     let theme: String = db_user.get("theme");
 
-    // Fetch addresses
+    // Fetch full addresses
     let addresses = sqlx::query_as::<_, Address>(
         "SELECT * FROM addresses WHERE user_id = $1 ORDER BY is_default DESC, created_at DESC",
     )
@@ -49,40 +49,27 @@ pub async fn get_user_profile(
     .fetch_all(&state.db)
     .await?;
 
-    let formatted_addresses = addresses
-        .into_iter()
-        .map(|addr| AddressResponse {
-            id: addr.id,
-            label: addr.label,
-            text: format!(
-                "{}, {}, {} {}",
-                addr.street_address, addr.city, addr.state, addr.postal_code
-            ),
-            is_default: addr.is_default,
-        })
-        .collect();
-
     // Fetch active orders count
     let active_orders: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM orders WHERE user_id = $1 AND status NOT IN ('delivered', 'cancelled')")
         .bind(user.id)
         .fetch_one(&state.db)
         .await
-        .unwrap_or((0,));
+        .unwrap_or((0i64,));
 
     // Fetch wishlist count (favorites)
     let wishlist: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM favorites WHERE user_id = $1")
         .bind(user.id)
         .fetch_one(&state.db)
         .await
-        .unwrap_or((0,));
+        .unwrap_or((0i64,));
 
-    Ok(Json(UserProfileResponse {
+    Ok(Json(UserProfileResponseFull {
         name,
         email,
         phone,
         image_url,
         theme,
-        addresses: formatted_addresses,
+        addresses,
         active_orders_count: active_orders.0 as i32,
         wishlist_count: wishlist.0 as i32,
         is_deleted: false,
@@ -97,7 +84,7 @@ pub async fn update_user_profile(
     user: RequiredAuthUser,
     State(state): State<AppState>,
     Json(payload): Json<UpdateUserProfileRequest>,
-) -> Result<Json<UserProfileResponse>, AppError> {
+) -> Result<Json<UserProfileResponseFull>, AppError> {
     payload
         .validate()
         .map_err(|e| AppError::BadRequest(e.to_string()))?;

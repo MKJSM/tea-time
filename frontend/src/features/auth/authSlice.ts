@@ -121,7 +121,19 @@ export const changePassword = createApiThunk<void, { currentPassword: string; ne
   }
 );
 
-export const fetchUserProfile = createApiThunk<any>(
+interface UserProfileResponse {
+  name: string;
+  email: string;
+  phone: string;
+  image_url: string | null;
+  theme: string;
+  addresses: Address[];
+  active_orders_count: number;
+  wishlist_count: number;
+  is_deleted: boolean;
+}
+
+export const fetchUserProfile = createApiThunk<UserProfileResponse>(
   'auth/fetchUserProfile',
   () => apiClient.get('/user/profile')
 );
@@ -271,12 +283,19 @@ const authSlice = createSlice({
       })
       .addCase(fetchUserProfile.fulfilled, (state, action) => {
         if (state.user) {
-          // Merge profile user data with existing user data to keep things like id
-          state.user = { ...state.user, ...action.payload };
-          // Map backend response if needed (e.g. addresses, stats)
-          if (action.payload.addresses) {
-            // We might want to store addresses separately or in user object depending on frontend needs
-          }
+          // Merge profile user data with existing user data
+          const backendProfile = action.payload;
+          state.user = {
+            ...state.user,
+            name: backendProfile.name,
+            email: backendProfile.email,
+            phone: backendProfile.phone,
+            theme: backendProfile.theme,
+            avatar: backendProfile.image_url || state.user.avatar,
+            addresses: backendProfile.addresses,
+            active_orders_count: backendProfile.active_orders_count,
+            wishlist_count: backendProfile.wishlist_count,
+          };
         }
       })
       .addCase(fetchUserDevices.fulfilled, (state, action) => {

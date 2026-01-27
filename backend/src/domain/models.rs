@@ -209,6 +209,20 @@ pub struct UserProfileResponse {
     pub is_deleted: bool,
 }
 
+/// Full user profile response with complete Address objects for profile page
+#[derive(Serialize, Deserialize, Debug)]
+pub struct UserProfileResponseFull {
+    pub name: String,
+    pub email: String,
+    pub phone: String,
+    pub image_url: Option<String>,
+    pub theme: String,
+    pub addresses: Vec<Address>,
+    pub active_orders_count: i32,
+    pub wishlist_count: i32,
+    pub is_deleted: bool,
+}
+
 #[derive(Serialize, Deserialize, Validate, Debug)]
 pub struct UpdateUserProfileRequest {
     #[validate(length(

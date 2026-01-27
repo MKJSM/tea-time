@@ -176,9 +176,9 @@ async fn handle_payment_captured(
     let razorpay_order_id = &entity.order_id;
     let razorpay_payment_id = &entity.id;
 
-    // Find payment record
+    // Find payment record and user_id
     let payment =
-        sqlx::query("SELECT id, order_id, status FROM payments WHERE razorpay_order_id = $1")
+        sqlx::query("SELECT p.id, p.order_id, p.status, o.user_id FROM payments p JOIN orders o ON p.order_id = o.id WHERE p.razorpay_order_id = $1")
             .bind(razorpay_order_id)
             .fetch_optional(pool)
             .await?;
@@ -187,6 +187,7 @@ async fn handle_payment_captured(
         let payment_id: Uuid = p.try_get("id")?;
         let order_id: Uuid = p.try_get("order_id")?;
         let current_status: String = p.try_get("status")?;
+        let user_id: Uuid = p.try_get("user_id")?;
 
         if current_status == "captured" {
             return Ok(()); // Already processed
@@ -225,6 +226,12 @@ async fn handle_payment_captured(
         .execute(&mut *tx)
         .await?;
 
+        // Clear user cart
+        sqlx::query("DELETE FROM cart_items WHERE cart_id = (SELECT id FROM carts WHERE user_id = $1)")
+            .bind(user_id)
+            .execute(&mut *tx)
+            .await?;
+
         tx.commit().await?;
         tracing::info!(
             "Payment captured and order confirmed via webhook: {}",
@@ -243,13 +250,14 @@ async fn handle_order_paid(
     let razorpay_order_id = &entity.id;
 
     // Find our order
-    let order = sqlx::query("SELECT id, status FROM orders WHERE id = (SELECT order_id FROM payments WHERE razorpay_order_id = $1 LIMIT 1)")
+    let order = sqlx::query("SELECT id, user_id, status FROM orders WHERE id = (SELECT order_id FROM payments WHERE razorpay_order_id = $1 LIMIT 1)")
         .bind(razorpay_order_id)
         .fetch_optional(pool)
         .await?;
 
     if let Some(o) = order {
         let order_id: Uuid = o.try_get("id")?;
+        let user_id: Uuid = o.try_get("user_id")?;
         let status: String = o.try_get("status")?;
 
         if status == "pending" {
@@ -269,6 +277,12 @@ async fn handle_order_paid(
             .bind(order_id)
             .execute(&mut *tx)
             .await?;
+
+            // Clear user cart
+            sqlx::query("DELETE FROM cart_items WHERE cart_id = (SELECT id FROM carts WHERE user_id = $1)")
+                .bind(user_id)
+                .execute(&mut *tx)
+                .await?;
 
             tx.commit().await?;
             tracing::info!(
@@ -542,6 +556,51 @@ pub async fn create_order(
     // 6. Create order in transaction
     let mut tx = pool.begin().await?;
 
+    // Cancel existing pending orders to release stock and prevent duplicates
+    let pending_orders = sqlx::query("SELECT id FROM orders WHERE user_id = $1 AND status = 'pending'")
+        .bind(user_id)
+        .fetch_all(&mut *tx)
+        .await?;
+
+    for row in pending_orders {
+        let p_order_id: Uuid = row.try_get("id")?;
+
+        // Update status
+        sqlx::query(
+            "UPDATE orders SET status = 'cancelled', cancelled_at = NOW(), cancellation_reason = 'Replaced by new order' WHERE id = $1"
+        )
+        .bind(p_order_id)
+        .execute(&mut *tx)
+        .await?;
+
+        // Restore stock
+        let items = sqlx::query("SELECT product_id, quantity FROM order_items WHERE order_id = $1")
+            .bind(p_order_id)
+            .fetch_all(&mut *tx)
+            .await?;
+
+        for item in items {
+            let pid: Option<Uuid> = item.try_get("product_id")?;
+            let qty: i32 = item.try_get("quantity")?;
+            if let Some(p) = pid {
+                sqlx::query("UPDATE products SET stock_quantity = stock_quantity + $1 WHERE id = $2")
+                    .bind(qty)
+                    .bind(p)
+                    .execute(&mut *tx)
+                    .await?;
+            }
+        }
+
+        // Record status change
+        sqlx::query(
+            "INSERT INTO order_status_history (id, order_id, from_status, to_status, notes) VALUES ($1, $2, 'pending', 'cancelled', 'Auto-cancelled by new order')"
+        )
+        .bind(Uuid::new_v4())
+        .bind(p_order_id)
+        .execute(&mut *tx)
+        .await?;
+    }
+
     let order_id = Uuid::new_v4();
     sqlx::query(
         r#"
@@ -577,6 +636,13 @@ pub async fn create_order(
         customizations,
     ) in order_items_data
     {
+        // Decrement stock
+        sqlx::query("UPDATE products SET stock_quantity = stock_quantity - $1 WHERE id = $2")
+            .bind(quantity)
+            .bind(product_id)
+            .execute(&mut *tx)
+            .await?;
+
         let order_item_id = Uuid::new_v4();
         sqlx::query(
             r#"
@@ -635,11 +701,7 @@ pub async fn create_order(
     .execute(&mut *tx)
     .await?;
 
-    // 9. Clear the cart
-    sqlx::query("DELETE FROM cart_items WHERE cart_id = $1")
-        .bind(cart_id)
-        .execute(&mut *tx)
-        .await?;
+    // Note: Cart is NOT cleared here. It will be cleared upon successful payment.
 
     tx.commit().await?;
 
@@ -900,6 +962,12 @@ pub async fn verify_payment(
     .bind(order_id)
     .execute(&mut *tx)
     .await?;
+
+    // Clear the cart after successful payment
+    sqlx::query("DELETE FROM cart_items WHERE cart_id = (SELECT id FROM carts WHERE user_id = $1)")
+        .bind(user_id)
+        .execute(&mut *tx)
+        .await?;
 
     tx.commit().await?;
 
@@ -1219,6 +1287,27 @@ pub async fn cancel_order(
     .bind(order_id)
     .execute(&mut *tx)
     .await?;
+
+    // Restore stock
+    // 1. Get order items
+    let items = sqlx::query("SELECT product_id, quantity FROM order_items WHERE order_id = $1")
+        .bind(order_id)
+        .fetch_all(&mut *tx)
+        .await?;
+
+    // 2. Increment stock
+    for item in items {
+        let product_id: Option<Uuid> = item.try_get("product_id")?;
+        let quantity: i32 = item.try_get("quantity")?;
+
+        if let Some(pid) = product_id {
+            sqlx::query("UPDATE products SET stock_quantity = stock_quantity + $1 WHERE id = $2")
+                .bind(quantity)
+                .bind(pid)
+                .execute(&mut *tx)
+                .await?;
+        }
+    }
 
     // Record status change
     sqlx::query(
