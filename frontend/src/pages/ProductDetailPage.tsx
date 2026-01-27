@@ -17,36 +17,13 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import { ProductCustomizer } from '../components/products/ProductCustomizer';
 import { ImageSlider } from '../components/common/ImageSlider';
 import { SelectedAttributes } from '../types';
-import { cn } from '../utils/cn';
 import { getOptimizedImageUrl } from '../utils/images';
 import ProductCard from '../components/products/ProductCard';
 
-const Accordion = ({ title, children, isOpen, onToggle }: { title: string, children: React.ReactNode, isOpen: boolean, onToggle: () => void }) => (
-  <div className="border-b border-gray-100 last:border-0">
-    <button
-      onClick={onToggle}
-      className="w-full flex items-center justify-between py-4 text-left transition-colors hover:text-tea-700"
-    >
-      <span className="text-sm font-semibold uppercase tracking-widest text-gray-900">{title}</span>
-      <ChevronDown className={cn("w-5 h-5 text-gray-400 transition-transform duration-300", isOpen && "rotate-180")} />
-    </button>
-    <AnimatePresence initial={false}>
-      {isOpen && (
-        <motion.div
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: "auto", opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
-          className="overflow-hidden"
-        >
-          <div className="pb-6 text-sm text-gray-600 leading-relaxed space-y-3">
-            {children}
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  </div>
-);
+import { Accordion } from '../components/common/Accordion';
+import { formatPrice } from '../utils/format';
+
+
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams();
@@ -143,7 +120,7 @@ const ProductDetailPage: React.FC = () => {
     );
   }
 
-  const discountPercent = 15; // Mock discount for sale display
+
 
   const rawImages = product.images && product.images.length > 0 ? product.images : [product.image];
   const productImages = rawImages.map(img => getOptimizedImageUrl(img, 800));
@@ -261,8 +238,8 @@ const ProductDetailPage: React.FC = () => {
                 </div>
 
                 <div className="flex items-baseline gap-3 pt-2">
-                  <span className="text-3xl font-bold text-tea-900">₹{currentPrice.toFixed(2)}</span>
-                  <span className="text-sm text-gray-400 line-through">₹{(currentPrice * 1.2).toFixed(2)}</span>
+                  <span className="text-3xl font-bold text-tea-900">{formatPrice(currentPrice)}</span>
+                  <span className="text-sm text-gray-400 line-through">{formatPrice(currentPrice * 1.2)}</span>
                   <span className="text-xs font-bold text-tea-700 bg-tea-50 px-2 py-0.5 rounded">Save 20%</span>
                 </div>
               </div>
@@ -294,7 +271,7 @@ const ProductDetailPage: React.FC = () => {
                     onClick={handleAddToCart}
                     className="w-full py-5 bg-tea-700 hover:bg-tea-800 text-white font-bold rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
                   >
-                    Add to Cart · ₹{(currentPrice * qty).toFixed(2)}
+                    Add to Cart · {formatPrice(currentPrice * qty)}
                   </button>
                   <button
                     onClick={handleBuyNow}

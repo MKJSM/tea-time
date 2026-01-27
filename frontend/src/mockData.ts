@@ -70,31 +70,7 @@ const mockSessions: UserSession[] = [
   { id: 'sess-3', device: 'iPad Air (App)', location: 'London, UK', lastActive: 'May 10, 2024', isCurrent: false }
 ];
 
-export const mockUser: User = {
-  id: 'u-1',
-  name: 'Aurelia Vance',
-  email: 'aurelia@haven.com',
-  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=400',
-  level: 4,
-  xp: 750,
-  xpToNext: 1000,
-  loyaltyPoints: 450,
-  stats: {
-    teasTried: 24,
-    notesWritten: 18,
-    streakDays: 12,
-    regionsExplored: 5
-  },
-  journal: mockJournal,
-  achievements: mockAchievements,
-  passport: mockPassport,
-  preferences: ['Green Tea', 'Gongfu Style', 'Floral Notes'],
-  sessions: mockSessions,
-  security: {
-    twoFactorEnabled: true,
-    lastPasswordChange: 'March 15, 2024'
-  }
-};
+
 
 export const getDetailedOrder = (id: string): Order => ({
   id,

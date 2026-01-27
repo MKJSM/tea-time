@@ -1,24 +1,27 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCartStore } from '../store';
+import { useCart } from '../features/cart/useCart';
 import { motion } from 'framer-motion';
 import { ShieldCheck, CreditCard, Truck, CheckCircle, Apple, Plus, MapPin, Home, Briefcase, MoreHorizontal, Check, Edit2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { TeaLoader } from '../components/common/TeaLoader';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { setAuthModalOpen, setPendingCheckoutAfterAddress } from '../features/auth/authSlice';
+import { useRazorpayPayment } from '../features/orders/useRazorpayPayment';
+import { formatPrice } from '../utils/format';
 import { useGetAddressesQuery, useSetDefaultAddressMutation } from '../features/addresses/addressesApi';
 import { Address, AddressLabel } from '../types';
 import AddressModal from '../components/address/AddressModal';
 
 const CheckoutPage: React.FC = () => {
-  const { total, clearCart } = useCartStore();
+  const { cartTotal, clearEntireCart, items } = useCart();
+
   const [step, setStep] = useState(1);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
@@ -27,6 +30,24 @@ const CheckoutPage: React.FC = () => {
     skip: !isAuthenticated,
   });
   const [setDefaultAddress] = useSetDefaultAddressMutation();
+
+  const handlePaymentSuccess = React.useCallback((orderId: string) => {
+    clearEntireCart();
+    setPendingOrderId(null);
+    toast.success('Order placed successfully!', { icon: '🎉' });
+    navigate(`/order/${orderId}?success=true`);
+  }, [clearEntireCart, navigate]);
+
+  const handlePaymentError = React.useCallback((err: any) => {
+    console.error("Payment failed", err);
+    const errorMessage = typeof err === 'string' ? err : (err.data?.message || err.message || 'Failed to place order');
+    toast.error(errorMessage);
+  }, []);
+
+  const { handlePayment, isProcessing, isSDKLoading, razorpayError } = useRazorpayPayment({
+    onSuccess: handlePaymentSuccess,
+    onError: handlePaymentError
+  });
 
   // Redirect to cart if not authenticated
   useEffect(() => {
@@ -54,21 +75,14 @@ const CheckoutPage: React.FC = () => {
 
   const selectedAddress = addresses.find(a => a.id === selectedAddressId);
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (!selectedAddress) {
       toast.error('Please select a delivery address');
       setStep(1);
       return;
     }
 
-    setIsProcessing(true);
-    // Simulate payment and processing with specific loader
-    setTimeout(() => {
-      clearCart();
-      setIsProcessing(false);
-      toast.success('Order placed successfully!', { icon: '🎉' });
-      navigate('/orders');
-    }, 4000);
+    await handlePayment(pendingOrderId, selectedAddress.id, setPendingOrderId);
   };
 
   const handleContinueToPayment = () => {
@@ -114,6 +128,12 @@ const CheckoutPage: React.FC = () => {
   if (!isAuthenticated) {
     return null; // Will redirect in useEffect
   }
+
+  // Calculate totals to match backend (5% CGST + 5% SGST + 30 Delivery)
+  const subtotal = cartTotal;
+  const tax = subtotal * 0.10; // 10% total tax
+  const deliveryCharge = 30.0;
+  const finalTotal = subtotal + tax + deliveryCharge;
 
   return (
     <div className="min-h-screen bg-cream py-6 sm:py-12 px-4 sm:px-6">
@@ -264,30 +284,14 @@ const CheckoutPage: React.FC = () => {
                   )}
 
                   <div className="space-y-4">
-                    <button className="w-full py-4 bg-black text-white rounded-2xl flex items-center justify-center gap-2 font-bold hover:bg-gray-900 transition-colors active:scale-[0.98]">
-                      <Apple size={20} /> Pay
-                    </button>
-                    <div className="flex items-center gap-4 my-6">
-                      <div className="h-px flex-grow bg-gray-100" />
-                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Or Card</span>
-                      <div className="h-px flex-grow bg-gray-100" />
+                    {/* Placeholder for UPI / Other payments - for now we only support the Razorpay Modal flow which covers cards/UPI */}
+                    <div className="p-4 bg-green-50 border border-green-100 rounded-xl">
+                      <p className="text-sm text-green-800 font-medium text-center">
+                        You will be redirected to Razorpay securely to complete your payment.
+                      </p>
                     </div>
-                    <div className="space-y-4">
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Card Number</label>
-                        <input type="text" className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 outline-none focus:bg-white focus:ring-2 focus:ring-tea-500/10" placeholder="0000 0000 0000 0000" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Expiry</label>
-                          <input type="text" className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 outline-none focus:bg-white" placeholder="MM/YY" />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">CVC</label>
-                          <input type="password" name="cvc" className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 outline-none focus:bg-white" placeholder="CVC" />
-                        </div>
-                      </div>
-                    </div>
+
+
                   </div>
                   <button
                     onClick={() => setStep(3)}
@@ -324,10 +328,20 @@ const CheckoutPage: React.FC = () => {
                     </div>
                   </div>
 
+                  {razorpayError && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl text-red-700 text-xs font-medium flex items-center gap-2">
+                      <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                      Failed to load secure payment gateway. Please refresh or check your connection.
+                    </div>
+                  )}
+
                   <button
                     onClick={handlePlaceOrder}
-                    className="w-full py-5 bg-tea-800 text-white font-bold text-lg rounded-2xl hover:bg-tea-900 transition-all shadow-xl active:scale-[0.98]"
-                  >Complete Purchase — ₹{(total() * 1.08).toFixed(2)}</button>
+                    disabled={isSDKLoading || !!razorpayError}
+                    className="w-full py-5 bg-tea-800 text-white font-bold text-lg rounded-2xl hover:bg-tea-900 transition-all shadow-xl active:scale-[0.98] disabled:opacity-70 disabled:cursor-wait"
+                  >
+                    {isSDKLoading ? 'Initializing Secure Payment...' : razorpayError ? 'Payment Gateway Error' : `Complete Purchase — ${formatPrice(finalTotal)}`}
+                  </button>
                   <button
                     onClick={() => setStep(1)}
                     className="w-full mt-4 py-2 text-tea-700 font-bold text-xs uppercase tracking-widest hover:underline"
@@ -341,7 +355,7 @@ const CheckoutPage: React.FC = () => {
             <div className="bg-tea-900 text-white rounded-[2rem] p-6 sm:p-8 lg:sticky lg:top-24 shadow-2xl">
               <h3 className="text-xl font-serif font-bold mb-6">Order Summary</h3>
               <div className="space-y-4 mb-8 max-h-48 lg:max-h-64 overflow-y-auto custom-scrollbar-light pr-2">
-                {useCartStore.getState().items.map(item => (
+                {items.map(item => (
                   <div key={item.itemKey} className="flex justify-between items-center text-xs">
                     <div className="flex gap-3">
                       <img src={item.image} className="w-10 h-10 object-cover rounded-lg" alt={item.name} />
@@ -350,22 +364,22 @@ const CheckoutPage: React.FC = () => {
                         <p className="text-tea-400 text-[10px]">Qty: {item.quantity}</p>
                       </div>
                     </div>
-                    <span className="font-bold shrink-0">₹{(item.price * item.quantity).toFixed(2)}</span>
+                    <span className="font-bold shrink-0">{formatPrice(item.price * item.quantity)}</span>
                   </div>
                 ))}
               </div>
               <div className="space-y-3 pt-6 border-t border-white/10">
                 <div className="flex justify-between text-tea-300 text-sm">
                   <span>Subtotal</span>
-                  <span>₹{total().toFixed(2)}</span>
+                  <span>{formatPrice(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-tea-300 text-sm">
-                  <span>VAT (8%)</span>
-                  <span>₹{(total() * 0.08).toFixed(2)}</span>
+                  <span>Tax (10%)</span>
+                  <span>{formatPrice(tax)}</span>
                 </div>
                 <div className="flex justify-between text-xl font-bold pt-2 text-white">
                   <span>Total</span>
-                  <span className="text-accent-400">₹{(total() * 1.08).toFixed(2)}</span>
+                  <span className="text-accent-400">{formatPrice(finalTotal)}</span>
                 </div>
               </div>
               <div className="mt-8 flex items-center gap-2 text-tea-400 text-[9px] uppercase tracking-[0.2em] font-bold">

@@ -45,11 +45,19 @@ export const getProductImageUrl = (imagePath: string | undefined): string => {
     return `${AWS_BASE_URL}/${cleanPath}`;
 };
 
-export const transformProduct = <T extends { image?: string; images?: string[] }>(product: T): T => {
+export const transformProduct = <T extends {
+    image?: string;
+    images?: string[];
+    imageUrls?: string[];
+    productImageUrls?: string[];
+}>(product: T): T => {
+    const rawImages = product.images || product.imageUrls || product.productImageUrls || [];
+    const firstImage = product.image || rawImages[0];
+
     return {
         ...product,
-        image: getProductImageUrl(product.image),
-        images: product.images?.map(img => getProductImageUrl(img))
+        image: getProductImageUrl(firstImage),
+        images: rawImages.map(img => getProductImageUrl(img))
     };
 };
 

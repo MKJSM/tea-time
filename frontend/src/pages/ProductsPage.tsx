@@ -231,56 +231,54 @@ const ProductsPage: React.FC = () => {
 
         {/* Pagination */}
         {!isLoading && products.length > 0 && totalPages > 1 && (
-          <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
-            {/* Previous Button */}
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all ${
-                currentPage === 1
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-white text-tea-800 hover:bg-tea-50 border border-gray-200 shadow-sm'
-              }`}
-            >
-              <ChevronLeft size={18} />
-              Previous
-            </button>
+          <div className="mt-16 flex flex-col items-center gap-6">
+            <div className="flex items-center gap-2 p-1.5 bg-white rounded-2xl shadow-sm border border-gray-100">
+              {/* Previous Button */}
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${currentPage === 1
+                    ? 'text-gray-300 cursor-not-allowed'
+                    : 'text-tea-800 hover:bg-tea-50 active:scale-95'
+                  }`}
+                title="Previous Page"
+              >
+                <ChevronLeft size={20} />
+              </button>
 
-            {/* Page Numbers */}
-            <div className="flex items-center gap-2">
-              {getPageNumbers().map((page, idx) => (
-                <React.Fragment key={idx}>
-                  {page === '...' ? (
-                    <span className="px-3 py-2 text-gray-400">...</span>
-                  ) : (
-                    <button
-                      onClick={() => handlePageChange(page as number)}
-                      className={`w-10 h-10 rounded-xl font-bold text-sm transition-all ${
-                        currentPage === page
-                          ? 'bg-tea-700 text-white shadow-lg'
-                          : 'bg-white text-tea-800 hover:bg-tea-50 border border-gray-200'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  )}
-                </React.Fragment>
-              ))}
+              <div className="flex items-center gap-1.5 px-2">
+                {getPageNumbers().map((page, idx) => (
+                  <React.Fragment key={idx}>
+                    {page === '...' ? (
+                      <span className="w-8 h-8 flex items-center justify-center text-gray-300 font-bold tracking-widest text-xs select-none">...</span>
+                    ) : (
+                      <button
+                        onClick={() => handlePageChange(page as number)}
+                        className={`w-10 h-10 flex items-center justify-center rounded-xl font-bold text-sm transition-all ${currentPage === page
+                            ? 'bg-tea-800 text-white shadow-md shadow-tea-900/10 scale-105'
+                            : 'text-gray-500 hover:bg-gray-50 hover:text-tea-900'
+                          }`}
+                      >
+                        {page}
+                      </button>
+                    )}
+                  </React.Fragment>
+                ))}
+              </div>
+
+              {/* Next Button */}
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all ${currentPage === totalPages
+                    ? 'text-gray-300 cursor-not-allowed'
+                    : 'text-tea-800 hover:bg-tea-50 active:scale-95'
+                  }`}
+                title="Next Page"
+              >
+                <ChevronRight size={20} />
+              </button>
             </div>
-
-            {/* Next Button */}
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all ${
-                currentPage === totalPages
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-white text-tea-800 hover:bg-tea-50 border border-gray-200 shadow-sm'
-              }`}
-            >
-              Next
-              <ChevronRight size={18} />
-            </button>
           </div>
         )}
 

@@ -37,10 +37,10 @@ const Footer: React.FC = () => {
           <div>
             <h4 className="font-serif font-bold text-tea-900 mb-6 uppercase text-xs tracking-widest">Help</h4>
             <ul className="space-y-4 text-sm text-gray-500 font-medium">
-              <li><a href="#" className="hover:text-tea-700 transition-colors">Contact Us</a></li>
-              <li><a href="#" className="hover:text-tea-700 transition-colors">Shipping Info</a></li>
-              <li><a href="#" className="hover:text-tea-700 transition-colors">Returns</a></li>
-              <li><a href="#" className="hover:text-tea-700 transition-colors">FAQ</a></li>
+              <li><Link to="/support" className="hover:text-tea-700 transition-colors">Contact Us</Link></li>
+              <li><Link to="/support" className="hover:text-tea-700 transition-colors">Shipping Info</Link></li>
+              <li><Link to="/support" className="hover:text-tea-700 transition-colors">Returns</Link></li>
+              <li><Link to="/support" className="hover:text-tea-700 transition-colors">FAQ</Link></li>
             </ul>
           </div>
 

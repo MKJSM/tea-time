@@ -6,23 +6,12 @@ import { useAppDispatch } from '../../store/hooks';
 import { toggleDrawer } from '../../features/cart/cartSlice';
 import { useCart } from '../../features/cart/useCart';
 import { useNavigate } from 'react-router-dom';
+import { formatPrice } from '../../utils/format';
 
 export const CartDrawer: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { items, isDrawerOpen, updateItemQuantity, removeFromCart } = useCart();
-
-  const total = items.reduce((acc, item) => {
-    let unitPrice = item.price;
-    if (item.attributes && item.selectedAttributes) {
-      item.attributes.forEach(attr => {
-        const selectedValue = item.selectedAttributes![attr.id];
-        const option = attr.options.find(o => o.value === selectedValue);
-        if (option) unitPrice += option.priceAdjustment;
-      });
-    }
-    return acc + unitPrice * item.quantity;
-  }, 0);
+  const { items, isDrawerOpen, updateItemQuantity, removeFromCart, cartTotal } = useCart();
 
   const renderAttributes = (item: any) => {
     if (!item.selectedAttributes || !item.attributes) return null;
@@ -103,7 +92,7 @@ export const CartDrawer: React.FC = () => {
                   return (
                     <div key={item.itemKey} className="flex gap-4">
                       <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-50 shrink-0">
-                        <img src={item.image || "https://images.unsplash.com/photo-1544787210-2213d2429f77?auto=format&fit=crop&q=80&w=200"} className="w-full h-full object-cover" alt={item.name} />
+                        <img src={item.image} className="w-full h-full object-cover" alt={item.name} />
                       </div>
                       <div className="flex-grow min-w-0">
                         <div className="flex justify-between items-start mb-1">
@@ -120,7 +109,7 @@ export const CartDrawer: React.FC = () => {
                             <span className="w-8 text-center text-xs font-bold">{item.quantity}</span>
                             <button onClick={() => updateItemQuantity(item.itemKey, item.quantity + 1)} className="p-1.5 hover:bg-white rounded-md transition-all"><Plus size={12} /></button>
                           </div>
-                          <span className="font-bold text-tea-800 text-sm">₹{(unitPrice * item.quantity).toFixed(2)}</span>
+                          <span className="font-bold text-tea-800 text-sm">{formatPrice(unitPrice * item.quantity)}</span>
                         </div>
                       </div>
                     </div>
@@ -134,7 +123,7 @@ export const CartDrawer: React.FC = () => {
               <div className="p-6 bg-gray-50 border-t border-gray-100">
                 <div className="flex justify-between mb-4">
                   <span className="text-gray-500 font-medium">Subtotal</span>
-                  <span className="text-xl font-serif font-bold text-tea-900">₹{total.toFixed(2)}</span>
+                  <span className="text-xl font-serif font-bold text-tea-900">{formatPrice(cartTotal)}</span>
                 </div>
                 <div className="space-y-3">
                   <button

@@ -37,7 +37,7 @@ export interface CartItemDto {
     unit_price: number;
     customizations: CartCustomizationDto[];
     total_price: number;
-    image_url: string | null;
+    image_urls: string[];
 }
 
 export interface CartDto {

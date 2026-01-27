@@ -9,7 +9,7 @@ use axum::{
     extract::{Path, State},
     Json,
 };
-use sqlx::{Row, SqlitePool};
+use sqlx::{PgPool, Row};
 use tower_sessions::Session;
 use uuid::Uuid;
 use validator::Validate;
@@ -17,24 +17,24 @@ use validator::Validate;
 // --- Repository Helpers ---
 
 async fn get_cart_from_db(
-    pool: &SqlitePool,
-    user_id: Option<&str>,
+    pool: &PgPool,
+    user_id: Option<Uuid>,
     session_id: &str,
 ) -> Result<Cart, AppError> {
     // 1. Find Cart ID
     let cart_row = if let Some(uid) = user_id {
-        sqlx::query("SELECT id FROM carts WHERE user_id = ?")
+        sqlx::query("SELECT id FROM carts WHERE user_id = $1")
             .bind(uid)
             .fetch_optional(pool)
             .await?
     } else {
-        sqlx::query("SELECT id FROM carts WHERE session_id = ? AND user_id IS NULL")
+        sqlx::query("SELECT id FROM carts WHERE session_id = $1 AND user_id IS NULL")
             .bind(session_id)
             .fetch_optional(pool)
             .await?
     };
 
-    let cart_id: String = if let Some(row) = cart_row {
+    let cart_id: Uuid = if let Some(row) = cart_row {
         row.try_get("id")?
     } else {
         return Ok(Cart::new());
@@ -46,17 +46,17 @@ async fn get_cart_from_db(
         SELECT ci.id, ci.product_id, ci.quantity, p.base_price
         FROM cart_items ci
         JOIN products p ON ci.product_id = p.id
-        WHERE ci.cart_id = ?
+        WHERE ci.cart_id = $1
         "#,
     )
-    .bind(&cart_id)
+    .bind(cart_id)
     .fetch_all(pool)
     .await?;
 
     let mut cart_items = Vec::new();
     for row in items {
-        let item_id: String = row.try_get("id")?;
-        let product_id: String = row.try_get("product_id")?;
+        let item_id: Uuid = row.try_get("id")?;
+        let product_id: Uuid = row.try_get("product_id")?;
         let quantity: i32 = row.try_get("quantity")?;
         let unit_price: f64 = row.try_get("base_price")?;
 
@@ -65,10 +65,10 @@ async fn get_cart_from_db(
             r#"
             SELECT group_id, option_id, price_modifier
             FROM cart_item_customizations
-            WHERE cart_item_id = ?
+            WHERE cart_item_id = $1
             "#,
         )
-        .bind(&item_id)
+        .bind(item_id)
         .fetch_all(pool)
         .await?;
 
@@ -102,33 +102,33 @@ async fn get_cart_from_db(
 }
 
 async fn save_cart_to_db(
-    pool: &SqlitePool,
+    pool: &PgPool,
     cart: &Cart,
-    user_id: Option<&str>,
+    user_id: Option<Uuid>,
     session_id: &str,
 ) -> Result<(), AppError> {
     let mut tx = pool.begin().await?;
 
     // 1. Get or Create Cart ID
     let cart_id_row = if let Some(uid) = user_id {
-        sqlx::query("SELECT id FROM carts WHERE user_id = ?")
+        sqlx::query("SELECT id FROM carts WHERE user_id = $1")
             .bind(uid)
             .fetch_optional(&mut *tx)
             .await?
     } else {
-        sqlx::query("SELECT id FROM carts WHERE session_id = ? AND user_id IS NULL")
+        sqlx::query("SELECT id FROM carts WHERE session_id = $1 AND user_id IS NULL")
             .bind(session_id)
             .fetch_optional(&mut *tx)
             .await?
     };
 
-    let cart_id: String = if let Some(row) = cart_id_row {
+    let cart_id: Uuid = if let Some(row) = cart_id_row {
         row.try_get("id")?
     } else {
         // Create Cart with UUID
-        let new_cart_id = Uuid::new_v4().to_string();
-        sqlx::query("INSERT INTO carts (id, user_id, session_id) VALUES (?, ?, ?)")
-            .bind(&new_cart_id)
+        let new_cart_id = Uuid::new_v4();
+        sqlx::query("INSERT INTO carts (id, user_id, session_id) VALUES ($1, $2, $3)")
+            .bind(new_cart_id)
             .bind(user_id)
             .bind(session_id)
             .execute(&mut *tx)
@@ -136,33 +136,45 @@ async fn save_cart_to_db(
         new_cart_id
     };
 
-    // 2. Sync Items - Delete all items and re-insert
-    sqlx::query("DELETE FROM cart_items WHERE cart_id = ?")
-        .bind(&cart_id)
+    // 2. Sync Items - Use UPSERT or targeted updates to preserve IDs
+    // For simplicity in this implementation, we still delete items that are no longer in the cart
+    let current_item_ids: Vec<Uuid> = cart.items.iter().filter_map(|i| i.id).collect();
+    sqlx::query("DELETE FROM cart_items WHERE cart_id = $1 AND id != ALL($2)")
+        .bind(cart_id)
+        .bind(&current_item_ids)
         .execute(&mut *tx)
         .await?;
 
     for item in &cart.items {
-        let new_item_id = Uuid::new_v4().to_string();
+        let item_id = item.id.unwrap_or_else(Uuid::new_v4);
+
         sqlx::query(
-            "INSERT INTO cart_items (id, cart_id, product_id, quantity) VALUES (?, ?, ?, ?)",
+            r#"INSERT INTO cart_items (id, cart_id, product_id, quantity)
+               VALUES ($1, $2, $3, $4)
+               ON CONFLICT (id) DO UPDATE SET quantity = excluded.quantity"#,
         )
-        .bind(&new_item_id)
-        .bind(&cart_id)
-        .bind(&item.product_id)
+        .bind(item_id)
+        .bind(cart_id)
+        .bind(item.product_id)
         .bind(item.quantity)
         .execute(&mut *tx)
         .await?;
 
+        // Sync Customizations - simpler to delete and re-insert for the item
+        sqlx::query("DELETE FROM cart_item_customizations WHERE cart_item_id = $1")
+            .bind(item_id)
+            .execute(&mut *tx)
+            .await?;
+
         for cust in &item.customizations {
-            let cust_id = Uuid::new_v4().to_string();
+            let cust_id = Uuid::new_v4();
             sqlx::query(
-                "INSERT INTO cart_item_customizations (id, cart_item_id, group_id, option_id, price_modifier) VALUES (?, ?, ?, ?, ?)"
+                "INSERT INTO cart_item_customizations (id, cart_item_id, group_id, option_id, price_modifier) VALUES ($1, $2, $3, $4, $5)"
             )
-            .bind(&cust_id)
-            .bind(&new_item_id)
-            .bind(&cust.group_id)
-            .bind(&cust.option_id)
+            .bind(cust_id)
+            .bind(item_id)
+            .bind(cust.group_id)
+            .bind(cust.option_id)
             .bind(cust.price_modifier)
             .execute(&mut *tx)
             .await?;
@@ -173,19 +185,19 @@ async fn save_cart_to_db(
     Ok(())
 }
 
-async fn get_cart_dto(pool: &SqlitePool, cart: Cart) -> Result<CartDto, AppError> {
+async fn get_cart_dto(pool: &PgPool, cart: Cart) -> Result<CartDto, AppError> {
     let mut item_dtos = Vec::new();
     let total = cart.get_total();
 
     for item in cart.items {
         // Fetch product details
-        let product = sqlx::query("SELECT name, image_url FROM products WHERE id = ?")
-            .bind(&item.product_id)
+        let product = sqlx::query("SELECT name, image_urls FROM products WHERE id = $1")
+            .bind(item.product_id)
             .fetch_one(pool)
             .await?;
 
         let name: String = product.try_get("name")?;
-        let image_url: Option<String> = product.try_get("image_url")?;
+        let image_urls: Vec<String> = product.try_get("image_urls")?;
 
         // Enrich Customizations
         let mut cust_dtos = Vec::new();
@@ -194,10 +206,10 @@ async fn get_cart_dto(pool: &SqlitePool, cart: Cart) -> Result<CartDto, AppError
                 "SELECT cg.name as group_name, co.name as option_name
                  FROM customization_groups cg
                  JOIN customization_options co ON co.group_id = cg.id
-                 WHERE cg.id = ? AND co.id = ?",
+                 WHERE cg.id = $1 AND co.id = $2",
             )
-            .bind(&cust.group_id)
-            .bind(&cust.option_id)
+            .bind(cust.group_id)
+            .bind(cust.option_id)
             .fetch_optional(pool)
             .await?;
 
@@ -221,7 +233,7 @@ async fn get_cart_dto(pool: &SqlitePool, cart: Cart) -> Result<CartDto, AppError
             unit_price: item.unit_price,
             customizations: cust_dtos,
             total_price,
-            image_url,
+            image_urls,
         });
     }
 
@@ -238,7 +250,7 @@ pub async fn get_cart(
     session: Session,
     State(state): State<AppState>,
 ) -> Result<Json<CartDto>, AppError> {
-    let user_id = auth_session.user.as_ref().map(|u| u.id.as_str());
+    let user_id = auth_session.user.as_ref().map(|u| u.id);
     let session_id = session
         .id()
         .ok_or(AppError::InternalServerError("No session".into()))?
@@ -260,15 +272,15 @@ pub async fn add_to_cart(
         .validate()
         .map_err(|e| AppError::BadRequest(e.to_string()))?;
 
-    let user_id = auth_session.user.as_ref().map(|u| u.id.as_str());
+    let user_id = auth_session.user.as_ref().map(|u| u.id);
     let session_id = session
         .id()
         .ok_or(AppError::InternalServerError("No session".into()))?
         .to_string();
 
     // 1. Fetch Product Price
-    let product = sqlx::query("SELECT base_price FROM products WHERE id = ?")
-        .bind(&payload.product_id)
+    let product = sqlx::query("SELECT base_price FROM products WHERE id = $1")
+        .bind(payload.product_id)
         .fetch_optional(&state.db)
         .await?
         .ok_or(AppError::NotFound("Product not found".into()))?;
@@ -279,10 +291,10 @@ pub async fn add_to_cart(
     let mut customizations = Vec::new();
     for cust_req in payload.customizations {
         let opt = sqlx::query(
-            "SELECT price_modifier FROM customization_options WHERE id = ? AND group_id = ?",
+            "SELECT price_modifier FROM customization_options WHERE id = $1 AND group_id = $2",
         )
-        .bind(&cust_req.option_id)
-        .bind(&cust_req.group_id)
+        .bind(cust_req.option_id)
+        .bind(cust_req.group_id)
         .fetch_optional(&state.db)
         .await?
         .ok_or(AppError::BadRequest("Invalid customization option".into()))?;
@@ -323,7 +335,7 @@ pub async fn add_to_cart(
 }
 
 pub async fn update_cart_item(
-    Path(item_id): Path<String>,
+    Path(item_id): Path<Uuid>,
     auth_session: AuthSession,
     session: Session,
     State(state): State<AppState>,
@@ -333,7 +345,7 @@ pub async fn update_cart_item(
         .validate()
         .map_err(|e| AppError::BadRequest(e.to_string()))?;
 
-    let user_id = auth_session.user.as_ref().map(|u| u.id.as_str());
+    let user_id = auth_session.user.as_ref().map(|u| u.id);
     let session_id = session
         .id()
         .ok_or(AppError::InternalServerError("No session".into()))?
@@ -342,7 +354,7 @@ pub async fn update_cart_item(
     let mut cart = get_cart_from_db(&state.db, user_id, &session_id).await?;
 
     // Domain Update
-    cart.update_quantity(&item_id, payload.quantity);
+    cart.update_quantity(item_id, payload.quantity);
 
     // Save
     save_cart_to_db(&state.db, &cart, user_id, &session_id).await?;
@@ -354,12 +366,12 @@ pub async fn update_cart_item(
 }
 
 pub async fn remove_cart_item(
-    Path(item_id): Path<String>,
+    Path(item_id): Path<Uuid>,
     auth_session: AuthSession,
     session: Session,
     State(state): State<AppState>,
 ) -> Result<Json<CartDto>, AppError> {
-    let user_id = auth_session.user.as_ref().map(|u| u.id.as_str());
+    let user_id = auth_session.user.as_ref().map(|u| u.id);
     let session_id = session
         .id()
         .ok_or(AppError::InternalServerError("No session".into()))?
@@ -368,7 +380,7 @@ pub async fn remove_cart_item(
     let mut cart = get_cart_from_db(&state.db, user_id, &session_id).await?;
 
     // Domain Update
-    cart.remove_item(&item_id);
+    cart.remove_item(item_id);
 
     // Save
     save_cart_to_db(&state.db, &cart, user_id, &session_id).await?;
@@ -387,7 +399,7 @@ pub async fn merge_cart(
     State(state): State<AppState>,
     Json(payload): Json<MergeCartRequest>,
 ) -> Result<Json<CartDto>, AppError> {
-    let user_id = auth_user.0.id.as_str();
+    let user_id = auth_user.0.id;
     let session_id = session
         .id()
         .ok_or(AppError::InternalServerError("No session".into()))?
@@ -399,8 +411,8 @@ pub async fn merge_cart(
     // Merge each guest cart item
     for item in payload.items {
         // Fetch product price
-        let product = sqlx::query("SELECT base_price FROM products WHERE id = ?")
-            .bind(&item.product_id)
+        let product = sqlx::query("SELECT base_price FROM products WHERE id = $1")
+            .bind(item.product_id)
             .fetch_optional(&state.db)
             .await?;
 
@@ -413,10 +425,10 @@ pub async fn merge_cart(
         let mut customizations = Vec::new();
         for cust_req in item.customizations {
             let opt = sqlx::query(
-                "SELECT price_modifier FROM customization_options WHERE id = ? AND group_id = ?",
+                "SELECT price_modifier FROM customization_options WHERE id = $1 AND group_id = $2",
             )
-            .bind(&cust_req.option_id)
-            .bind(&cust_req.group_id)
+            .bind(cust_req.option_id)
+            .bind(cust_req.group_id)
             .fetch_optional(&state.db)
             .await?;
 

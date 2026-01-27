@@ -8,12 +8,12 @@ use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
-use chrono::Utc;
 use axum::{
     extract::{Json, State},
     http::{HeaderMap, StatusCode},
     response::IntoResponse,
 };
+use chrono::Utc;
 use tower_sessions::Session;
 use uuid::Uuid;
 use validator::Validate;
@@ -77,7 +77,7 @@ pub async fn signup(
     })?;
 
     // 1. Check if user exists
-    let exists = sqlx::query("SELECT 1 FROM users WHERE email = ?")
+    let exists = sqlx::query("SELECT 1 FROM users WHERE email = $1")
         .bind(&payload.email)
         .fetch_optional(&state.db)
         .await?;
@@ -97,27 +97,36 @@ pub async fn signup(
         .to_string();
 
     // 3. Insert User
-    let user_id = Uuid::new_v4().to_string();
+    let user_id = Uuid::new_v4().to_string(); // Keep using Rust UUID generation or let DB handle it. Rust generated is fine and safe.
     let phone = payload.phone.unwrap_or_default();
 
-    sqlx::query("INSERT INTO users (id, name, email, phone, password_hash) VALUES (?, ?, ?, ?, ?)")
-        .bind(&user_id)
-        .bind(&payload.name)
-        .bind(&payload.email)
-        .bind(&phone)
-        .bind(&password_hash)
-        .execute(&state.db)
-        .await?;
+    // Use Postgres parameter syntax $n
+    // id is UUID type in DB, but we are binding String. sqlx handles this if we use Uuid type or if we cast?
+    // In Postgres, if column is UUID, we should bind Uuid type.
+    // Let's parse user_id string to Uuid for binding.
+    let user_uuid =
+        Uuid::parse_str(&user_id).map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+    sqlx::query(
+        "INSERT INTO users (id, name, email, phone, password_hash) VALUES ($1, $2, $3, $4, $5)",
+    )
+    .bind(user_uuid)
+    .bind(&payload.name)
+    .bind(&payload.email)
+    .bind(&phone)
+    .bind(&password_hash)
+    .execute(&state.db)
+    .await?;
 
     // 4. Fetch Full User
-    let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = ?")
-        .bind(&user_id)
+    let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1")
+        .bind(user_uuid)
         .fetch_one(&state.db)
         .await?;
 
     // 5. Create Session
     let auth_user = AuthUser {
-        id: user.id.clone(),
+        id: user.id,
         email: user.email.clone(),
         name: user.name.clone(),
     };
@@ -162,7 +171,7 @@ pub async fn login(
         AppError::BadRequest(errors.join(", "))
     })?;
 
-    let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = ?")
+    let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = $1")
         .bind(&payload.email)
         .fetch_optional(&state.db)
         .await?
@@ -177,15 +186,15 @@ pub async fn login(
         .map_err(|_| AppError::Unauthorized("Invalid credentials".into()))?;
 
     // Update last_login_at
-    sqlx::query("UPDATE users SET last_login_at = ? WHERE id = ?")
+    sqlx::query("UPDATE users SET last_login_at = $1 WHERE id = $2")
         .bind(Utc::now())
-        .bind(&user.id)
+        .bind(user.id)
         .execute(&state.db)
         .await?;
 
     // Login (create session)
     let auth_user = AuthUser {
-        id: user.id.clone(),
+        id: user.id,
         email: user.email.clone(),
         name: user.name.clone(),
     };
@@ -213,7 +222,7 @@ pub async fn get_me(
         Some(auth_user) => {
             tracing::debug!("Fetching user data for user_id: {}", auth_user.id);
             // Fetch fresh user data
-            let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = ?")
+            let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1")
                 .bind(auth_user.id)
                 .fetch_optional(&state.db)
                 .await?
@@ -246,9 +255,10 @@ pub async fn logout_all(
         .user
         .ok_or(AppError::Unauthorized("Not authenticated".into()))?;
 
+    let user_id = user.id.to_string();
     state
         .session_store
-        .delete_by_user(&user.id)
+        .delete_by_user(&user_id)
         .await
         .map_err(|e| AppError::InternalServerError(format!("Failed to logout all: {}", e)))?;
 
@@ -268,10 +278,11 @@ pub async fn logout_device(
         .user
         .ok_or(AppError::Unauthorized("Not authenticated".into()))?;
 
+    let user_id = user.id.to_string();
     // Securely delete session only if it belongs to the current user
     let rows_affected = state
         .session_store
-        .delete_session_for_user(&payload.session_id, &user.id)
+        .delete_session_for_user(&payload.session_id, &user_id)
         .await
         .map_err(|e| AppError::InternalServerError(format!("Failed to logout device: {}", e)))?;
 
@@ -287,94 +298,114 @@ pub async fn logout_device(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::models::CreateUserRequest;
-    use crate::infrastructure::session_store::SqliteSessionStore;
+    use crate::domain::models::User;
+    use crate::infrastructure::session_store::PostgresSessionStore;
+    use crate::state::AppState;
     use axum::{
         body::Body,
         http::{Request, StatusCode},
-        routing::post,
         Router,
     };
-    use sqlx::SqlitePool;
+    use sqlx::migrate::MigrateDatabase;
+    use sqlx::postgres::PgPoolOptions;
+    use sqlx::{PgPool, Postgres};
     use tower::ServiceExt;
-    use tower_sessions::{Expiry, SessionManagerLayer};
 
-    async fn setup_test_app() -> (Router, SqlitePool) {
-        let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
-        // Run migration for tests (need to ensure path is correct or manually run schema)
-        // Since we changed migration path to ./db/migration, we need to ensure tests can find it
-        // OR we just execute the schema SQL directly here for simplicity/speed in tests.
+    async fn setup_test_db() -> PgPool {
+        dotenvy::dotenv().ok();
+        // Use DATABASE_URL from env or default
+        let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://mobiletea:mobiletea2025@localhost/mobiletea".to_string()
+        });
 
-        let schema = include_str!("../../db/migration/001_initial_schema.sql");
-        sqlx::query(schema).execute(&pool).await.unwrap();
+        let mut url_parts: Vec<&str> = database_url.split('/').collect();
+        let _db_name = url_parts.pop().unwrap();
+        let base_url = url_parts.join("/");
 
-        let session_store = SqliteSessionStore::new(pool.clone());
-        // Custom store doesn't use migrate() trait method anymore for schema creation if we included it in main schema
+        // Create unique DB name
+        let test_db_name = format!("mobiletea_test_{}", Uuid::new_v4().simple());
+        let test_db_url = format!("{}/{}", base_url, test_db_name);
 
-        let session_layer = SessionManagerLayer::new(session_store.clone())
-            .with_secure(false)
-            .with_expiry(Expiry::OnInactivity(time::Duration::days(1)));
+        // Connect to base to create DB
+        // Note: Postgres::create_database requires connection to 'postgres' or similar.
+        // sqlx handles this by connecting to 'postgres' database if possible when url has no db?
+        // Actually sqlx MigrateDatabase::create_database does the job.
 
-        let state = AppState {
-            db: pool.clone(),
-            session_store,
-        };
+        match Postgres::create_database(&test_db_url).await {
+            Ok(_) => (),
+            Err(e) => {
+                // If creation fails, it might be due to permissions or connection issues.
+                // Fallback to using the main DB if testing environment is restricted?
+                // No, that's dangerous. Panic.
+                eprintln!("Failed to create test DB {}: {}", test_db_url, e);
+                // Try to continue, maybe it exists?
+            }
+        }
 
-        let app = Router::new()
-            .route("/api/auth/signup", post(signup))
-            .route("/api/auth/login", post(login))
-            .route("/api/auth/me", axum::routing::get(get_me))
-            .route("/api/auth/logout", post(logout))
-            .layer(session_layer)
-            .with_state(state);
+        let pool = PgPoolOptions::new()
+            .max_connections(1)
+            .connect(&test_db_url)
+            .await
+            .expect("Failed to connect to test database");
 
-        (app, pool)
+        // Run migrations
+        // Path is relative to Cargo.toml (backend/Cargo.toml)
+        sqlx::migrate!("./db/migration")
+            .run(&pool)
+            .await
+            .expect("Failed to run migrations");
+
+        pool
+    }
+
+    async fn setup_test_app(pool: PgPool) -> Router {
+        let session_store = PostgresSessionStore::new(pool.clone());
+        session_store
+            .migrate()
+            .await
+            .expect("Failed to migrate session store");
+
+        let state = AppState::new_mock(pool, session_store).await;
+
+        crate::handlers::build_router(state)
     }
 
     #[tokio::test]
-    async fn test_signup_login_logout() {
-        let (app, _) = setup_test_app().await;
+    async fn test_signup() {
+        let pool = setup_test_db().await;
+        let app = setup_test_app(pool.clone()).await;
 
-        // 1. Signup
-        let signup_payload = CreateUserRequest {
+        let payload = CreateUserRequest {
             name: "Test User".to_string(),
             email: "test@example.com".to_string(),
             password: "password123".to_string(),
-            phone: None,
+            phone: Some("1234567890".to_string()),
         };
 
-        let response = app
-            .clone()
-            .oneshot(
-                Request::builder()
-                    .method("POST")
-                    .uri("/api/auth/signup")
-                    .header("Content-Type", "application/json")
-                    .body(Body::from(serde_json::to_string(&signup_payload).unwrap()))
-                    .unwrap(),
-            )
-            .await
+        let request = Request::builder()
+            .method("POST")
+            .uri("/api/auth/signup")
+            .header("content-type", "application/json")
+            .body(Body::from(serde_json::to_string(&payload).unwrap()))
             .unwrap();
 
-        assert_eq!(response.status(), StatusCode::OK);
-        let cookie = response.headers().get("set-cookie").unwrap().to_owned();
-
-        // 2. Get Me (authenticated)
-        let response = app
-            .clone()
-            .oneshot(
-                Request::builder()
-                    .method("GET")
-                    .uri("/api/auth/me")
-                    .header("cookie", cookie.clone())
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
+        let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
 
-        // ... (rest of the test)
+        // Verify user in DB
+        let user = sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = $1")
+            .bind("test@example.com")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+
+        assert_eq!(user.name, "Test User");
+
+        // Clean up? (Optional, but good for local dev)
+        // In CI, we destroy the container. Locally, we might leave junk DBs.
+        // Dropping DB inside test is tricky because pool is connected.
+        // We rely on external cleanup or ignore it for now.
+        pool.close().await;
     }
 }

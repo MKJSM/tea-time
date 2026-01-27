@@ -1,4 +1,5 @@
 # Teatime Project Justfile
+set dotenv-load
 
 # Default command to run if no command is specified
 default: all
@@ -35,11 +36,33 @@ run: deploy-frontend
     @echo "Starting server..."
     cd backend && cargo run
 
+# Watch for changes and restart server using the cargo alias
+watch:
+    @echo "Starting server in watch mode..."
+    cd backend && cargo watch -q -c -w src -w static -w templates -x run
+
 # 'all' is an alias for 'run'
 all: run
+
+# Apply database migrations
+migrate:
+    @echo "Applying migrations..."
+    cd backend && cargo sqlx migrate run
+    @echo "Migrations applied."
+
+# Create database and user (requires psql to be connected to a server with permission to create DBs/users)
+db-create:
+    @echo "Creating database and user..."
+    psql postgres -f backend/db/setup.sql
+    @echo "Database and user created."
 
 # Seed the database with initial data
 seed:
     @echo "Seeding database..."
-    sqlite3 backend/db.sqlite < backend/db/data/seed.sql
+    if [ -f backend/.env ]; then set -a; . ./backend/.env; set +a; fi; \
+    psql "$DATABASE_URL" -f backend/db/data/seed.sql
     @echo "Database seeded."
+
+# Setup database (migrate + seed)
+db-setup: migrate seed
+    @echo "Database setup complete."

@@ -6,3 +6,4 @@
 *.sqlite-wal
 *.db
 db/*.sqlite*
+.env

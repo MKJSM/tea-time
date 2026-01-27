@@ -1,5 +1,5 @@
-use axum::async_trait;
-use sqlx::SqlitePool;
+use async_trait::async_trait;
+use sqlx::PgPool;
 use time::OffsetDateTime;
 use tower_sessions::{
     session::{Id, Record},
@@ -7,14 +7,23 @@ use tower_sessions::{
 };
 
 #[derive(Clone, Debug)]
-pub struct SqliteSessionStore {
-    pool: SqlitePool,
+pub struct PostgresSessionStore {
+    pool: PgPool,
     table_name: String,
 }
 
-impl SqliteSessionStore {
+#[derive(sqlx::FromRow, Debug)]
+pub struct UserSession {
+    pub id: String,
+    pub user_id: Option<String>,
+    pub ip_address: Option<String>,
+    pub user_agent: Option<String>,
+    pub last_active_at: OffsetDateTime,
+}
+
+impl PostgresSessionStore {
     /// Create a new session store. Call `migrate()` after to ensure table exists.
-    pub fn new(pool: SqlitePool) -> Self {
+    pub fn new(pool: PgPool) -> Self {
         Self {
             pool,
             table_name: "sessions".to_string(),
@@ -28,12 +37,13 @@ impl SqliteSessionStore {
             r#"
             CREATE TABLE IF NOT EXISTS {table} (
                 id TEXT PRIMARY KEY NOT NULL,
-                data BLOB NOT NULL,
-                expiry_date INTEGER NOT NULL,
+                data BYTEA NOT NULL,
+                expiry_date BIGINT NOT NULL,
                 user_id TEXT,
                 ip_address TEXT,
                 user_agent TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                last_active_at TIMESTAMPTZ DEFAULT NOW(),
+                created_at TIMESTAMPTZ DEFAULT NOW()
             )
             "#,
             table = self.table_name
@@ -56,8 +66,20 @@ impl SqliteSessionStore {
         Ok(())
     }
 
+    pub async fn get_sessions_for_user(&self, user_id: &str) -> sqlx::Result<Vec<UserSession>> {
+        let query = format!(
+            "SELECT id, user_id, ip_address, user_agent, last_active_at FROM {} WHERE user_id = $1 AND expiry_date > $2 ORDER BY last_active_at DESC",
+            self.table_name
+        );
+        sqlx::query_as(&query)
+            .bind(user_id)
+            .bind(OffsetDateTime::now_utc().unix_timestamp())
+            .fetch_all(&self.pool)
+            .await
+    }
+
     pub async fn delete_by_user(&self, user_id: &str) -> sqlx::Result<()> {
-        let query = format!("DELETE FROM {} WHERE user_id = ?", self.table_name);
+        let query = format!("DELETE FROM {} WHERE user_id = $1", self.table_name);
         sqlx::query(&query)
             .bind(user_id)
             .execute(&self.pool)
@@ -72,7 +94,7 @@ impl SqliteSessionStore {
         user_id: &str,
     ) -> sqlx::Result<u64> {
         let query = format!(
-            "DELETE FROM {} WHERE id = ? AND user_id = ?",
+            "DELETE FROM {} WHERE id = $1 AND user_id = $2",
             self.table_name
         );
         let result = sqlx::query(&query)
@@ -85,9 +107,9 @@ impl SqliteSessionStore {
 }
 
 #[async_trait]
-impl ExpiredDeletion for SqliteSessionStore {
+impl ExpiredDeletion for PostgresSessionStore {
     async fn delete_expired(&self) -> tower_sessions::session_store::Result<()> {
-        let query = format!("DELETE FROM {} WHERE expiry_date < ?", self.table_name);
+        let query = format!("DELETE FROM {} WHERE expiry_date < $1", self.table_name);
         sqlx::query(&query)
             .bind(OffsetDateTime::now_utc().unix_timestamp())
             .execute(&self.pool)
@@ -98,19 +120,28 @@ impl ExpiredDeletion for SqliteSessionStore {
 }
 
 #[async_trait]
-impl SessionStore for SqliteSessionStore {
+impl SessionStore for PostgresSessionStore {
+    async fn create(&self, record: &mut Record) -> tower_sessions::session_store::Result<()> {
+        while sqlx::query(&format!("SELECT 1 FROM {} WHERE id = $1", self.table_name))
+            .bind(record.id.to_string())
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| tower_sessions::session_store::Error::Backend(e.to_string()))?
+            .is_some()
+        {
+            record.id = Id::default();
+        }
+
+        self.save(record).await
+    }
+
     async fn save(&self, record: &Record) -> tower_sessions::session_store::Result<()> {
-        tracing::debug!("Saving session: {}", record.id);
-        // Extract User ID, IP, UA from session data if present
         let mut user_id: Option<String> = None;
         let mut ip_address: Option<String> = None;
         let mut user_agent: Option<String> = None;
 
-        // SESSION_USER_KEY is "auth-session-user", and it stores an AuthUser struct.
-        // serde_json::Value will represent this struct as an Object.
         if let Some(user_val) = record.data.get("auth-session-user") {
             if let Some(id_val) = user_val.get("id") {
-                // id in AuthUser is String (UUID)
                 if let Some(s) = id_val.as_str() {
                     user_id = Some(s.to_string());
                 }
@@ -136,14 +167,15 @@ impl SessionStore for SqliteSessionStore {
 
         let query = format!(
             r#"
-            INSERT INTO {table} (id, data, expiry_date, user_id, ip_address, user_agent)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO {table} (id, data, expiry_date, user_id, ip_address, user_agent, last_active_at)
+            VALUES ($1, $2, $3, $4, $5, $6, NOW())
             ON CONFLICT(id) DO UPDATE SET
                 data = excluded.data,
                 expiry_date = excluded.expiry_date,
                 user_id = excluded.user_id,
                 ip_address = excluded.ip_address,
-                user_agent = excluded.user_agent
+                user_agent = excluded.user_agent,
+                last_active_at = NOW()
             "#,
             table = self.table_name
         );
@@ -166,9 +198,8 @@ impl SessionStore for SqliteSessionStore {
     }
 
     async fn load(&self, session_id: &Id) -> tower_sessions::session_store::Result<Option<Record>> {
-        tracing::debug!("Loading session: {}", session_id);
         let query = format!(
-            "SELECT data FROM {} WHERE id = ? AND expiry_date > ?",
+            "SELECT data FROM {} WHERE id = $1 AND expiry_date > $2",
             self.table_name
         );
 
@@ -194,7 +225,7 @@ impl SessionStore for SqliteSessionStore {
     }
 
     async fn delete(&self, session_id: &Id) -> tower_sessions::session_store::Result<()> {
-        let query = format!("DELETE FROM {} WHERE id = ?", self.table_name);
+        let query = format!("DELETE FROM {} WHERE id = $1", self.table_name);
         sqlx::query(&query)
             .bind(session_id.to_string())
             .execute(&self.pool)

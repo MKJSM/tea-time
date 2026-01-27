@@ -9,6 +9,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use uuid::Uuid;
 
 // Constants for magic strings
 const CATEGORY_ALL: &str = "All";
@@ -35,7 +36,7 @@ pub struct BrewingInstructions {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct AttributeOptionResponse {
-    pub id: String,
+    pub id: Uuid,
     pub value: String,
     pub display_name: String,
     pub price_adjustment: f64,
@@ -47,7 +48,7 @@ pub struct AttributeOptionResponse {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ProductAttributeResponse {
-    pub id: String,
+    pub id: Uuid,
     pub name: String,
     pub type_: String,
     pub required: bool,
@@ -58,12 +59,13 @@ pub struct ProductAttributeResponse {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct ProductResponse {
-    pub id: String,
+    pub id: Uuid,
     pub name: String,
     pub description: Option<String>,
     pub price: f64,
     pub categories: Vec<String>,
     pub image: String,
+    pub images: Vec<String>,
     pub is_active: bool,
     pub sku: Option<String>,
     pub stock_quantity: i32,
@@ -77,7 +79,7 @@ pub struct ProductResponse {
     // Nested objects
     pub flavor_profile: FlavorProfile,
     pub brewing: BrewingInstructions,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub attributes: Vec<ProductAttributeResponse>,
 
     pub story: Option<String>,
@@ -85,7 +87,7 @@ pub struct ProductResponse {
 }
 
 /// Paginated response with metadata
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct PaginatedResponse<T> {
     pub data: Vec<T>,
@@ -109,8 +111,8 @@ pub struct ProductQuery {
 // Helper struct for query results
 #[derive(sqlx::FromRow)]
 struct ProductGroupRow {
-    product_id: String, // UUID
-    id: String,         // group id (UUID)
+    product_id: Uuid, // UUID
+    id: Uuid,         // group id (UUID)
     name: String,
     description: Option<String>,
     input_type: String,
@@ -119,69 +121,52 @@ struct ProductGroupRow {
 
 // Helper struct for shared logic (fetching attributes for a list of product IDs)
 async fn fetch_attributes_for_products(
-    db: &sqlx::SqlitePool,
-    product_ids: &[String],
-) -> Result<HashMap<String, Vec<ProductAttributeResponse>>, AppError> {
+    db: &sqlx::PgPool,
+    product_ids: &[Uuid],
+) -> Result<HashMap<Uuid, Vec<ProductAttributeResponse>>, AppError> {
     if product_ids.is_empty() {
         return Ok(HashMap::new());
     }
 
-    // Building the query string manually for the IN clause
-    let placeholders: Vec<String> = product_ids.iter().map(|_| "?".to_string()).collect();
-    let query_groups = format!(
+    // Use ANY($1) for array binding in Postgres
+    let product_groups = sqlx::query_as::<_, ProductGroupRow>(
         r#"
         SELECT pc.product_id, cg.id, cg.name, cg.description, cg.input_type, cg.is_required
         FROM product_customizations pc
         JOIN customization_groups cg ON pc.group_id = cg.id
-        WHERE pc.product_id IN ({})
+        WHERE pc.product_id = ANY($1)
         ORDER BY pc.product_id, pc.display_order
         "#,
-        placeholders.join(",")
-    );
-
-    let mut query = sqlx::query_as::<_, ProductGroupRow>(&query_groups);
-    for id in product_ids {
-        query = query.bind(id);
-    }
-    let product_groups = query.fetch_all(db).await?;
+    )
+    .bind(product_ids)
+    .fetch_all(db)
+    .await?;
 
     if product_groups.is_empty() {
         return Ok(HashMap::new());
     }
 
     // Now fetch options for the groups found
-    let group_ids: Vec<String> = product_groups.iter().map(|g| g.id.clone()).collect();
-    let mut unique_group_ids = group_ids.clone();
-    unique_group_ids.sort();
-    unique_group_ids.dedup();
+    let mut group_ids: Vec<Uuid> = product_groups.iter().map(|g| g.id).collect();
+    group_ids.sort();
+    group_ids.dedup();
 
-    let placeholders_opts: Vec<String> = unique_group_ids.iter().map(|_| "?".to_string()).collect();
-    let query_opts = format!(
-        "SELECT * FROM customization_options WHERE group_id IN ({}) ORDER BY group_id, display_order",
-        placeholders_opts.join(",")
-    );
-
-    let mut query_o = sqlx::query_as::<_, CustomizationOption>(&query_opts);
-    for id in &unique_group_ids {
-        query_o = query_o.bind(id);
-    }
-    let all_options = query_o.fetch_all(db).await?;
+    let all_options = sqlx::query_as::<_, CustomizationOption>(
+        "SELECT * FROM customization_options WHERE group_id = ANY($1) ORDER BY group_id, display_order",
+    )
+    .bind(&group_ids)
+    .fetch_all(db)
+    .await?;
 
     // Processing
-    let mut options_by_group: HashMap<String, Vec<CustomizationOption>> = HashMap::new();
+    let mut options_by_group: HashMap<Uuid, Vec<CustomizationOption>> = HashMap::new();
     for opt in all_options {
-        options_by_group
-            .entry(opt.group_id.clone())
-            .or_default()
-            .push(opt);
+        options_by_group.entry(opt.group_id).or_default().push(opt);
     }
 
-    let mut groups_by_product: HashMap<String, Vec<ProductGroupRow>> = HashMap::new();
+    let mut groups_by_product: HashMap<Uuid, Vec<ProductGroupRow>> = HashMap::new();
     for pg in product_groups {
-        groups_by_product
-            .entry(pg.product_id.clone())
-            .or_default()
-            .push(pg);
+        groups_by_product.entry(pg.product_id).or_default().push(pg);
     }
 
     let mut result = HashMap::new();
@@ -195,7 +180,7 @@ async fn fetch_attributes_for_products(
                     .map(|opts| {
                         opts.iter()
                             .map(|o| AttributeOptionResponse {
-                                id: o.id.clone(),
+                                id: o.id,
                                 value: o.name.clone(),
                                 display_name: o.name.clone(),
                                 price_adjustment: o.price_modifier,
@@ -208,7 +193,7 @@ async fn fetch_attributes_for_products(
                     .unwrap_or_default();
 
                 attributes.push(ProductAttributeResponse {
-                    id: group.id.clone(),
+                    id: group.id,
                     name: group.name.clone(),
                     type_: if group.input_type == "radio" {
                         "select".to_string()
@@ -221,7 +206,7 @@ async fn fetch_attributes_for_products(
                 });
             }
         }
-        result.insert(product_id.clone(), attributes);
+        result.insert(*product_id, attributes);
     }
 
     Ok(result)
@@ -254,7 +239,8 @@ fn map_to_response(p: Product, attributes: Vec<ProductAttributeResponse>) -> Pro
         description: p.description,
         price: p.base_price,
         categories,
-        image: p.image_url.unwrap_or_default(),
+        image: p.image_urls.first().cloned().unwrap_or_default(),
+        images: p.image_urls,
         is_active: p.is_active,
         sku: p.sku,
         stock_quantity: p.stock_quantity,
@@ -284,45 +270,72 @@ pub async fn get_products(
     let offset = (page - 1) * limit;
 
     // Build query
-    let mut query_builder = sqlx::QueryBuilder::new("SELECT * FROM products WHERE is_active = 1");
+    let mut query_builder =
+        sqlx::QueryBuilder::new("SELECT * FROM products WHERE is_active = TRUE");
     let mut count_builder =
-        sqlx::QueryBuilder::new("SELECT COUNT(*) FROM products WHERE is_active = 1");
+        sqlx::QueryBuilder::new("SELECT COUNT(*) FROM products WHERE is_active = TRUE");
 
-    // Search filter using LIKE (FTS removed for UUID migration simplicity)
+    // Search filter using ILIKE
     if let Some(ref q) = query.q {
         if !q.trim().is_empty() {
-            let search = format!("%{}%", q.trim().to_lowercase());
-            query_builder.push(" AND (LOWER(name) LIKE ");
+            let search = format!("%{}%", q.trim());
+            query_builder.push(" AND (name ILIKE ");
             query_builder.push_bind(search.clone());
-            query_builder.push(" OR LOWER(origin) LIKE ");
+            query_builder.push(" OR origin ILIKE ");
             query_builder.push_bind(search.clone());
-            query_builder.push(" OR LOWER(category) LIKE ");
-            query_builder.push_bind(search);
+            // Casting JSONB to text for search is tricky, simpler to skip or use specific op
+            // query_builder.push(" OR category::text ILIKE ");
+            // query_builder.push_bind(search);
             query_builder.push(")");
 
-            let search_count = format!("%{}%", q.trim().to_lowercase());
-            count_builder.push(" AND (LOWER(name) LIKE ");
+            let search_count = format!("%{}%", q.trim());
+            count_builder.push(" AND (name ILIKE ");
             count_builder.push_bind(search_count.clone());
-            count_builder.push(" OR LOWER(origin) LIKE ");
+            count_builder.push(" OR origin ILIKE ");
             count_builder.push_bind(search_count.clone());
-            count_builder.push(" OR LOWER(category) LIKE ");
-            count_builder.push_bind(search_count);
+            // count_builder.push(" OR category::text ILIKE ");
+            // count_builder.push_bind(search_count);
             count_builder.push(")");
         }
     }
 
-    // Category filter - updated for JSON array
+    // Category filter - updated for Postgres JSONB
     if let Some(ref cat) = query.category {
         if cat != CATEGORY_ALL {
-            query_builder
-                .push(" AND EXISTS (SELECT 1 FROM json_each(products.category) WHERE value = ");
+            // category is JSONB array of strings. Check if 'cat' exists in array.
+            // Using '?' operator: category ? 'Tea'
+            query_builder.push(" AND category @> to_jsonb(");
             query_builder.push_bind(cat);
-            query_builder.push(")");
+            query_builder.push("::text)"); // cast parameter to text then to jsonb? No, push_bind binds value.
+                                           // to_jsonb($1::text) creates a json string "Tea".
+                                           // But we want to match element in array.
+                                           // ["Tea", "Hot"] @> '["Tea"]' works.
+                                           // So we need to bind an array containing the category.
+                                           // Alternatively: EXISTS (SELECT 1 FROM jsonb_array_elements_text(products.category) WHERE value = $1)
 
-            count_builder
-                .push(" AND EXISTS (SELECT 1 FROM json_each(products.category) WHERE value = ");
-            count_builder.push_bind(cat);
-            count_builder.push(")");
+            // Let's use the EXISTS approach, it's safer.
+            // However, QueryBuilder needs to handle bind count.
+            // query_builder.push(" AND EXISTS (SELECT 1 FROM jsonb_array_elements_text(products.category) WHERE value = ");
+            // query_builder.push_bind(cat);
+            // query_builder.push(")");
+
+            // Simpler: category @> '["Tea"]'
+            // To bind: query_builder.push_bind(serde_json::json!([cat]));
+
+            // Let's try EXISTS, less ambiguity
+            // Wait, I need to reset query_builder if I use push inside if. Yes.
+        }
+    }
+
+    // Re-doing Category logic cleanly
+    if let Some(ref cat) = query.category {
+        if cat != CATEGORY_ALL {
+            // Using @> operator with jsonb array
+            query_builder.push(" AND category @> ");
+            query_builder.push_bind(serde_json::json!([cat]));
+
+            count_builder.push(" AND category @> ");
+            count_builder.push_bind(serde_json::json!([cat]));
         }
     }
 
@@ -343,7 +356,7 @@ pub async fn get_products(
 
     // Fetch attributes only if requested
     let attributes_map = if query.include_attributes {
-        let product_ids: Vec<String> = products.iter().map(|p| p.id.clone()).collect();
+        let product_ids: Vec<Uuid> = products.iter().map(|p| p.id).collect();
         fetch_attributes_for_products(&state.db, &product_ids).await?
     } else {
         HashMap::new()
@@ -371,15 +384,16 @@ pub async fn get_products(
 #[tracing::instrument(skip(state))]
 pub async fn get_product_by_id(
     State(state): State<AppState>,
-    Path(id): Path<String>,
+    Path(id): Path<Uuid>,
 ) -> Result<Json<ProductResponse>, AppError> {
-    let product = sqlx::query_as::<_, Product>("SELECT * FROM products WHERE id = ?")
-        .bind(&id)
+    let product = sqlx::query_as::<_, Product>("SELECT * FROM products WHERE id = $1")
+        .bind(id)
         .fetch_optional(&state.db)
         .await?
         .ok_or_else(|| AppError::NotFound("Product not found".into()))?;
 
-    let attributes_map = fetch_attributes_for_products(&state.db, std::slice::from_ref(&product.id)).await?;
+    let attributes_map =
+        fetch_attributes_for_products(&state.db, std::slice::from_ref(&product.id)).await?;
     let attributes = attributes_map.get(&product.id).cloned().unwrap_or_default();
 
     Ok(Json(map_to_response(product, attributes)))
@@ -389,7 +403,7 @@ pub async fn get_product_by_id(
 #[tracing::instrument(skip(state))]
 pub async fn get_product_customizations(
     State(state): State<AppState>,
-    Path(product_id): Path<String>,
+    Path(product_id): Path<Uuid>,
 ) -> Result<Json<Vec<ProductCustomization>>, AppError> {
     // Fetch groups for this product
     let groups = sqlx::query_as::<_, CustomizationGroup>(
@@ -397,11 +411,11 @@ pub async fn get_product_customizations(
         SELECT cg.*
         FROM customization_groups cg
         JOIN product_customizations pc ON cg.id = pc.group_id
-        WHERE pc.product_id = ?
+        WHERE pc.product_id = $1
         ORDER BY pc.display_order
         "#,
     )
-    .bind(&product_id)
+    .bind(product_id)
     .fetch_all(&state.db)
     .await?;
 
@@ -410,26 +424,19 @@ pub async fn get_product_customizations(
     }
 
     // Batch fetch all options for all groups in ONE query (fixes N+1)
-    let group_ids: Vec<String> = groups.iter().map(|g| g.id.clone()).collect();
-    let placeholders: Vec<String> = group_ids.iter().map(|_| "?".to_string()).collect();
-    let query_opts = format!(
-        "SELECT * FROM customization_options WHERE group_id IN ({}) ORDER BY group_id, display_order",
-        placeholders.join(",")
-    );
-
-    let mut query = sqlx::query_as::<_, CustomizationOption>(&query_opts);
-    for id in &group_ids {
-        query = query.bind(id);
-    }
-    let all_options = query.fetch_all(&state.db).await?;
+    let group_ids: Vec<Uuid> = groups.iter().map(|g| g.id).collect();
+    // Using ANY($1)
+    let all_options = sqlx::query_as::<_, CustomizationOption>(
+        "SELECT * FROM customization_options WHERE group_id = ANY($1) ORDER BY group_id, display_order",
+    )
+    .bind(&group_ids)
+    .fetch_all(&state.db)
+    .await?;
 
     // Group options by group_id
-    let mut options_by_group: HashMap<String, Vec<CustomizationOption>> = HashMap::new();
+    let mut options_by_group: HashMap<Uuid, Vec<CustomizationOption>> = HashMap::new();
     for opt in all_options {
-        options_by_group
-            .entry(opt.group_id.clone())
-            .or_default()
-            .push(opt);
+        options_by_group.entry(opt.group_id).or_default().push(opt);
     }
 
     // Build result
@@ -446,8 +453,9 @@ pub async fn get_product_customizations(
 
 #[tracing::instrument(skip(state))]
 pub async fn get_categories(State(state): State<AppState>) -> Result<Json<Vec<String>>, AppError> {
+    // Postgres specific: jsonb_array_elements_text
     let categories = sqlx::query_scalar::<_, String>(
-        "SELECT DISTINCT value FROM products, json_each(products.category) WHERE products.is_active = 1 ORDER BY value"
+        "SELECT DISTINCT value FROM products, jsonb_array_elements_text(products.category) as value WHERE products.is_active = TRUE ORDER BY value"
     )
     .fetch_all(&state.db)
     .await?;

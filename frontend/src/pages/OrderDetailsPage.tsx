@@ -1,30 +1,43 @@
 
-import React, { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   ChevronLeft, Copy, Clock, Package, Truck,
-  CheckCircle, MapPin, Star, Share2, RefreshCw,
-  HelpCircle, Map as MapIcon, Camera, Coffee,
-  Download, Instagram, Facebook, Send, Navigation
+  MapPin, Star, Share2, RefreshCw,
+  HelpCircle, Coffee,
+  Navigation
 } from 'lucide-react';
 import { useGetOrderByIdQuery } from '../features/orders/ordersApi';
 import { OrderStatus } from '../types';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
-import { addItem } from '../features/cart/cartSlice';
+import { useCart } from '../features/cart/useCart';
 import { TeaLoader } from '../components/common/TeaLoader';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { setAuthModalOpen } from '../features/auth/authSlice';
+import { formatPrice } from '../utils/format';
+import ShareModal from '../components/common/ShareModal';
 
 const OrderDetailsPage: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: order, isLoading, error } = useGetOrderByIdQuery(id || '');
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const dispatch = useDispatch();
   const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const { addToCart } = useCart();
   const appDispatch = useAppDispatch(); // Use typed dispatch for auth actions if needed
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    if (searchParams.get('success') === 'true') {
+      toast.success('Payment successful! Order placed.', { icon: '🎉', duration: 5000 });
+      // Clean up the URL
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location, navigate]);
 
   if (!isAuthenticated) {
     return (
@@ -68,18 +81,22 @@ const OrderDetailsPage: React.FC = () => {
   };
 
   const handleReorderAll = () => {
-    order.items.forEach(item => dispatch(addItem({ product: item, quantity: item.quantity })));
+    // Add all items using the unified hook which handles backend sync
+    order.items.forEach(item => {
+      addToCart(item, item.quantity);
+    });
     toast.success('All items added to cart!', { icon: '🛒' });
   };
 
   const getStatusColor = (status: OrderStatus) => {
     switch (status) {
-      case OrderStatus.PLACED: return 'bg-blue-500';
+      case OrderStatus.PENDING: return 'bg-blue-500';
       case OrderStatus.CONFIRMED: return 'bg-teal-500';
-      case OrderStatus.PROCESSING: return 'bg-amber-500';
+      case OrderStatus.PREPARING: return 'bg-amber-500';
       case OrderStatus.SHIPPED: return 'bg-indigo-500';
       case OrderStatus.OUT_FOR_DELIVERY: return 'bg-purple-500';
       case OrderStatus.DELIVERED: return 'bg-emerald-500';
+      case OrderStatus.CANCELLED: return 'bg-rose-500';
       default: return 'bg-gray-500';
     }
   };
@@ -241,7 +258,7 @@ const OrderDetailsPage: React.FC = () => {
                           <h4 className="text-xl font-serif font-bold text-tea-900">{item.name}</h4>
                           <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{item.origin} • {item.categories[0]}</p>
                         </div>
-                        <span className="font-bold text-tea-800 text-xl">₹{(item.price * item.quantity).toFixed(2)}</span>
+                        <span className="font-bold text-tea-800 text-xl">{formatPrice(item.price * item.quantity)}</span>
                       </div>
 
                       {order.status === OrderStatus.DELIVERED && (
@@ -252,7 +269,7 @@ const OrderDetailsPage: React.FC = () => {
                               {[1, 2, 3, 4, 5].map(s => <Star key={s} size={16} className="cursor-pointer hover:scale-125 transition-transform" />)}
                             </div>
                           </div>
-                          <button onClick={() => dispatch(addItem({ product: item, quantity: 1 }))} className="text-[10px] text-tea-700 font-bold uppercase tracking-widest hover:underline flex items-center gap-1.5">
+                          <button onClick={() => addToCart(item, 1)} className="text-[10px] text-tea-700 font-bold uppercase tracking-widest hover:underline flex items-center gap-1.5">
                             <RefreshCw size={12} /> Buy Again
                           </button>
                         </div>
@@ -276,7 +293,7 @@ const OrderDetailsPage: React.FC = () => {
                 <div className="space-y-4 mb-10">
                   <div className="flex justify-between text-gray-500 text-sm font-medium">
                     <span>Artifact Subtotal</span>
-                    <span className="text-gray-900">₹{order.subtotal.toFixed(2)}</span>
+                    <span className="text-gray-900">{formatPrice(order.subtotal)}</span>
                   </div>
                   <div className="flex justify-between text-gray-500 text-sm font-medium">
                     <span>Curation & Transit</span>
@@ -284,12 +301,12 @@ const OrderDetailsPage: React.FC = () => {
                   </div>
                   <div className="flex justify-between text-gray-500 text-sm font-medium">
                     <span>Tax (VAT)</span>
-                    <span className="text-gray-900">₹{order.tax.toFixed(2)}</span>
+                    <span className="text-gray-900">{formatPrice(order.tax)}</span>
                   </div>
                   <div className="h-px bg-gray-50 my-6" />
                   <div className="flex justify-between text-3xl font-serif font-bold text-tea-900">
                     <span>Final</span>
-                    <span>₹{order.total.toFixed(2)}</span>
+                    <span>{formatPrice(order.total)}</span>
                   </div>
                 </div>
 
@@ -346,6 +363,12 @@ const OrderDetailsPage: React.FC = () => {
           </div>
         </div>
       </div>
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        title={`Tea Journey #${order.orderNumber}`}
+        text={`Check out my order of ${order.items.length} items from Tea Time!`}
+      />
     </div>
   );
 };

@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { CartItem, Product, CustomBlend, SelectedAttributes } from '../../types';
-import { loadCartFromIndexedDB, saveCartToIndexedDB, clearCartFromIndexedDB } from '../../utils/indexedDB';
-import { cartApi, CartDto, CartItemDto, AddToCartRequest, CartCustomizationRequest, MergeCartItem } from './cartApi';
+import { loadCartFromIndexedDB, clearCartFromIndexedDB } from '../../utils/indexedDB';
+import { cartApi, CartDto, AddToCartRequest, CartCustomizationRequest, MergeCartItem } from './cartApi';
+import { createApiThunk } from '../../store/utils';
 
 interface CartState {
   items: CartItem[];
@@ -74,7 +75,8 @@ const transformFromBackendResponse = (cartDto: CartDto): CartItem[] => {
       name: item.name,
       quantity: item.quantity,
       price: totalUnitPrice,
-      image: item.image_url || '',
+      image: item.image_urls[0] || '',
+      images: item.image_urls,
       categories: [],
       rating: 0,
       tags: [],
@@ -143,92 +145,66 @@ export const loadCartFromStorage = createAsyncThunk(
 /**
  * Async thunk to fetch cart from backend for authenticated users
  */
-export const fetchCartFromBackend = createAsyncThunk(
+export const fetchCartFromBackend = createApiThunk(
   'cart/fetchFromBackend',
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await cartApi.getCart();
-      return transformFromBackendResponse(response.data);
-    } catch (err: any) {
-      return rejectWithValue(err.response?.data?.message || 'Failed to fetch cart');
-    }
-  }
+  () => cartApi.getCart(),
+  (data) => transformFromBackendResponse(data)
 );
 
 /**
  * Async thunk to add item to cart via backend (for authenticated users)
  */
-export const addItemToBackend = createAsyncThunk(
+export const addItemToBackend = createApiThunk(
   'cart/addToBackend',
-  async (payload: { product: Product; quantity: number; selectedAttributes?: SelectedAttributes }, { rejectWithValue }) => {
-    try {
-      const request = transformToBackendRequest(payload.product, payload.quantity, payload.selectedAttributes);
-      const response = await cartApi.addToCart(request);
-      return transformFromBackendResponse(response.data);
-    } catch (err: any) {
-      return rejectWithValue(err.response?.data?.message || 'Failed to add item');
-    }
-  }
+  (payload: { product: Product; quantity: number; selectedAttributes?: SelectedAttributes }) => {
+    const request = transformToBackendRequest(payload.product, payload.quantity, payload.selectedAttributes);
+    return cartApi.addToCart(request);
+  },
+  (data) => transformFromBackendResponse(data)
 );
 
 /**
  * Async thunk to update item quantity via backend (for authenticated users)
  */
-export const updateItemOnBackend = createAsyncThunk(
+export const updateItemOnBackend = createApiThunk(
   'cart/updateOnBackend',
-  async (payload: { itemId: string; quantity: number }, { rejectWithValue }) => {
-    try {
-      const response = await cartApi.updateItem(payload.itemId, payload.quantity);
-      return transformFromBackendResponse(response.data);
-    } catch (err: any) {
-      return rejectWithValue(err.response?.data?.message || 'Failed to update item');
-    }
-  }
+  (payload: { itemId: string; quantity: number }) => cartApi.updateItem(payload.itemId, payload.quantity),
+  (data) => transformFromBackendResponse(data)
 );
 
 /**
  * Async thunk to remove item via backend (for authenticated users)
  */
-export const removeItemFromBackend = createAsyncThunk(
+export const removeItemFromBackend = createApiThunk(
   'cart/removeFromBackend',
-  async (itemId: string, { rejectWithValue }) => {
-    try {
-      const response = await cartApi.removeItem(itemId);
-      return transformFromBackendResponse(response.data);
-    } catch (err: any) {
-      return rejectWithValue(err.response?.data?.message || 'Failed to remove item');
-    }
-  }
+  (itemId: string) => cartApi.removeItem(itemId),
+  (data) => transformFromBackendResponse(data)
 );
 
 /**
  * Async thunk to merge guest cart with user cart on login
  */
-export const mergeCartOnLogin = createAsyncThunk(
+export const mergeCartOnLogin = createApiThunk(
   'cart/mergeOnLogin',
-  async (_, { getState, rejectWithValue }) => {
-    try {
-      // Get current guest cart items from IndexedDB
-      const guestItems = await loadCartFromIndexedDB();
+  async () => {
+    // Get current guest cart items from IndexedDB
+    const guestItems = await loadCartFromIndexedDB();
 
-      if (guestItems.length === 0) {
-        // No guest items, just fetch user cart
-        const response = await cartApi.getCart();
-        return transformFromBackendResponse(response.data);
-      }
-
-      // Merge guest cart with user cart
-      const mergeItems = transformToMergeItems(guestItems);
-      const response = await cartApi.mergeCart({ items: mergeItems });
-
-      // Clear IndexedDB after successful merge
-      await clearCartFromIndexedDB();
-
-      return transformFromBackendResponse(response.data);
-    } catch (err: any) {
-      return rejectWithValue(err.response?.data?.message || 'Failed to merge cart');
+    if (guestItems.length === 0) {
+      // No guest items, just fetch user cart
+      return cartApi.getCart();
     }
-  }
+
+    // Merge guest cart with user cart
+    const mergeItems = transformToMergeItems(guestItems);
+    const response = await cartApi.mergeCart({ items: mergeItems });
+
+    // Clear IndexedDB after successful merge
+    await clearCartFromIndexedDB();
+
+    return response;
+  },
+  (data) => transformFromBackendResponse(data)
 );
 
 const cartSlice = createSlice({

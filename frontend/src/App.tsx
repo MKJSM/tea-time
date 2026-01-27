@@ -11,6 +11,7 @@ import AuthModal from './components/auth/AuthModal';
 import GlobalAddressModal from './components/address/GlobalAddressModal';
 import { CartDrawer } from './components/layout/CartDrawer';
 import { MobileQuickCart } from './components/layout/MobileQuickCart';
+import ScrollToTop from './components/common/ScrollToTop';
 import { useAppDispatch } from './store/hooks';
 import { loadCartFromStorage } from './features/cart/cartSlice';
 import { fetchCurrentUser } from './features/auth/authSlice';
@@ -26,6 +27,8 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const OrdersPage = lazy(() => import('./pages/OrdersPage'));
 const OrderDetailsPage = lazy(() => import('./pages/OrderDetailsPage'));
 const OrderTrackingPage = lazy(() => import('./pages/OrderTrackingPage'));
+const AboutPage = lazy(() => import('./pages/AboutPage'));
+const SupportPage = lazy(() => import('./pages/SupportPage'));
 
 const PageWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
@@ -69,6 +72,7 @@ const App: React.FC = () => {
 
   return (
     <Router>
+      <ScrollToTop />
       <div className="flex flex-col min-h-screen font-sans bg-cream relative">
         <Navbar />
         <main className="flex-grow pt-16">
@@ -84,6 +88,8 @@ const App: React.FC = () => {
                 <Route path="/orders" element={<PageWrapper><OrdersPage /></PageWrapper>} />
                 <Route path="/order/:id" element={<PageWrapper><OrderDetailsPage /></PageWrapper>} />
                 <Route path="/tracking/:id" element={<PageWrapper><OrderTrackingPage /></PageWrapper>} />
+                <Route path="/about" element={<PageWrapper><AboutPage /></PageWrapper>} />
+                <Route path="/support" element={<PageWrapper><SupportPage /></PageWrapper>} />
               </Routes>
             </AnimatePresence>
           </Suspense>

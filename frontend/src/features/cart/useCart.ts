@@ -83,10 +83,20 @@ export const useCart = () => {
     }, [dispatch]);
 
     /**
-     * Calculate cart total
+     * Calculate cart total including attribute adjustments
      */
     const cartTotal = items.reduce((total, item) => {
-        return total + item.price * item.quantity;
+        let unitPrice = item.price;
+        if (item.attributes && item.selectedAttributes) {
+            item.attributes.forEach(attr => {
+                const selectedValue = item.selectedAttributes![attr.id];
+                if (selectedValue) {
+                    const option = attr.options.find(o => o.value === selectedValue);
+                    if (option) unitPrice += option.priceAdjustment;
+                }
+            });
+        }
+        return total + unitPrice * item.quantity;
     }, 0);
 
     /**

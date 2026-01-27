@@ -133,27 +133,40 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  avatar: string;
-  level: number;
-  xp: number;
-  xpToNext: number;
-  loyaltyPoints: number;
-  stats: {
+  phone: string;
+  avatar?: string;
+  level?: number;
+  xp?: number;
+  xpToNext?: number;
+  loyaltyPoints?: number;
+  stats?: {
     teasTried: number;
     notesWritten: number;
     streakDays: number;
     regionsExplored: number;
   };
-  journal: JournalEntry[];
-  achievements: Achievement[];
-  passport: TeaStamp[];
-  preferences: string[];
-  sessions: UserSession[];
-  security: {
+  active_orders_count?: number;
+  wishlist_count?: number;
+  addresses?: Address[];
+  journal?: JournalEntry[];
+  achievements?: Achievement[];
+  passport?: TeaStamp[];
+  preferences?: string[];
+  sessions?: UserSession[];
+  security?: {
     twoFactorEnabled: boolean;
     lastPasswordChange: string;
   };
   last_login_at?: string | null;
+  theme?: string;
+}
+
+export interface Device {
+  session_id: string;
+  ip_address?: string;
+  user_agent?: string;
+  last_active_at?: string;
+  is_current: boolean;
 }
 
 export type AddressLabel = 'Home' | 'Work' | 'Other';
@@ -201,13 +214,22 @@ export interface UpdateAddressRequest {
 }
 
 export enum OrderStatus {
-  PLACED = 'Placed',
-  CONFIRMED = 'Confirmed',
-  PROCESSING = 'Processing',
-  SHIPPED = 'Shipped',
-  OUT_FOR_DELIVERY = 'Out for Delivery',
-  DELIVERED = 'Delivered',
-  CANCELLED = 'Cancelled'
+  PENDING = 'pending',
+  CONFIRMED = 'confirmed',
+  PREPARING = 'preparing',
+  SHIPPED = 'shipped',
+  OUT_FOR_DELIVERY = 'out_for_delivery',
+  DELIVERED = 'delivered',
+  CANCELLED = 'cancelled'
+}
+
+export interface OrderSummary {
+  id: string;
+  orderNumber: string;
+  status: OrderStatus;
+  total_amount: number;
+  item_count: number;
+  created_at: string;
 }
 
 export interface Order {

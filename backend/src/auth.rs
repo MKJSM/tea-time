@@ -1,5 +1,4 @@
 use axum::{
-    async_trait,
     extract::FromRequestParts,
     http::{request::Parts, StatusCode},
     response::{IntoResponse, Response},
@@ -8,13 +7,14 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tower_sessions::Session;
+use uuid::Uuid;
 
 pub const SESSION_USER_KEY: &str = "auth-session-user";
 
 /// User data stored in session - use this in handlers that need auth
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthUser {
-    pub id: String,
+    pub id: Uuid,
     pub email: String,
     pub name: String,
 }
@@ -24,7 +24,6 @@ pub struct AuthSession {
     pub user: Option<AuthUser>,
 }
 
-#[async_trait]
 impl<S> FromRequestParts<S> for AuthSession
 where
     S: Send + Sync,
@@ -52,7 +51,7 @@ where
 /// Required auth user only - use when handler just needs user info (most common case)
 ///
 /// Example usage:
-/// ```rust
+/// ```rust,ignore
 /// pub async fn list_favorites(
 ///     user: RequiredAuthUser,
 ///     State(state): State<AppState>,
@@ -69,7 +68,6 @@ impl std::ops::Deref for RequiredAuthUser {
     }
 }
 
-#[async_trait]
 impl<S> FromRequestParts<S> for RequiredAuthUser
 where
     S: Send + Sync,

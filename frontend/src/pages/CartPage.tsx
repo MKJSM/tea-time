@@ -6,9 +6,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, ShoppingBag, ArrowRight, Minus, Plus, Settings2 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { setAuthModalOpen, setPendingCheckoutAfterAddress } from '../features/auth/authSlice';
+import { formatPrice } from '../utils/format';
 
 const CartPage: React.FC = () => {
-  const { items, updateItemQuantity, removeFromCart } = useCart();
+  const { items, updateItemQuantity, removeFromCart, cartTotal } = useCart();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { isAuthenticated } = useAppSelector((state) => state.auth);
@@ -21,18 +22,6 @@ const CartPage: React.FC = () => {
     }
     navigate('/checkout');
   };
-
-  const total = items.reduce((acc, item) => {
-    let unitPrice = item.price;
-    if (item.attributes && item.selectedAttributes) {
-      item.attributes.forEach(attr => {
-        const selectedValue = item.selectedAttributes![attr.id];
-        const option = attr.options.find(o => o.value === selectedValue);
-        if (option) unitPrice += option.priceAdjustment;
-      });
-    }
-    return acc + unitPrice * item.quantity;
-  }, 0);
 
   if (items.length === 0) {
     return (
@@ -102,7 +91,7 @@ const CartPage: React.FC = () => {
                       <div className="sm:hidden flex-grow">
                         <h3 className="font-serif font-bold text-lg text-tea-900 line-clamp-1">{item.name}</h3>
                         <p className="text-[10px] text-gray-400 uppercase tracking-widest">{item.origin}</p>
-                        <span className="font-bold text-tea-900 mt-1 block">₹{(unitPrice * item.quantity).toFixed(2)}</span>
+                        <span className="font-bold text-tea-900 mt-1 block">{formatPrice(unitPrice * item.quantity)}</span>
                       </div>
                     </div>
 
@@ -146,8 +135,8 @@ const CartPage: React.FC = () => {
                           ><Plus size={14} /></button>
                         </div>
                         <div className="text-right flex flex-col sm:block">
-                          <span className="hidden sm:block font-bold text-lg text-tea-900">₹{(unitPrice * item.quantity).toFixed(2)}</span>
-                          <span className="text-[10px] text-gray-400 font-medium">₹{unitPrice.toFixed(2)} each</span>
+                          <span className="hidden sm:block font-bold text-lg text-tea-900">{formatPrice(unitPrice * item.quantity)}</span>
+                          <span className="text-[10px] text-gray-400 font-medium">{formatPrice(unitPrice)} each</span>
                           <button
                             onClick={() => removeFromCart(item.itemKey)}
                             className="sm:hidden text-red-500 text-xs font-bold mt-1 uppercase tracking-widest"
@@ -170,7 +159,7 @@ const CartPage: React.FC = () => {
               <div className="space-y-4 mb-8">
                 <div className="flex justify-between text-sm sm:text-base text-gray-500">
                   <span>Subtotal</span>
-                  <span className="font-medium text-gray-900">₹{total.toFixed(2)}</span>
+                  <span className="font-medium text-gray-900">{formatPrice(cartTotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm sm:text-base text-gray-500">
                   <span>Shipping</span>
@@ -178,12 +167,12 @@ const CartPage: React.FC = () => {
                 </div>
                 <div className="flex justify-between text-sm sm:text-base text-gray-500">
                   <span>Tax (EST)</span>
-                  <span className="font-medium text-gray-900">₹{(total * 0.08).toFixed(2)}</span>
+                  <span className="font-medium text-gray-900">{formatPrice(cartTotal * 0.10)}</span>
                 </div>
                 <div className="h-px bg-gray-100 my-4" />
                 <div className="flex justify-between text-xl font-bold text-tea-900">
                   <span>Total</span>
-                  <span>₹{(total * 1.08).toFixed(2)}</span>
+                  <span>{formatPrice(cartTotal * 1.10)}</span>
                 </div>
               </div>
 

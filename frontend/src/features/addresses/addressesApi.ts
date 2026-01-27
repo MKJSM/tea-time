@@ -10,7 +10,7 @@ export const addressesApi = createApi({
   tagTypes: ['Address'],
   endpoints: (builder) => ({
     getAddresses: builder.query<Address[], void>({
-      query: () => '/addresses',
+      query: () => '/user/addresses',
       providesTags: (result) =>
         result
           ? [
@@ -21,13 +21,13 @@ export const addressesApi = createApi({
     }),
 
     getAddress: builder.query<Address, string>({
-      query: (id) => `/addresses/${id}`,
+      query: (id) => `/user/addresses/${id}`,
       providesTags: (result, error, id) => [{ type: 'Address', id }],
     }),
 
     createAddress: builder.mutation<Address, CreateAddressRequest>({
       query: (body) => ({
-        url: '/addresses',
+        url: '/user/addresses',
         method: 'POST',
         body,
       }),
@@ -36,7 +36,7 @@ export const addressesApi = createApi({
 
     updateAddress: builder.mutation<Address, { id: string; data: UpdateAddressRequest }>({
       query: ({ id, data }) => ({
-        url: `/addresses/${id}`,
+        url: `/user/addresses/${id}`,
         method: 'PUT',
         body: data,
       }),
@@ -48,7 +48,7 @@ export const addressesApi = createApi({
 
     deleteAddress: builder.mutation<void, string>({
       query: (id) => ({
-        url: `/addresses/${id}`,
+        url: `/user/addresses/${id}`,
         method: 'DELETE',
       }),
       invalidatesTags: [{ type: 'Address', id: 'LIST' }],
@@ -56,7 +56,7 @@ export const addressesApi = createApi({
 
     setDefaultAddress: builder.mutation<Address, string>({
       query: (id) => ({
-        url: `/addresses/${id}/default`,
+        url: `/user/addresses/${id}/default`,
         method: 'POST',
       }),
       invalidatesTags: [{ type: 'Address', id: 'LIST' }],

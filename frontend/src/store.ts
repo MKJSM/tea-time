@@ -19,7 +19,7 @@ export const useCartStore = create<CartState>()(
       addItem: (product, quantity = 1, customization) => {
         const itemKey = customization ? `${product.id}-${customization.id}` : product.id;
         const existing = get().items.find((i) => (customization ? i.customization?.id === customization.id : i.id === product.id));
-        
+
         if (existing) {
           set({
             items: get().items.map((i) =>
@@ -84,6 +84,7 @@ export const useAuthStore = create<AuthState>()(
             id: '1',
             name: email.split('@')[0],
             email,
+            phone: '',
             avatar: 'https://picsum.photos/seed/teauser/200',
             level: 1,
             xp: 0,

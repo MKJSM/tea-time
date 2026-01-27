@@ -5,26 +5,31 @@ import {
   Settings, Award, BookOpen, Edit3, LogIn,
   Compass, Bookmark, Map as MapIcon,
   Package, Shield, LogOut, ChevronRight,
-  Heart, Zap, Star, MapPin, CreditCard,
+  Heart, MapPin,
   HelpCircle, Info, Leaf, Sparkles
 } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
-import { fetchCurrentUser, setAuthModalOpen, logout, logoutUser } from '../features/auth/authSlice';
-import { mockUser } from '../mockData';
+import { fetchUserProfile, setAuthModalOpen, logoutUser, setAddressModalOpen, setEditingAddress } from '../features/auth/authSlice';
+
 import { cn } from '../utils/cn';
 import toast from 'react-hot-toast';
 import { useNavigate, Link } from 'react-router-dom';
 import { useGetFavoritesQuery } from '../features/favorites/favoritesApi';
+import EditProfileModal from '../components/auth/EditProfileModal';
+import SecurityModal from '../components/auth/SecurityModal';
 
 const ProfilePage: React.FC = () => {
   const { isAuthenticated, user: realUser } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
+  const [isAddressesExpanded, setIsAddressesExpanded] = useState(false);
 
   React.useEffect(() => {
     if (isAuthenticated) {
-      dispatch(fetchCurrentUser());
+      dispatch(fetchUserProfile());
     }
   }, [dispatch, isAuthenticated]);
 
@@ -53,14 +58,8 @@ const ProfilePage: React.FC = () => {
     );
   }
 
-  // Merge real user data with mock stats for visual completeness since backend is MVP
-  const user = {
-    ...mockUser,
-    id: realUser.id.toString(),
-    name: realUser.name,
-    email: realUser.email,
-    // Keep mock avatar/stats for now until backend supports them
-  };
+  // Use real user data from API (backend now provides mock data where missing)
+  const user = realUser;
 
   const handleLogout = async () => {
     await dispatch(logoutUser());
@@ -82,7 +81,8 @@ const ProfilePage: React.FC = () => {
     destructive?: boolean
   }) => (
     <button
-      onClick={onClick}
+      type="button"
+      onClick={(e) => { e.stopPropagation(); onClick?.(); }}
       className="w-full flex items-center justify-between p-5 hover:bg-tea-50/50 transition-all group active:scale-[0.98]"
     >
       <div className="flex items-center gap-4">
@@ -148,28 +148,28 @@ const ProfilePage: React.FC = () => {
             <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full p-1 bg-gradient-to-tr from-tea-800 to-accent-500">
               <img src={user.avatar} alt="Profile" className="w-full h-full object-cover rounded-full border-4 border-white" />
             </div>
-            <button className="absolute bottom-0 right-0 bg-tea-800 text-white p-2.5 rounded-full shadow-lg border-2 border-white active:scale-90 transition-transform">
+            <button
+              onClick={() => setIsEditModalOpen(true)}
+              className="absolute bottom-0 right-0 bg-tea-800 text-white p-2.5 rounded-full shadow-lg border-2 border-white active:scale-90 transition-transform"
+            >
               <Edit3 size={14} />
             </button>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-serif font-bold text-tea-950 mb-1">{user.name}</h1>
-          <p className="text-xs sm:text-sm text-gray-400 font-bold uppercase tracking-widest mb-6">{user.email}</p>
+          <p className="text-xs sm:text-sm text-gray-400 font-bold uppercase tracking-widest mb-6">
+            {user.email} • {user.phone || 'No phone added'}
+          </p>
 
           <div className="w-full bg-gray-50 rounded-2xl p-4 sm:p-6 border border-gray-100 flex items-center justify-around shadow-inner">
             <div className="text-center">
-              <p className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Orders</p>
-              <p className="text-base sm:text-lg font-serif font-bold text-tea-900">{user.stats.teasTried}</p>
+              <p className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Active Orders</p>
+              <p className="text-base sm:text-lg font-serif font-bold text-tea-900">{user.active_orders_count || 0}</p>
             </div>
             <div className="w-px h-8 bg-gray-200" />
             <div className="text-center">
-              <p className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Points</p>
-              <p className="text-base sm:text-lg font-serif font-bold text-tea-900">{user.loyaltyPoints}</p>
-            </div>
-            <div className="w-px h-8 bg-gray-200" />
-            <div className="text-center">
-              <p className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Level</p>
-              <p className="text-base sm:text-lg font-serif font-bold text-tea-900">Lvl {user.level}</p>
+              <p className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Wishlist</p>
+              <p className="text-base sm:text-lg font-serif font-bold text-tea-900">{user.wishlist_count || 0}</p>
             </div>
           </div>
         </div>
@@ -202,8 +202,8 @@ const ProfilePage: React.FC = () => {
             <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">My Orders</h4>
           </div>
           <div className="divide-y divide-gray-50">
-            <SettingItem icon={Package} label="Order History" value="2 Active • 24 Past" onClick={() => navigate('/orders')} />
-            <SettingItem icon={Award} label="Rewards" value="12 Points Earned" />
+            <SettingItem icon={Package} label="Order History" value={`${user.active_orders_count || 0} Active`} onClick={() => navigate('/orders')} />
+            <SettingItem icon={Award} label="Rewards" value="0 Points" />
           </div>
         </section>
 
@@ -223,9 +223,67 @@ const ProfilePage: React.FC = () => {
             <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Account Settings</h4>
           </div>
           <div className="divide-y divide-gray-50">
-            <SettingItem icon={MapPin} label="Delivery Address" onClick={() => dispatch(setAuthModalOpen(false)) || dispatch(setAddressModalOpen(true))} />
-            <SettingItem icon={CreditCard} label="Payment Methods" />
-            <SettingItem icon={Shield} label="Security" />
+            <div className="relative">
+              <SettingItem
+                icon={MapPin}
+                label="Delivery Address"
+                value={user.addresses && user.addresses.length > 0 ? `${user.addresses.length} Saved` : 'Add New'}
+                onClick={() => {
+                  if (user.addresses && user.addresses.length > 0) {
+                    setIsAddressesExpanded(!isAddressesExpanded);
+                  } else {
+                    dispatch(setEditingAddress(null));
+                    dispatch(setAddressModalOpen(true));
+                  }
+                }}
+              />
+              <AnimatePresence>
+                {isAddressesExpanded && user.addresses && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden bg-gray-50/50 border-t border-gray-100"
+                  >
+                    <div className="p-4 space-y-3">
+                      {user.addresses.map((addr) => (
+                        <div key={addr.id} className="p-3 bg-white rounded-xl border border-gray-100 flex justify-between items-center shadow-sm">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs font-bold text-tea-900 uppercase tracking-wide">{addr.label}</span>
+                              {addr.is_default && (
+                                <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-[9px] font-bold rounded-md uppercase tracking-wide">Default</span>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-600 font-medium line-clamp-1">{addr.street_address}, {addr.city}</p>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              dispatch(setEditingAddress(addr));
+                              dispatch(setAddressModalOpen(true));
+                            }}
+                            className="p-2 text-gray-400 hover:text-tea-600 hover:bg-tea-50 rounded-lg transition-colors"
+                          >
+                            <Edit3 size={16} />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        onClick={() => {
+                          dispatch(setEditingAddress(null));
+                          dispatch(setAddressModalOpen(true));
+                        }}
+                        className="w-full py-3 border border-dashed border-tea-200 text-tea-600 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-tea-50 transition-colors flex items-center justify-center gap-2"
+                      >
+                        Add New Address
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+            <SettingItem icon={Shield} label="Security" onClick={() => setIsSecurityModalOpen(true)} />
             <SettingItem icon={Settings} label="Preferences" />
           </div>
         </section>
@@ -233,8 +291,8 @@ const ProfilePage: React.FC = () => {
         {/* 6. Support & Legal */}
         <section className="bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-gray-100">
           <div className="divide-y divide-gray-50">
-            <SettingItem icon={HelpCircle} label="Help & Support" />
-            <SettingItem icon={Info} label="About Us" />
+            <SettingItem icon={HelpCircle} label="Help & Support" onClick={() => navigate('/support')} />
+            <SettingItem icon={Info} label="About Us" onClick={() => navigate('/about')} />
           </div>
         </section>
 
@@ -292,6 +350,16 @@ const ProfilePage: React.FC = () => {
           </div>
         )}
       </AnimatePresence>
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        user={realUser}
+      />
+      <SecurityModal
+        isOpen={isSecurityModalOpen}
+        onClose={() => setIsSecurityModalOpen(false)}
+      />
     </div>
   );
 };

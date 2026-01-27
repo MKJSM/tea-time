@@ -19,11 +19,11 @@ pub async fn list_favorites(
         SELECT p.*
         FROM products p
         JOIN favorites f ON p.id = f.product_id
-        WHERE f.user_id = ?
+        WHERE f.user_id = $1
         ORDER BY f.created_at DESC
         "#,
     )
-    .bind(&user.id)
+    .bind(user.id)
     .fetch_all(&state.db)
     .await?;
 
@@ -34,11 +34,11 @@ pub async fn list_favorites(
 pub async fn add_favorite(
     user: RequiredAuthUser,
     State(state): State<AppState>,
-    Path(product_id): Path<String>,
+    Path(product_id): Path<Uuid>,
 ) -> Result<StatusCode, AppError> {
     // Check if product exists first
-    let product_exists = sqlx::query("SELECT 1 FROM products WHERE id = ?")
-        .bind(&product_id)
+    let product_exists = sqlx::query("SELECT 1 FROM products WHERE id = $1")
+        .bind(product_id)
         .fetch_optional(&state.db)
         .await?;
 
@@ -46,14 +46,10 @@ pub async fn add_favorite(
         return Err(AppError::NotFound("Product not found".into()));
     }
 
-    // Generate UUID for the favorite
-    let favorite_id = Uuid::new_v4().to_string();
-
-    // INSERT OR IGNORE handles duplicates gracefully
-    sqlx::query("INSERT OR IGNORE INTO favorites (id, user_id, product_id) VALUES (?, ?, ?)")
-        .bind(&favorite_id)
-        .bind(&user.id)
-        .bind(&product_id)
+    // INSERT INTO ... ON CONFLICT DO NOTHING for Postgres
+    sqlx::query("INSERT INTO favorites (user_id, product_id) VALUES ($1, $2) ON CONFLICT (user_id, product_id) DO NOTHING")
+        .bind(user.id)
+        .bind(product_id)
         .execute(&state.db)
         .await?;
 
@@ -64,11 +60,11 @@ pub async fn add_favorite(
 pub async fn remove_favorite(
     user: RequiredAuthUser,
     State(state): State<AppState>,
-    Path(product_id): Path<String>,
+    Path(product_id): Path<Uuid>,
 ) -> Result<StatusCode, AppError> {
-    sqlx::query("DELETE FROM favorites WHERE user_id = ? AND product_id = ?")
-        .bind(&user.id)
-        .bind(&product_id)
+    sqlx::query("DELETE FROM favorites WHERE user_id = $1 AND product_id = $2")
+        .bind(user.id)
+        .bind(product_id)
         .execute(&state.db)
         .await?;
 
@@ -79,9 +75,9 @@ pub async fn remove_favorite(
 pub async fn get_favorite_ids(
     user: RequiredAuthUser,
     State(state): State<AppState>,
-) -> Result<Json<Vec<String>>, AppError> {
-    let ids: Vec<String> = sqlx::query_scalar("SELECT product_id FROM favorites WHERE user_id = ?")
-        .bind(&user.id)
+) -> Result<Json<Vec<Uuid>>, AppError> {
+    let ids: Vec<Uuid> = sqlx::query_scalar("SELECT product_id FROM favorites WHERE user_id = $1")
+        .bind(user.id)
         .fetch_all(&state.db)
         .await?;
 

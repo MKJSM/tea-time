@@ -30,9 +30,6 @@ COPY backend/db/migration ./db/migration
 RUN mkdir -p static/assets
 COPY backend/static/logo.png backend/static/favicon.ico ./static/
 
-# Copy schema if needed
-COPY backend/schema.sql ./
-
 # Copy built frontend assets
 COPY --from=frontend-builder /app/frontend/dist/assets ./static/assets
 

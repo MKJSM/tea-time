@@ -8,7 +8,7 @@ import { Address } from '../../types';
 const GlobalAddressModal: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { isAddressModalOpen, pendingCheckoutAfterAddress } = useAppSelector((state) => state.auth);
+  const { isAddressModalOpen, pendingCheckoutAfterAddress, editingAddress } = useAppSelector((state) => state.auth);
 
   const handleClose = () => {
     dispatch(setAddressModalOpen(false));
@@ -26,6 +26,7 @@ const GlobalAddressModal: React.FC = () => {
     <AddressModal
       isOpen={isAddressModalOpen}
       onClose={handleClose}
+      editAddress={editingAddress}
       onSuccess={handleSuccess}
     />
   );

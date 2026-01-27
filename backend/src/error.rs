@@ -10,6 +10,7 @@ pub enum AppError {
     DatabaseError(sqlx::Error),
     InternalServerError(String),
     Unauthorized(String),
+    Forbidden(String),
     NotFound(String),
     Conflict(String),
     BadRequest(String),
@@ -28,14 +29,20 @@ impl IntoResponse for AppError {
                 tracing::error!("Database error: {:?}", e);
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    "Database error".to_string(),
+                    // Never expose database errors to clients
+                    "An unexpected error occurred".to_string(),
                 )
             }
             AppError::InternalServerError(msg) => {
                 tracing::error!("Internal server error: {}", msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, msg)
+                // Never expose internal error details to clients in production
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "An unexpected error occurred".to_string(),
+                )
             }
             AppError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg),
+            AppError::Forbidden(msg) => (StatusCode::FORBIDDEN, msg),
             AppError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
             AppError::Conflict(msg) => (StatusCode::CONFLICT, msg),
             AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg),
