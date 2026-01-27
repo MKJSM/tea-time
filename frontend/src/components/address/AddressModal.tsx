@@ -92,8 +92,8 @@ const AddressModal: React.FC<AddressModalProps> = ({ isOpen, onClose, editAddres
       toast.error('Recipient name is required');
       return;
     }
-    if (!phoneNumber.trim() || phoneNumber.length < 10) {
-      toast.error('Valid phone number is required (10+ digits)');
+    if (!phoneNumber.trim() || phoneNumber.length !== 10) {
+      toast.error('Please enter a valid 10-digit phone number');
       return;
     }
     if (!streetAddress.trim()) {
@@ -151,10 +151,8 @@ const AddressModal: React.FC<AddressModalProps> = ({ isOpen, onClose, editAddres
       onClose={onClose}
       className="md:max-w-2xl"
       showCloseButton={false}
-    >
-      <div className="flex flex-col h-full">
-        {/* Custom Header with Left Close Button */}
-        <div className="p-8 flex justify-between items-center shrink-0 border-b border-gray-100">
+      customHeader={
+        <div className="bg-white p-8 flex justify-between items-center shrink-0 border-b border-gray-100 shadow-[0_4px_20px_-12px_rgba(0,0,0,0.1)]">
           <div className="flex items-center gap-3">
             <div className="bg-tea-50 p-3 rounded-2xl shadow-sm border border-tea-100">
               <MapPin className="text-tea-700" size={24} />
@@ -174,189 +172,192 @@ const AddressModal: React.FC<AddressModalProps> = ({ isOpen, onClose, editAddres
             </div>
           </button>
         </div>
+      }
+    >
 
-        {/* Form Body */}
-        <div className="p-6 md:p-8 space-y-6">
+      {/* Form Body */}
+      <div className="px-6 pt-6 pb-2 md:px-8 md:pt-8 md:pb-6 space-y-6">
 
-          {/* Map Section */}
-          <div className="rounded-[2rem] overflow-hidden border border-gray-100 shadow-inner group relative">
-            <div className="h-56 relative">
-              <iframe
-                src={mapUrl}
-                className="w-full h-full border-0 grayscale-[20%] group-hover:grayscale-0 transition-all duration-700"
-                title="Location Map"
-                loading="lazy"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+        {/* Map Section */}
+        <div className="rounded-[2rem] overflow-hidden border border-gray-100 shadow-inner group relative">
+          <div className="h-56 relative">
+            <iframe
+              src={mapUrl}
+              className="w-full h-full border-0 grayscale-[20%] group-hover:grayscale-0 transition-all duration-700"
+              title="Location Map"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
 
-              <button
-                type="button"
-                onClick={handleUseCurrentLocation}
-                className="absolute bottom-4 right-4 bg-white hover:bg-tea-50 text-tea-700 px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-xl hover:shadow-tea-900/10 transition-all active:scale-95 border border-tea-100"
-              >
-                <Navigation size={14} className="animate-pulse" />
-                Use My Current Location
-              </button>
+            <button
+              type="button"
+              onClick={handleUseCurrentLocation}
+              className="absolute bottom-4 right-4 bg-white hover:bg-tea-50 text-tea-700 px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-xl hover:shadow-tea-900/10 transition-all active:scale-95 border border-tea-100"
+            >
+              <Navigation size={14} className="animate-pulse" />
+              Use My Current Location
+            </button>
 
-              <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg text-[10px] font-bold text-tea-800 uppercase tracking-widest flex items-center gap-1.5 shadow-sm border border-white/50">
-                <MapPin size={10} />
-                Selected Location
-              </div>
+            <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg text-[10px] font-bold text-tea-800 uppercase tracking-widest flex items-center gap-1.5 shadow-sm border border-white/50">
+              <MapPin size={10} />
+              Selected Location
+            </div>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Address Type Selection */}
+          <div>
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3 block">
+              Address Type
+            </label>
+            <div className="grid grid-cols-3 gap-3">
+              {(['Home', 'Work', 'Other'] as AddressLabel[]).map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => setLabel(l)}
+                  className={`py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 ${label === l
+                    ? 'bg-tea-800 text-white shadow-lg shadow-tea-900/20'
+                    : 'bg-gray-50 text-gray-500 hover:bg-gray-100 border border-gray-200'
+                    }`}
+                >
+                  {getLabelIcon(l)}
+                  <span className="text-xs uppercase tracking-widest">{l}</span>
+                </button>
+              ))}
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Address Type Selection */}
-            <div>
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3 block">
-                Address Type
-              </label>
-              <div className="grid grid-cols-3 gap-3">
-                {(['Home', 'Work', 'Other'] as AddressLabel[]).map((l) => (
-                  <button
-                    key={l}
-                    type="button"
-                    onClick={() => setLabel(l)}
-                    className={`py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 ${label === l
-                      ? 'bg-tea-800 text-white shadow-lg shadow-tea-900/20'
-                      : 'bg-gray-50 text-gray-500 hover:bg-gray-100 border border-gray-200'
-                      }`}
-                  >
-                    {getLabelIcon(l)}
-                    <span className="text-xs uppercase tracking-widest">{l}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Name & Phone */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide px-1">
-                  Recipient Name *
-                </label>
-                <input
-                  type="text"
-                  value={recipientName}
-                  onChange={(e) => setRecipientName(e.target.value)}
-                  placeholder="Full name"
-                  className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 outline-none focus:bg-white focus:ring-4 focus:ring-tea-500/5 focus:border-tea-500/30 transition-all text-tea-900 font-medium shadow-sm"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide px-1">
-                  Phone Number *
-                </label>
-                <input
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="10-digit mobile number"
-                  className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 outline-none focus:bg-white focus:ring-4 focus:ring-tea-500/5 focus:border-tea-500/30 transition-all text-tea-900 font-medium shadow-sm"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Street Address */}
+          {/* Name & Phone */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="space-y-2">
               <label className="text-xs font-bold text-gray-500 uppercase tracking-wide px-1">
-                Street Address *
+                Recipient Name *
               </label>
-              <textarea
-                value={streetAddress}
-                onChange={(e) => setStreetAddress(e.target.value)}
-                placeholder="House/Flat No., Building Name, Street, Area"
-                rows={3}
-                className="w-full bg-gray-50 border border-gray-100 rounded-[1.5rem] px-5 py-4 outline-none focus:bg-white focus:ring-4 focus:ring-tea-500/5 focus:border-tea-500/30 transition-all resize-none text-tea-900 font-medium shadow-sm"
+              <input
+                type="text"
+                value={recipientName}
+                onChange={(e) => setRecipientName(e.target.value)}
+                placeholder="Full name"
+                className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 outline-none focus:bg-white focus:ring-4 focus:ring-tea-500/5 focus:border-tea-500/30 transition-all text-tea-900 font-medium shadow-sm"
                 required
               />
             </div>
-
-            {/* City, State, Postal Code */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide px-1">
-                  City *
-                </label>
-                <input
-                  type="text"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="City"
-                  className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 outline-none focus:bg-white focus:ring-4 focus:ring-tea-500/5 focus:border-tea-500/30 transition-all text-tea-900 font-medium shadow-sm"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide px-1">
-                  State *
-                </label>
-                <input
-                  type="text"
-                  value={state}
-                  onChange={(e) => setState(e.target.value)}
-                  placeholder="State"
-                  className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 outline-none focus:bg-white focus:ring-4 focus:ring-tea-500/5 focus:border-tea-500/30 transition-all text-tea-900 font-medium shadow-sm"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide px-1">
-                  Postal Code *
-                </label>
-                <input
-                  type="text"
-                  value={postalCode}
-                  onChange={(e) => setPostalCode(e.target.value)}
-                  placeholder="6 digits"
-                  className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 outline-none focus:bg-white focus:ring-4 focus:ring-tea-500/5 focus:border-tea-500/30 transition-all text-tea-900 font-medium shadow-sm"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Default Address Toggle */}
-            <label className="flex items-center gap-4 cursor-pointer p-6 bg-tea-50/50 rounded-[1.5rem] border border-tea-100 hover:bg-tea-50 transition-all group">
-              <div className={`w-7 h-7 rounded-xl border-2 flex items-center justify-center transition-all group-hover:scale-110 ${isDefault ? 'bg-tea-700 border-tea-700' : 'border-gray-300 bg-white'
-                }`}>
-                {isDefault && <Check size={18} className="text-white" />}
-              </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide px-1">
+                Phone Number *
+              </label>
               <input
-                type="checkbox"
-                checked={isDefault}
-                onChange={(e) => setIsDefault(e.target.checked)}
-                className="sr-only"
+                type="tel"
+                value={phoneNumber}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                  setPhoneNumber(val);
+                }}
+                placeholder="10-digit mobile number"
+                className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 outline-none focus:bg-white focus:ring-4 focus:ring-tea-500/5 focus:border-tea-500/30 transition-all text-tea-900 font-medium shadow-sm"
+                required
               />
-              <div>
-                <span className="font-bold text-tea-900">Set as default address</span>
-                <p className="text-xs text-tea-600/70 font-medium">Use this for my future orders automatically</p>
-              </div>
+            </div>
+          </div>
+
+          {/* Street Address */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide px-1">
+              Street Address *
             </label>
+            <textarea
+              value={streetAddress}
+              onChange={(e) => setStreetAddress(e.target.value)}
+              placeholder="House/Flat No., Building Name, Street, Area"
+              rows={3}
+              className="w-full bg-gray-50 border border-gray-100 rounded-[1.5rem] px-5 py-4 outline-none focus:bg-white focus:ring-4 focus:ring-tea-500/5 focus:border-tea-500/30 transition-all resize-none text-tea-900 font-medium shadow-sm"
+              required
+            />
+          </div>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-5 bg-tea-800 hover:bg-tea-950 text-white font-bold rounded-[1.5rem] transition-all shadow-xl shadow-tea-900/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 active:scale-[0.98] group"
-            >
-              {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  <MapPin size={20} className="group-hover:bounce" />
-                  <span className="uppercase tracking-[0.2em] text-xs">
-                    {editAddress ? 'Update Delivery Address' : 'Save Delivery Address'}
-                  </span>
-                </>
-              )}
-            </button>
-          </form>
-        </div>
+          {/* City, State, Postal Code */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide px-1">
+                City *
+              </label>
+              <input
+                type="text"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="City"
+                className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 outline-none focus:bg-white focus:ring-4 focus:ring-tea-500/5 focus:border-tea-500/30 transition-all text-tea-900 font-medium shadow-sm"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide px-1">
+                State *
+              </label>
+              <input
+                type="text"
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+                placeholder="State"
+                className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 outline-none focus:bg-white focus:ring-4 focus:ring-tea-500/5 focus:border-tea-500/30 transition-all text-tea-900 font-medium shadow-sm"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide px-1">
+                Postal Code *
+              </label>
+              <input
+                type="text"
+                value={postalCode}
+                onChange={(e) => setPostalCode(e.target.value)}
+                placeholder="6 digits"
+                className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 outline-none focus:bg-white focus:ring-4 focus:ring-tea-500/5 focus:border-tea-500/30 transition-all text-tea-900 font-medium shadow-sm"
+                required
+              />
+            </div>
+          </div>
 
+          {/* Default Address Toggle */}
+          <label className="flex items-center gap-4 cursor-pointer p-6 bg-tea-50/50 rounded-[1.5rem] border border-tea-100 hover:bg-tea-50 transition-all group">
+            <div className={`w-7 h-7 rounded-xl border-2 flex items-center justify-center transition-all group-hover:scale-110 ${isDefault ? 'bg-tea-700 border-tea-700' : 'border-gray-300 bg-white'
+              }`}>
+              {isDefault && <Check size={18} className="text-white" />}
+            </div>
+            <input
+              type="checkbox"
+              checked={isDefault}
+              onChange={(e) => setIsDefault(e.target.checked)}
+              className="sr-only"
+            />
+            <div>
+              <span className="font-bold text-tea-900">Set as default address</span>
+              <p className="text-xs text-tea-600/70 font-medium">Use this for my future orders automatically</p>
+            </div>
+          </label>
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full py-5 bg-tea-800 hover:bg-tea-950 text-white font-bold rounded-[1.5rem] transition-all shadow-xl shadow-tea-900/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 active:scale-[0.98] group"
+          >
+            {isLoading ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <MapPin size={20} className="group-hover:bounce" />
+                <span className="uppercase tracking-[0.2em] text-xs">
+                  {editAddress ? 'Update Delivery Address' : 'Save Delivery Address'}
+                </span>
+              </>
+            )}
+          </button>
+        </form>
       </div>
-    </ResponsiveModal>
+    </ResponsiveModal >
   );
 };
 

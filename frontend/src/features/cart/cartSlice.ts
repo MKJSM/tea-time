@@ -3,6 +3,7 @@ import { CartItem, Product, CustomBlend, SelectedAttributes } from '../../types'
 import { loadCartFromIndexedDB, clearCartFromIndexedDB } from '../../utils/indexedDB';
 import { cartApi, CartDto, AddToCartRequest, CartCustomizationRequest, MergeCartItem } from './cartApi';
 import { createApiThunk } from '../../store/utils';
+import { getProductImageUrl } from '../../utils/images';
 
 interface CartState {
   items: CartItem[];
@@ -75,8 +76,8 @@ const transformFromBackendResponse = (cartDto: CartDto): CartItem[] => {
       name: item.name,
       quantity: item.quantity,
       price: totalUnitPrice,
-      image: item.image_urls[0] || '',
-      images: item.image_urls,
+      image: getProductImageUrl(item.image_urls[0]),
+      images: item.image_urls.map(img => getProductImageUrl(img)),
       categories: [],
       rating: 0,
       tags: [],

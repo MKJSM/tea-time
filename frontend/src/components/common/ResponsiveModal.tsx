@@ -10,6 +10,7 @@ interface ResponsiveModalProps {
     title?: string;
     className?: string; // For additional styling on the modal container
     showCloseButton?: boolean;
+    customHeader?: React.ReactNode;
 }
 
 const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
@@ -18,7 +19,8 @@ const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
     children,
     title,
     className = '',
-    showCloseButton = true
+    showCloseButton = true,
+    customHeader
 }) => {
     useScrollLock(isOpen);
     const [isMobile, setIsMobile] = useState(false);
@@ -78,14 +80,18 @@ const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
                         }}
                     >
                         {/* Header / Drag Handle for Mobile */}
-                        {isMobile && (
+                        {isMobile && !customHeader && (
                             <div className="w-full flex justify-center pt-3 pb-1" onClick={onClose}>
                                 <div className="w-12 h-1.5 bg-gray-200 rounded-full" />
                             </div>
                         )}
 
-                        {/* Title / Close Button Header (Optional) */}
-                        {(title || showCloseButton) && (
+                        {/* Title / Close Button Header (Optional) or Custom Header */}
+                        {customHeader ? (
+                            <div className="shrink-0 z-20 bg-white relative">
+                                {customHeader}
+                            </div>
+                        ) : (title || showCloseButton) ? (
                             <div className="flex justify-between items-center p-5 sm:p-8 border-b border-gray-50 shrink-0">
                                 {title && <h3 className="text-xl font-serif font-bold text-tea-900">{title}</h3>}
                                 {showCloseButton && !isMobile && (
@@ -107,7 +113,7 @@ const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
                                     </button>
                                 )}
                             </div>
-                        )}
+                        ) : null}
 
                         {/* Content Area */}
                         <div className="flex-grow overflow-y-auto custom-scrollbar">

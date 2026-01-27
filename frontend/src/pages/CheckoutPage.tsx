@@ -21,9 +21,20 @@ const CheckoutPage: React.FC = () => {
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
-  const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+  const [pendingOrderId, setPendingOrderId] = useState<string | null>(() => {
+    return sessionStorage.getItem('pending_checkout_order_id');
+  });
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+
+  // Persist pending order ID
+  useEffect(() => {
+    if (pendingOrderId) {
+      sessionStorage.setItem('pending_checkout_order_id', pendingOrderId);
+    } else {
+      sessionStorage.removeItem('pending_checkout_order_id');
+    }
+  }, [pendingOrderId]);
 
   const { isAuthenticated } = useAppSelector((state) => state.auth);
   const { data: addresses = [], isLoading: isLoadingAddresses, refetch } = useGetAddressesQuery(undefined, {
@@ -34,6 +45,7 @@ const CheckoutPage: React.FC = () => {
   const handlePaymentSuccess = React.useCallback((orderId: string) => {
     clearEntireCart();
     setPendingOrderId(null);
+    sessionStorage.removeItem('pending_checkout_order_id');
     toast.success('Order placed successfully!', { icon: '🎉' });
     navigate(`/order/${orderId}?success=true`);
   }, [clearEntireCart, navigate]);

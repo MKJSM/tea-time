@@ -167,20 +167,13 @@ const AuthModal: React.FC = () => {
         </div>
 
         {/* Social Integration */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="grid grid-cols-1 gap-3 mb-6">
           <button
             onClick={() => handleSocialLogin('Google')}
             className="py-4 bg-white border border-gray-100 rounded-2xl flex items-center justify-center gap-3 hover:border-tea-200 hover:shadow-lg transition-all active:scale-[0.98] shadow-sm"
           >
             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
-            <span className="text-xs font-bold text-gray-700 uppercase tracking-widest">Google</span>
-          </button>
-          <button
-            onClick={() => handleSocialLogin('Apple')}
-            className="py-4 bg-black text-white rounded-2xl flex items-center justify-center gap-3 hover:bg-gray-900 hover:shadow-lg transition-all active:scale-[0.98]"
-          >
-            <Apple size={18} />
-            <span className="text-xs font-bold uppercase tracking-widest">Apple</span>
+            <span className="text-xs font-bold text-gray-700 uppercase tracking-widest">Connect with Google</span>
           </button>
         </div>
 
