@@ -14,7 +14,7 @@ const MobileBottomNav: React.FC = () => {
     { icon: Search, label: 'Shop', path: '/shop' },
     { icon: ShoppingBag, label: 'Cart', path: '/cart' },
     { icon: Package, label: 'Orders', path: '/orders', requiresAuth: true },
-    { icon: User, label: 'Account', path: '/profile', requiresAuth: true },
+    { icon: User, label: 'Account', path: '/profile' },
   ];
 
   const visibleNavItems = navItems.filter(item => !item.requiresAuth || isAuthenticated);

@@ -7,6 +7,7 @@ import { ordersApi } from '../features/orders/ordersApi';
 import { favoritesApi } from '../features/favorites/favoritesApi';
 import { addressesApi } from '../features/addresses/addressesApi';
 import { cartPersistenceMiddleware } from '../middleware/cartPersistenceMiddleware';
+import { rtkQueryErrorLogger } from '../middleware/errorLogger';
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -27,7 +28,8 @@ export const store = configureStore({
       ordersApi.middleware,
       favoritesApi.middleware,
       addressesApi.middleware,
-      cartPersistenceMiddleware
+      cartPersistenceMiddleware,
+      rtkQueryErrorLogger
     ),
 });
 

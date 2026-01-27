@@ -93,15 +93,13 @@ const Navbar: React.FC = () => {
               )}
             </Link>
 
-            {isAuthenticated && (
-              <button
-                onClick={handleAuthClick}
-                className="p-3 text-tea-950/70 hover:text-tea-800 transition-colors"
-                aria-label="User Profile"
-              >
-                <User className="w-5 h-5" />
-              </button>
-            )}
+            <button
+              onClick={handleAuthClick}
+              className="p-3 text-tea-950/70 hover:text-tea-800 transition-colors"
+              aria-label="User Profile"
+            >
+              <User className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </div>
