@@ -166,15 +166,16 @@ pub fn build_router(state: AppState) -> Router {
         // Static & SPA Fallback
         .nest_service(
             "/assets",
-            tower_http::services::ServeDir::new("static/assets"),
+            tower::ServiceBuilder::new()
+                .layer(tower_http::set_header::SetResponseHeaderLayer::overriding(
+                    axum::http::header::CACHE_CONTROL,
+                    axum::http::HeaderValue::from_static("public, max-age=31536000, immutable"),
+                ))
+                .service(tower_http::services::ServeDir::new("static/assets")),
         )
         .nest_service(
             "/favicon.ico",
             tower_http::services::ServeFile::new("static/favicon.ico"),
-        )
-        .nest_service(
-            "/logo.png",
-            tower_http::services::ServeFile::new("static/logo.png"),
         )
         .route("/", get(index_handler))
         .fallback(index_handler)
