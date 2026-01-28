@@ -3,7 +3,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { Provider } from 'react-redux';
 import { store } from './store/index';
-import './assets/fonts/fonts.css';
+// Fonts loaded via Google Fonts CDN in index.html for better performance
 import './index.css';
 import App from './App';
 

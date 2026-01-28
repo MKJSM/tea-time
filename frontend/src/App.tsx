@@ -1,16 +1,11 @@
 import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
 
 import Navbar from './components/layout/Navbar';
 import MobileBottomNav from './components/layout/MobileBottomNav';
 import Footer from './components/layout/Footer';
 import LoadingSpinner from './components/common/LoadingSpinner';
-import AuthModal from './components/auth/AuthModal';
-import GlobalAddressModal from './components/address/GlobalAddressModal';
-import { CartDrawer } from './components/layout/CartDrawer';
-import { MobileQuickCart } from './components/layout/MobileQuickCart';
 import ScrollToTop from './components/common/ScrollToTop';
 import { useAppDispatch } from './store/hooks';
 import { loadCartFromStorage, fetchCartFromBackend } from './features/cart/cartSlice';
@@ -30,17 +25,18 @@ const OrderTrackingPage = lazy(() => import('./pages/OrderTrackingPage'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
 const SupportPage = lazy(() => import('./pages/SupportPage'));
 
+// Lazy load non-critical components (modals, drawers)
+const AuthModal = lazy(() => import('./components/auth/AuthModal'));
+const GlobalAddressModal = lazy(() => import('./components/address/GlobalAddressModal'));
+const CartDrawer = lazy(() => import('./components/layout/CartDrawer').then(m => ({ default: m.CartDrawer })));
+const MobileQuickCart = lazy(() => import('./components/layout/MobileQuickCart').then(m => ({ default: m.MobileQuickCart })));
+
+// Simple page wrapper without heavy animations for better performance
 const PageWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.3 }}
-      className="pb-24 lg:pb-0 min-h-[60vh]"
-    >
+    <div className="pb-24 lg:pb-0 min-h-[60vh] animate-fadeIn">
       {children}
-    </motion.div>
+    </div>
   );
 };
 
@@ -88,31 +84,31 @@ const App: React.FC = () => {
         <Navbar />
         <main id="main-content" className="flex-grow pt-16" role="main">
           <Suspense fallback={<LoadingSpinner fullPage />}>
-            <AnimatePresence mode="wait">
-              <Routes>
-                <Route path="/" element={<PageWrapper><HomePage /></PageWrapper>} />
-                <Route path="/shop" element={<PageWrapper><ProductsPage /></PageWrapper>} />
-                <Route path="/product/:id" element={<PageWrapper><ProductDetailPage /></PageWrapper>} />
-                <Route path="/cart" element={<PageWrapper><CartPage /></PageWrapper>} />
-                <Route path="/checkout" element={<PageWrapper><CheckoutPage /></PageWrapper>} />
-                <Route path="/profile" element={<PageWrapper><ProfilePage /></PageWrapper>} />
-                <Route path="/orders" element={<PageWrapper><OrdersPage /></PageWrapper>} />
-                <Route path="/order/:id" element={<PageWrapper><OrderDetailsPage /></PageWrapper>} />
-                <Route path="/tracking/:id" element={<PageWrapper><OrderTrackingPage /></PageWrapper>} />
-                <Route path="/about" element={<PageWrapper><AboutPage /></PageWrapper>} />
-                <Route path="/support" element={<PageWrapper><SupportPage /></PageWrapper>} />
-              </Routes>
-            </AnimatePresence>
+            <Routes>
+              <Route path="/" element={<PageWrapper><HomePage /></PageWrapper>} />
+              <Route path="/shop" element={<PageWrapper><ProductsPage /></PageWrapper>} />
+              <Route path="/product/:id" element={<PageWrapper><ProductDetailPage /></PageWrapper>} />
+              <Route path="/cart" element={<PageWrapper><CartPage /></PageWrapper>} />
+              <Route path="/checkout" element={<PageWrapper><CheckoutPage /></PageWrapper>} />
+              <Route path="/profile" element={<PageWrapper><ProfilePage /></PageWrapper>} />
+              <Route path="/orders" element={<PageWrapper><OrdersPage /></PageWrapper>} />
+              <Route path="/order/:id" element={<PageWrapper><OrderDetailsPage /></PageWrapper>} />
+              <Route path="/tracking/:id" element={<PageWrapper><OrderTrackingPage /></PageWrapper>} />
+              <Route path="/about" element={<PageWrapper><AboutPage /></PageWrapper>} />
+              <Route path="/support" element={<PageWrapper><SupportPage /></PageWrapper>} />
+            </Routes>
           </Suspense>
         </main>
         <Footer />
         <MobileBottomNav />
-        <AuthModal />
-        <GlobalAddressModal />
 
-        {/* Global Cart UI Components */}
-        <CartDrawer />
-        <MobileQuickCart />
+        {/* Lazy loaded modals and drawers */}
+        <Suspense fallback={null}>
+          <AuthModal />
+          <GlobalAddressModal />
+          <CartDrawer />
+          <MobileQuickCart />
+        </Suspense>
 
         <Toaster position="bottom-center" />
       </div>

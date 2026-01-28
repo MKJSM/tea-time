@@ -16,15 +16,26 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
+      target: 'es2020',
+      minify: 'terser',
+      terserOptions: {
+        compress: {
+          drop_console: true,
+          drop_debugger: true,
+        },
+      },
       rollupOptions: {
         output: {
           manualChunks: {
-            vendor: ['react', 'react-dom', 'react-router-dom'],
-            ui: ['lucide-react', 'framer-motion', 'react-hot-toast'],
+            vendor: ['react', 'react-dom'],
+            router: ['react-router-dom'],
+            motion: ['framer-motion'],
+            ui: ['lucide-react', 'react-hot-toast'],
             state: ['@reduxjs/toolkit', 'react-redux']
           }
         }
-      }
+      },
+      chunkSizeWarningLimit: 500,
     },
     plugins: [react()],
     define: {

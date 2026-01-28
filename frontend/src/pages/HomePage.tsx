@@ -1,7 +1,6 @@
 
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { ArrowRight, Leaf, Truck, Award, ShieldCheck } from 'lucide-react';
 import { useGetFeaturedProductsQuery } from '../features/products/productsApi';
 import { useAppSelector } from '../store/hooks';
@@ -19,18 +18,11 @@ const getTimeBasedGreeting = () => {
 const HomePage: React.FC = () => {
   const { data: products = [] } = useGetFeaturedProductsQuery(undefined);
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
-  const [greeting, setGreeting] = React.useState(getTimeBasedGreeting());
-
-  React.useEffect(() => {
-    const timer = setInterval(() => {
-      setGreeting(getTimeBasedGreeting());
-    }, 60000); // Update every minute
-    return () => clearInterval(timer);
-  }, []);
+  const greeting = getTimeBasedGreeting();
 
   return (
     <div className="bg-cream">
-      {/* Hero Section */}
+      {/* Hero Section - Optimized with CSS animations */}
       <section className="relative h-[90vh] overflow-hidden flex items-center">
         <div className="absolute inset-0 z-0">
           <img
@@ -42,26 +34,17 @@ const HomePage: React.FC = () => {
             `}
             sizes="100vw"
             className="w-full h-full object-cover"
-            alt="Tea plantation"
+            alt="Tea plantation with fresh green leaves"
             fetchPriority="high"
             loading="eager"
+            decoding="sync"
           />
           <div className="absolute inset-0 bg-black/40" />
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-white">
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
-            className="max-w-2xl"
-          >
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.5 }}
-              className="mb-4"
-            >
+          <div className="max-w-2xl animate-fadeIn">
+            <div className="mb-4">
               <span className="text-xl md:text-2xl font-serif text-tea-200">
                 {greeting}{isAuthenticated && user ? `, ${user.name}` : '!'}
               </span>
@@ -70,7 +53,7 @@ const HomePage: React.FC = () => {
                   ? (user.last_login_at ? 'Welcome back to your tea time!' : 'Welcome to Tea Time! We\'re glad you\'re here.')
                   : 'Welcome to Tea Time! Start your day with the perfect brew.'}
               </p>
-            </motion.div>
+            </div>
             <span className="inline-block px-4 py-1 bg-accent-600/90 text-black text-xs font-bold uppercase tracking-widest rounded-full mb-6">
               New Arrivals
             </span>
@@ -81,15 +64,15 @@ const HomePage: React.FC = () => {
               Get premium quality teas and delicious snacks delivered fresh to your doorstep. Perfect for your chai time!
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link to="/shop" className="px-8 py-4 bg-tea-700 hover:bg-tea-800 text-white font-bold rounded-2xl text-center transition-all transform hover:scale-105 flex items-center justify-center group">
+              <Link to="/shop" className="px-8 py-4 bg-tea-700 hover:bg-tea-800 text-white font-bold rounded-2xl text-center transition-colors flex items-center justify-center group">
                 Shop Now
-                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
               </Link>
-              <Link to="/quiz" className="px-8 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white font-bold rounded-2xl text-center transition-all border border-white/30">
-                Find Your Perfect Tea
+              <Link to="/about" className="px-8 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white font-bold rounded-2xl text-center transition-colors border border-white/30">
+                Learn More
               </Link>
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -114,7 +97,7 @@ const HomePage: React.FC = () => {
       </section>
 
       {/* Featured Products */}
-      <section className="py-20 bg-cream">
+      <section className="py-20 bg-cream content-visibility-auto">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex justify-between items-end mb-12">
             <div>
@@ -135,20 +118,18 @@ const HomePage: React.FC = () => {
       </section>
 
       {/* Story Section */}
-      <section className="py-24 bg-tea-900 text-white overflow-hidden relative">
+      <section className="py-24 bg-tea-900 text-white overflow-hidden relative content-visibility-auto">
         <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center gap-16">
           <div className="md:w-1/2">
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              className="relative rounded-3xl overflow-hidden"
-            >
+            <div className="relative rounded-3xl overflow-hidden">
               <img
                 src={getOptimizedImageUrl(PLACEHOLDER_TEA_IMAGE, 800)}
-                alt="Brewing tea"
+                alt="Brewing tea process"
                 className="w-full h-[500px] object-cover"
+                loading="lazy"
+                decoding="async"
               />
-            </motion.div>
+            </div>
           </div>
           <div className="md:w-1/2">
             <h2 className="text-5xl font-serif font-bold mb-8">Why Choose <br /> Tea Time?</h2>
@@ -157,25 +138,25 @@ const HomePage: React.FC = () => {
             </p>
             <ul className="space-y-4 mb-10">
               <li className="flex items-center gap-3">
-                <div className="w-1.5 h-1.5 bg-accent-500 rounded-full" />
+                <div className="w-1.5 h-1.5 bg-accent-500 rounded-full" aria-hidden="true" />
                 <span>Fresh products sourced directly from farms</span>
               </li>
               <li className="flex items-center gap-3">
-                <div className="w-1.5 h-1.5 bg-accent-500 rounded-full" />
+                <div className="w-1.5 h-1.5 bg-accent-500 rounded-full" aria-hidden="true" />
                 <span>Packed fresh to keep the taste intact</span>
               </li>
               <li className="flex items-center gap-3">
-                <div className="w-1.5 h-1.5 bg-accent-500 rounded-full" />
+                <div className="w-1.5 h-1.5 bg-accent-500 rounded-full" aria-hidden="true" />
                 <span>Quality checked before delivery</span>
               </li>
             </ul>
-            <button className="px-10 py-4 bg-accent-600 hover:bg-accent-700 text-tea-900 font-bold rounded-2xl transition-all">
+            <Link to="/about" className="inline-block px-10 py-4 bg-accent-600 hover:bg-accent-700 text-tea-900 font-bold rounded-2xl transition-colors">
               Learn More About Us
-            </button>
+            </Link>
           </div>
         </div>
-      </section >
-    </div >
+      </section>
+    </div>
   );
 };
 

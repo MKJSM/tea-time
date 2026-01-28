@@ -1,9 +1,8 @@
 
 import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, User, Search, X } from 'lucide-react';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
-import { motion, AnimatePresence } from 'framer-motion';
 import { setAuthModalOpen } from '../../features/auth/authSlice';
 import { toggleDrawer } from '../../features/cart/cartSlice';
 import logo from '../../assets/logo.webp';
@@ -86,14 +85,12 @@ const Navbar: React.FC = () => {
             >
               <ShoppingCart className="w-5 h-5" aria-hidden="true" />
               {itemCount > 0 && (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute top-2 right-2 bg-tea-800 text-white text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-lg border border-white leading-none"
+                <span
+                  className="absolute top-2 right-2 bg-tea-800 text-white text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-lg border border-white leading-none animate-scaleIn"
                   aria-hidden="true"
                 >
                   {itemCount}
-                </motion.span>
+                </span>
               )}
             </Link>
 
@@ -109,36 +106,31 @@ const Navbar: React.FC = () => {
       </div>
 
       {/* Search Overlay */}
-      <AnimatePresence>
-        {isSearchOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="bg-white border-b overflow-hidden px-4 py-4"
-            role="search"
-          >
-            <form onSubmit={handleSearch} className="max-w-3xl mx-auto flex items-center bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 shadow-inner">
-              <Search className="w-5 h-5 text-gray-400 mr-3" aria-hidden="true" />
-              <label htmlFor="navbar-search" className="sr-only">Search products</label>
-              <input
-                id="navbar-search"
-                type="search"
-                placeholder="Search tea, snacks..."
-                className="bg-transparent w-full outline-none text-tea-950 font-medium py-1 placeholder:text-gray-300"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                autoFocus
-              />
-              {searchQuery && (
-                <button type="button" onClick={() => setSearchQuery('')} aria-label="Clear search">
-                  <X className="w-5 h-5 text-gray-400 hover:text-tea-700" aria-hidden="true" />
-                </button>
-              )}
-            </form>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {isSearchOpen && (
+        <div
+          className="bg-white border-b overflow-hidden px-4 py-4 animate-slideDown"
+          role="search"
+        >
+          <form onSubmit={handleSearch} className="max-w-3xl mx-auto flex items-center bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 shadow-inner">
+            <Search className="w-5 h-5 text-gray-400 mr-3" aria-hidden="true" />
+            <label htmlFor="navbar-search" className="sr-only">Search products</label>
+            <input
+              id="navbar-search"
+              type="search"
+              placeholder="Search tea, snacks..."
+              className="bg-transparent w-full outline-none text-tea-950 font-medium py-1 placeholder:text-gray-300"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              autoFocus
+            />
+            {searchQuery && (
+              <button type="button" onClick={() => setSearchQuery('')} aria-label="Clear search">
+                <X className="w-5 h-5 text-gray-400 hover:text-tea-700" aria-hidden="true" />
+              </button>
+            )}
+          </form>
+        </div>
+      )}
     </nav>
   );
 };
