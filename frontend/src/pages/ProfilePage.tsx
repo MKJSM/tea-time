@@ -18,6 +18,7 @@ import { useGetFavoritesQuery } from '../features/favorites/favoritesApi';
 import { useGetAddressesQuery } from '../features/addresses/addressesApi';
 import EditProfileModal from '../components/auth/EditProfileModal';
 import SecurityModal from '../components/auth/SecurityModal';
+import ResponsiveModal from '../components/common/ResponsiveModal';
 
 const ProfilePage: React.FC = () => {
   const { isAuthenticated, user: realUser } = useAppSelector((state) => state.auth);
@@ -295,7 +296,6 @@ const ProfilePage: React.FC = () => {
               </AnimatePresence>
             </div>
             <SettingItem icon={Shield} label="Security" onClick={() => setIsSecurityModalOpen(true)} />
-            <SettingItem icon={Settings} label="Preferences" />
           </div>
         </section>
 
@@ -324,43 +324,33 @@ const ProfilePage: React.FC = () => {
       </div>
 
       {/* Logout Confirmation Modal */}
-      <AnimatePresence>
-        {showLogoutConfirm && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowLogoutConfirm(false)}
-              className="fixed inset-0 bg-tea-950/40 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="bg-white p-10 rounded-[3rem] shadow-2xl max-w-sm w-full relative z-10 text-center border border-tea-50"
-            >
-              <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <LogOut size={32} />
-              </div>
-              <h3 className="text-2xl font-serif font-bold text-tea-900 mb-2">Log Out?</h3>
-              <p className="text-gray-500 mb-8 font-light leading-relaxed">Are you sure you want to log out of your account?</p>
-              <div className="flex flex-col gap-3">
-                <button
-                  onClick={handleLogout}
-                  className="w-full py-4 bg-red-500 text-white font-bold rounded-2xl shadow-lg hover:bg-red-600 transition-all"
-                >
-                  Yes, Log Out
-                </button>
-                <button
-                  onClick={() => setShowLogoutConfirm(false)}
-                  className="w-full py-4 bg-white text-gray-400 font-bold text-sm rounded-2xl hover:bg-gray-50 transition-all"
-                >Cancel</button>
-              </div>
-            </motion.div>
+      <ResponsiveModal
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        title="Log Out?"
+        className="max-w-sm mx-auto"
+      >
+        <div className="p-6 pt-2 text-center">
+          <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <LogOut size={32} />
           </div>
-        )}
-      </AnimatePresence>
+          <p className="text-gray-500 mb-8 font-light leading-relaxed">Are you sure you want to log out of your account?</p>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={handleLogout}
+              className="w-full py-4 bg-red-500 text-white font-bold rounded-2xl shadow-lg hover:bg-red-600 transition-all active:scale-[0.98]"
+            >
+              Yes, Log Out
+            </button>
+            <button
+              onClick={() => setShowLogoutConfirm(false)}
+              className="w-full py-4 bg-white text-gray-400 font-bold text-sm rounded-2xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </ResponsiveModal>
       {/* Edit Profile Modal */}
       <EditProfileModal
         isOpen={isEditModalOpen}
