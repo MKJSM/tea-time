@@ -17,25 +17,23 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       target: 'es2020',
-      minify: 'terser',
-      terserOptions: {
-        compress: {
-          drop_console: true,
-          drop_debugger: true,
-        },
-      },
+      minify: 'esbuild',
       rollupOptions: {
         output: {
-          manualChunks: {
-            vendor: ['react', 'react-dom'],
-            router: ['react-router-dom'],
-            motion: ['framer-motion'],
-            ui: ['lucide-react', 'react-hot-toast'],
-            state: ['@reduxjs/toolkit', 'react-redux']
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('react-router')) return 'router';
+              if (id.includes('framer-motion')) return 'motion';
+              if (id.includes('lucide-react') || id.includes('react-hot-toast')) return 'ui';
+              if (id.includes('@reduxjs/toolkit') || id.includes('react-redux')) return 'state';
+            }
           }
         }
       },
       chunkSizeWarningLimit: 500,
+    },
+    esbuild: {
+      drop: ['console', 'debugger'],
     },
     plugins: [react()],
     define: {
