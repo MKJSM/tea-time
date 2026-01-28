@@ -81,8 +81,12 @@ const App: React.FC = () => {
     <Router>
       <ScrollToTop />
       <div className="flex flex-col min-h-screen font-sans bg-cream relative">
+        {/* Skip link for keyboard navigation */}
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
         <Navbar />
-        <main className="flex-grow pt-16">
+        <main id="main-content" className="flex-grow pt-16" role="main">
           <Suspense fallback={<LoadingSpinner fullPage />}>
             <AnimatePresence mode="wait">
               <Routes>

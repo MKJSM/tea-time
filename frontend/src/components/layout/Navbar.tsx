@@ -45,11 +45,11 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-white/20">
+    <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-white/20" role="navigation" aria-label="Main navigation">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2 group">
+          <Link to="/" className="flex items-center space-x-2 group" aria-label="Tea Time - Home">
             <img
               src={logo}
               alt="Tea Time"
@@ -71,24 +71,26 @@ const Navbar: React.FC = () => {
           <div className="flex items-center space-x-1 sm:space-x-4">
             <button
               onClick={() => setIsSearchOpen(!isSearchOpen)}
-              className="p-3 text-tea-950/70 hover:text-tea-800 transition-colors"
-              aria-label="Search"
+              className="p-3 text-tea-950/70 hover:text-tea-800 transition-colors focus:outline-none focus:ring-2 focus:ring-tea-500 rounded-lg"
+              aria-label={isSearchOpen ? "Close search" : "Open search"}
+              aria-expanded={isSearchOpen}
             >
-              {isSearchOpen ? <X className="w-5 h-5" /> : <Search className="w-5 h-5" />}
+              {isSearchOpen ? <X className="w-5 h-5" aria-hidden="true" /> : <Search className="w-5 h-5" aria-hidden="true" />}
             </button>
 
             <Link
               to="/cart"
               onClick={handleCartClick}
-              className="p-3 text-tea-950/70 hover:text-tea-800 transition-colors relative"
-              aria-label="Cart"
+              className="p-3 text-tea-950/70 hover:text-tea-800 transition-colors relative focus:outline-none focus:ring-2 focus:ring-tea-500 rounded-lg"
+              aria-label={`Shopping cart${itemCount > 0 ? `, ${itemCount} items` : ''}`}
             >
-              <ShoppingCart className="w-5 h-5" />
+              <ShoppingCart className="w-5 h-5" aria-hidden="true" />
               {itemCount > 0 && (
                 <motion.span
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   className="absolute top-2 right-2 bg-tea-800 text-white text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-lg border border-white leading-none"
+                  aria-hidden="true"
                 >
                   {itemCount}
                 </motion.span>
@@ -97,10 +99,10 @@ const Navbar: React.FC = () => {
 
             <button
               onClick={handleAuthClick}
-              className="p-3 text-tea-950/70 hover:text-tea-800 transition-colors"
-              aria-label="User Profile"
+              className="p-3 text-tea-950/70 hover:text-tea-800 transition-colors focus:outline-none focus:ring-2 focus:ring-tea-500 rounded-lg"
+              aria-label={isAuthenticated ? "Go to profile" : "Sign in or create account"}
             >
-              <User className="w-5 h-5" />
+              <User className="w-5 h-5" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -114,11 +116,14 @@ const Navbar: React.FC = () => {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             className="bg-white border-b overflow-hidden px-4 py-4"
+            role="search"
           >
             <form onSubmit={handleSearch} className="max-w-3xl mx-auto flex items-center bg-gray-50 border border-gray-100 rounded-2xl px-5 py-3 shadow-inner">
-              <Search className="w-5 h-5 text-gray-400 mr-3" />
+              <Search className="w-5 h-5 text-gray-400 mr-3" aria-hidden="true" />
+              <label htmlFor="navbar-search" className="sr-only">Search products</label>
               <input
-                type="text"
+                id="navbar-search"
+                type="search"
                 placeholder="Search tea, snacks..."
                 className="bg-transparent w-full outline-none text-tea-950 font-medium py-1 placeholder:text-gray-300"
                 value={searchQuery}
@@ -126,8 +131,8 @@ const Navbar: React.FC = () => {
                 autoFocus
               />
               {searchQuery && (
-                <button type="button" onClick={() => setSearchQuery('')}>
-                  <X className="w-5 h-5 text-gray-400 hover:text-tea-700" />
+                <button type="button" onClick={() => setSearchQuery('')} aria-label="Clear search">
+                  <X className="w-5 h-5 text-gray-400 hover:text-tea-700" aria-hidden="true" />
                 </button>
               )}
             </form>

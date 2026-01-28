@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, Lock, User, ArrowRight, Apple, Leaf, Sparkles, ChevronRight } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Apple, Leaf, Sparkles, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { loginUser, signupUser, setAuthModalOpen, setAddressModalOpen, setPendingCheckoutAfterAddress } from '../../features/auth/authSlice';
 import { addressesApi } from '../../features/addresses/addressesApi';
@@ -13,6 +13,7 @@ const AuthModal: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { isLoading, isAuthModalOpen, pendingCheckoutAfterAddress } = useAppSelector((state) => state.auth);
@@ -67,8 +68,8 @@ const AuthModal: React.FC = () => {
       onClose();
       // Check addresses after successful login
       await checkAddressesAndProceed();
-    } catch (err) {
-      toast.error('Login failed. Please check your details.');
+    } catch {
+      // Error is already shown by the error middleware
     }
   };
 
@@ -160,27 +161,33 @@ const AuthModal: React.FC = () => {
         </div>
 
         {/* Form Logic */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" aria-label={isLogin ? "Sign in form" : "Create account form"}>
           {!isLogin && (
             <div className="relative group">
-              <User className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-tea-700 transition-colors w-5 h-5" />
+              <User className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-tea-700 transition-colors w-5 h-5" aria-hidden="true" />
+              <label htmlFor="auth-name" className="sr-only">Full Name</label>
               <input
+                id="auth-name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Full Name"
+                autoComplete="name"
                 className="w-full pl-14 pr-6 py-5 bg-gray-50/50 border border-gray-100 rounded-3xl outline-none focus:bg-white focus:ring-[6px] focus:ring-tea-500/5 focus:border-tea-200 transition-all text-base text-tea-950 placeholder:text-gray-300 shadow-sm"
               />
             </div>
           )}
 
           <div className="relative group">
-            <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-tea-700 transition-colors w-5 h-5" />
+            <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-tea-700 transition-colors w-5 h-5" aria-hidden="true" />
+            <label htmlFor="auth-email" className="sr-only">Email Address</label>
             <input
+              id="auth-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email Address"
+              autoComplete="email"
               className="w-full pl-14 pr-6 py-5 bg-gray-50/50 border border-gray-100 rounded-3xl outline-none focus:bg-white focus:ring-[6px] focus:ring-tea-500/5 focus:border-tea-200 transition-all text-base text-tea-950 placeholder:text-gray-300 shadow-sm"
               required
             />
@@ -188,15 +195,26 @@ const AuthModal: React.FC = () => {
 
           <div className="space-y-2">
             <div className="relative group">
-              <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-tea-700 transition-colors w-5 h-5" />
+              <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-tea-700 transition-colors w-5 h-5" aria-hidden="true" />
+              <label htmlFor="auth-password" className="sr-only">Password</label>
               <input
-                type="password"
+                id="auth-password"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password"
-                className="w-full pl-14 pr-6 py-5 bg-gray-50/50 border border-gray-100 rounded-3xl outline-none focus:bg-white focus:ring-[6px] focus:ring-tea-500/5 focus:border-tea-200 transition-all text-base text-tea-950 placeholder:text-gray-300 shadow-sm"
+                autoComplete={isLogin ? "current-password" : "new-password"}
+                className="w-full pl-14 pr-14 py-5 bg-gray-50/50 border border-gray-100 rounded-3xl outline-none focus:bg-white focus:ring-[6px] focus:ring-tea-500/5 focus:border-tea-200 transition-all text-base text-tea-950 placeholder:text-gray-300 shadow-sm"
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-tea-700 transition-colors focus:outline-none focus:text-tea-700"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" aria-hidden="true" /> : <Eye className="w-5 h-5" aria-hidden="true" />}
+              </button>
             </div>
             {isLogin && (
               <div className="text-right">

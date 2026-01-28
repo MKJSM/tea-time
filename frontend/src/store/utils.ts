@@ -25,7 +25,9 @@ export const createApiThunk = <Returned, ThunkArg = void>(
 
                 return transform ? transform(data) : (data as Returned);
             } catch (err: any) {
-                const message = err.response?.data?.message || err.message || 'Operation failed';
+                // Prefer backend error message over generic messages
+                const backendError = err.response?.data?.error || err.response?.data?.message;
+                const message = backendError || (err.message !== 'Request failed' ? err.message : null) || 'Something went wrong';
                 return thunkAPI.rejectWithValue(message);
             }
         }

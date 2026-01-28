@@ -116,11 +116,13 @@ const ProductsPage: React.FC = () => {
         </header>
 
         {/* Search and Filter Bar */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-8 sm:mb-10">
+        <div className="flex flex-col sm:flex-row gap-4 mb-8 sm:mb-10" role="search">
           <div className="flex-grow relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" aria-hidden="true" />
+            <label htmlFor="products-search" className="sr-only">Search products</label>
             <input
-              type="text"
+              id="products-search"
+              type="search"
               placeholder="Search for tea, snacks..."
               className="w-full pl-12 pr-4 py-4 bg-white rounded-2xl shadow-sm focus:ring-2 focus:ring-tea-500 outline-none transition-all text-sm sm:text-base"
               value={searchTerm}
@@ -129,18 +131,21 @@ const ProductsPage: React.FC = () => {
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm('')}
+                aria-label="Clear search"
                 className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-tea-900"
               >
-                <X size={18} />
+                <X size={18} aria-hidden="true" />
               </button>
             )}
           </div>
           <button
             onClick={() => setIsFilterOpen(!isFilterOpen)}
+            aria-expanded={isFilterOpen}
+            aria-controls="filter-panel"
             className={`flex items-center justify-center gap-2 px-6 py-4 rounded-2xl shadow-sm font-bold transition-all text-sm sm:text-base ${isFilterOpen ? 'bg-tea-700 text-white' : 'bg-white text-tea-800 hover:bg-tea-50'
               }`}
           >
-            <SlidersHorizontal size={20} />
+            <SlidersHorizontal size={20} aria-hidden="true" />
             Filters
           </button>
         </div>
@@ -149,10 +154,13 @@ const ProductsPage: React.FC = () => {
         <AnimatePresence>
           {isFilterOpen && (
             <motion.div
+              id="filter-panel"
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden mb-8 sm:mb-10"
+              role="region"
+              aria-label="Product filters"
             >
               <div className="bg-white p-6 sm:p-8 rounded-[2rem] shadow-inner border border-gray-100">
                 <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 px-1">By Category</h4>

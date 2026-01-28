@@ -59,7 +59,9 @@ export const ImageSlider: React.FC<ImageSliderProps> = ({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.8, ease: "easeInOut" }}
           className="absolute inset-0 w-full h-full object-cover"
-          alt={`Tea preview ${currentIndex + 1}`}
+          alt={`Product image ${currentIndex + 1} of ${sliderImages.length}`}
+          loading="lazy"
+          decoding="async"
         />
       </AnimatePresence>
 
@@ -67,13 +69,15 @@ export const ImageSlider: React.FC<ImageSliderProps> = ({
         <>
           <button
             onClick={(e) => { e.preventDefault(); prevSlide(); }}
-            className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-white/20 backdrop-blur-md rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/40"
+            aria-label="Previous image"
+            className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-white/20 backdrop-blur-md rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/40 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-white"
           >
             <ChevronLeft size={20} />
           </button>
           <button
             onClick={(e) => { e.preventDefault(); nextSlide(); }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white/20 backdrop-blur-md rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/40"
+            aria-label="Next image"
+            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white/20 backdrop-blur-md rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/40 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-white"
           >
             <ChevronRight size={20} />
           </button>
@@ -81,13 +85,16 @@ export const ImageSlider: React.FC<ImageSliderProps> = ({
       )}
 
       {showDots && sliderImages.length > 1 && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5" role="tablist" aria-label="Image navigation">
           {sliderImages.map((_, i) => (
             <button
               key={i}
               onClick={(e) => { e.preventDefault(); setCurrentIndex(i); }}
+              aria-label={`Go to image ${i + 1}`}
+              aria-selected={currentIndex === i}
+              role="tab"
               className={cn(
-                "h-1 transition-all rounded-full",
+                "h-1 transition-all rounded-full focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-1",
                 currentIndex === i ? "w-6 bg-white" : "w-1.5 bg-white/40"
               )}
             />

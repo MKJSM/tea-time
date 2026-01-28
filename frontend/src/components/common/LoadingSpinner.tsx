@@ -9,7 +9,12 @@ interface Props {
 
 const LoadingSpinner: React.FC<Props> = ({ fullPage }) => {
   return (
-    <div className={`flex flex-col items-center justify-center ${fullPage ? 'fixed inset-0 z-[100] bg-cream' : 'p-12'}`}>
+    <div
+      className={`flex flex-col items-center justify-center ${fullPage ? 'fixed inset-0 z-[100] bg-cream' : 'p-12'}`}
+      role="status"
+      aria-live="polite"
+      aria-label="Loading content"
+    >
       <div className="relative">
         <motion.div
           animate={{
@@ -19,7 +24,7 @@ const LoadingSpinner: React.FC<Props> = ({ fullPage }) => {
           transition={{ repeat: Infinity, duration: 2 }}
           className="text-tea-700"
         >
-          <Coffee size={48} />
+          <Coffee size={48} aria-hidden="true" />
         </motion.div>
         {/* Steam particles */}
         {[1, 2, 3].map((i) => (

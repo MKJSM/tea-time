@@ -17,9 +17,14 @@ const Footer: React.FC = () => {
               Premium quality tea and snacks delivered fresh to your doorstep. Shop with us for the best prices!
             </p>
             <div className="flex space-x-4">
-              {[Instagram, Twitter, Facebook, Mail].map((Icon, idx) => (
-                <a key={idx} href="#" className="w-10 h-10 rounded-full border border-gray-100 flex items-center justify-center text-gray-400 hover:bg-tea-50 hover:text-tea-700 transition-all">
-                  <Icon size={18} />
+              {[
+                { Icon: Instagram, label: 'Follow us on Instagram' },
+                { Icon: Twitter, label: 'Follow us on Twitter' },
+                { Icon: Facebook, label: 'Follow us on Facebook' },
+                { Icon: Mail, label: 'Contact us via email' }
+              ].map(({ Icon, label }, idx) => (
+                <a key={idx} href="#" aria-label={label} className="w-10 h-10 rounded-full border border-gray-100 flex items-center justify-center text-gray-400 hover:bg-tea-50 hover:text-tea-700 transition-all focus:outline-none focus:ring-2 focus:ring-tea-500">
+                  <Icon size={18} aria-hidden="true" />
                 </a>
               ))}
             </div>
@@ -47,11 +52,18 @@ const Footer: React.FC = () => {
 
           <div>
             <h4 className="font-serif font-bold text-tea-900 mb-6 uppercase text-xs tracking-widest">Newsletter</h4>
-            <p className="text-xs text-gray-400 mb-4 font-medium uppercase tracking-tighter">Get offers and updates</p>
-            <div className="flex gap-2">
-              <input type="email" placeholder="Email" className="bg-gray-50 border-none rounded-xl px-4 py-3 text-sm w-full outline-none focus:ring-1 focus:ring-tea-500" />
-              <button className="bg-tea-700 text-white px-4 rounded-xl hover:bg-tea-800 transition-colors">Join</button>
-            </div>
+            <p className="text-xs text-gray-400 mb-4 font-medium uppercase tracking-tighter" id="newsletter-description">Get offers and updates</p>
+            <form className="flex gap-2" onSubmit={(e) => e.preventDefault()} aria-describedby="newsletter-description">
+              <label htmlFor="newsletter-email" className="sr-only">Email address for newsletter</label>
+              <input
+                id="newsletter-email"
+                type="email"
+                placeholder="Email"
+                autoComplete="email"
+                className="bg-gray-50 border-none rounded-xl px-4 py-3 text-sm w-full outline-none focus:ring-2 focus:ring-tea-500"
+              />
+              <button type="submit" className="bg-tea-700 text-white px-4 rounded-xl hover:bg-tea-800 transition-colors focus:outline-none focus:ring-2 focus:ring-tea-500 focus:ring-offset-2">Join</button>
+            </form>
           </div>
         </div>
 
