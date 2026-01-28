@@ -177,6 +177,10 @@ pub fn build_router(state: AppState) -> Router {
             "/favicon.ico",
             tower_http::services::ServeFile::new("static/favicon.ico"),
         )
+        .nest_service(
+            "/robots.txt",
+            tower_http::services::ServeFile::new("static/robots.txt"),
+        )
         .route("/", get(index_handler))
         .fallback(index_handler)
 }

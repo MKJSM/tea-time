@@ -29,7 +29,7 @@ const SupportPage = lazy(() => import('./pages/SupportPage'));
 const AuthModal = lazy(() => import('./components/auth/AuthModal'));
 const GlobalAddressModal = lazy(() => import('./components/address/GlobalAddressModal'));
 const CartDrawer = lazy(() => import('./components/layout/CartDrawer').then(m => ({ default: m.CartDrawer })));
-const MobileQuickCart = lazy(() => import('./components/layout/MobileQuickCart').then(m => ({ default: m.MobileQuickCart })));
+const QuickCartNotification = lazy(() => import('./components/layout/QuickCartNotification').then(m => ({ default: m.QuickCartNotification })));
 
 // Simple page wrapper without heavy animations for better performance
 const PageWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -107,7 +107,7 @@ const App: React.FC = () => {
           <AuthModal />
           <GlobalAddressModal />
           <CartDrawer />
-          <MobileQuickCart />
+          <QuickCartNotification />
         </Suspense>
 
         <Toaster position="bottom-center" />

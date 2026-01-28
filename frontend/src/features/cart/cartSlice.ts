@@ -324,6 +324,16 @@ const cartSlice = createSlice({
         state.items = action.payload;
         state.isLoading = false;
         state.isDrawerOpen = typeof window !== 'undefined' && window.innerWidth >= 1024;
+
+        // Set lastAddedItem for notification
+        // Construct a CartItem from the action args (product)
+        const { product, quantity, selectedAttributes } = action.meta.arg;
+        state.lastAddedItem = {
+          ...product, // CartItem extends Product
+          itemKey: product.id, // Temporary key for notification display
+          quantity,
+          selectedAttributes
+        };
       })
       .addCase(addItemToBackend.rejected, (state, action) => {
         state.isLoading = false;

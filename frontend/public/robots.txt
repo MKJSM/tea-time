@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://tea-time-production.up.railway.app/sitemap.xml

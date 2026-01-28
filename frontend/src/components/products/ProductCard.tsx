@@ -105,7 +105,7 @@ const ProductCard: React.FC<Props> = ({ product }) => {
               aria-label={isFavorited ? `Remove ${product.name} from favorites` : `Add ${product.name} to favorites`}
               className={`absolute top-3 right-3 sm:top-4 sm:right-4 p-1 transition-all z-10 focus:outline-none focus:ring-2 focus:ring-tea-500 rounded-full ${isFavorited
                 ? 'text-red-500'
-                : 'text-gray-400 hover:text-red-500'
+                : 'text-gray-500 hover:text-red-500'
                 }`}
             >
               <Heart className="w-5 h-5 sm:w-6 sm:h-6 drop-shadow-md" fill={isFavorited ? "currentColor" : "none"} aria-hidden="true" />
@@ -141,7 +141,7 @@ const ProductCard: React.FC<Props> = ({ product }) => {
                   <Star key={i} size={10} fill={i < Math.floor(product.rating) ? "currentColor" : "none"} />
                 ))}
               </div>
-              <span className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate">{product.origin}</span>
+              <span className="text-[9px] sm:text-[10px] font-bold text-gray-500 uppercase tracking-widest truncate">{product.origin}</span>
             </div>
 
             <div className="mt-auto flex items-center justify-between gap-2">

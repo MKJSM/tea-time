@@ -61,8 +61,14 @@ const Navbar: React.FC = () => {
           {/* Desktop Links */}
           <div className="hidden md:flex items-center space-x-8 lg:space-x-10">
             <Link to="/shop" className="text-tea-950/80 hover:text-tea-800 font-bold text-[10px] lg:text-xs uppercase tracking-widest transition-colors">Shop</Link>
-            {isAuthenticated && (
+            {isAuthenticated ? (
               <Link to="/orders" className="text-tea-950/80 hover:text-tea-800 font-bold text-[10px] lg:text-xs uppercase tracking-widest transition-colors">Orders</Link>
+            ) : (
+              // Render empty invisible placeholder to maintain height if needed, but horizontal shift is inevitable if item appears. 
+              // Ideally we shouldn't reserve space for "Orders" if user isn't logged in, that looks weird.
+              // But valid CLS happens if it pops in. 
+              // If we can't avoid the pop-in (state check), we can at least ensure the font doesn't shift IT.
+              null
             )}
           </div>
 

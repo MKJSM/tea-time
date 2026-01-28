@@ -1,5 +1,5 @@
 
-import React, { lazy, Suspense } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Leaf, Truck, Award, ShieldCheck } from 'lucide-react';
 import { useGetFeaturedProductsQuery } from '../features/products/productsApi';
@@ -69,7 +69,7 @@ const HomePage: React.FC = () => {
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
               </Link>
               <Link to="/about" className="px-8 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white font-bold rounded-2xl text-center transition-colors border border-white/30">
-                Learn More
+                Learn More About Tea Time
               </Link>
             </div>
           </div>
@@ -79,6 +79,7 @@ const HomePage: React.FC = () => {
       {/* Featured Benefits */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-8">
+          <h2 className="sr-only">Our Values</h2>
           {[
             { icon: Leaf, title: 'Premium Quality', desc: 'Handpicked from the best farms' },
             { icon: Truck, title: 'Fast Delivery', desc: 'Fresh products at your door' },

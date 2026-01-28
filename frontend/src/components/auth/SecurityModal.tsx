@@ -5,6 +5,8 @@ import {
     CheckCircle2, KeyRound, Loader2, Trash2
 } from 'lucide-react';
 import { useSecurity } from '../../features/auth/useSecurity';
+import { parseUserAgent } from '../../utils/userAgent';
+import { checkStrength, getStrengthColor, getStrengthLabel } from '../../utils/password';
 import ResponsiveModal from '../common/ResponsiveModal';
 
 interface SecurityModalProps {
@@ -27,72 +29,20 @@ const SecurityModal: React.FC<SecurityModalProps> = ({ isOpen, onClose }) => {
         handlePasswordChange
     } = useSecurity(isOpen);
 
-    const parseUserAgent = (ua: string) => {
-        const lowerUA = ua.toLowerCase();
-        let os = 'Unknown OS';
-        let browser = 'Unknown Browser';
-
-        if (lowerUA.includes('windows')) os = 'Windows';
-        else if (lowerUA.includes('mac')) os = 'macOS';
-        else if (lowerUA.includes('linux')) os = 'Linux';
-        else if (lowerUA.includes('android')) os = 'Android';
-        else if (lowerUA.includes('ios') || lowerUA.includes('iphone') || lowerUA.includes('ipad')) os = 'iOS';
-
-        if (lowerUA.includes('chrome')) browser = 'Chrome';
-        else if (lowerUA.includes('firefox')) browser = 'Firefox';
-        else if (lowerUA.includes('safari') && !lowerUA.includes('chrome')) browser = 'Safari';
-        else if (lowerUA.includes('edge')) browser = 'Edge';
-        else if (lowerUA.includes('opera')) browser = 'Opera';
-
-        if (os === 'Unknown OS' && browser === 'Unknown Browser') return 'Unknown Device';
-        if (browser === 'Unknown Browser') return os;
-
-        return `${browser} on ${os}`;
-    };
-
-    const DeviceIcon = ({ device }: { device: string }) => {
-        const d = device.toLowerCase();
-        if (d.includes('iphone') || d.includes('android')) return <Smartphone size={20} />;
-        if (d.includes('mac') || d.includes('windows') || d.includes('chrome') || d.includes('linux')) return <Laptop size={20} />;
-        if (d.includes('ipad') || d.includes('tablet')) return <Tablet size={20} />;
+    const DeviceIcon = ({ ua }: { ua: string }) => {
+        const { deviceType } = parseUserAgent(ua);
+        if (deviceType === 'mobile') return <Smartphone size={20} />;
+        if (deviceType === 'tablet') return <Tablet size={20} />;
+        if (deviceType === 'desktop') return <Laptop size={20} />;
         return <Globe size={20} />;
     };
 
-    // Password strength logic
-    const checkStrength = (pass: string) => {
-        let score = 0;
-        const checks = {
-            length: pass.length >= 8,
-            hasUpper: /[A-Z]/.test(pass),
-            hasLower: /[a-z]/.test(pass),
-            hasNumber: /\d/.test(pass),
-        };
-
-        if (checks.length) score++;
-        if (checks.hasUpper) score++;
-        if (checks.hasLower) score++;
-        if (checks.hasNumber) score++;
-
-        return { score, checks };
-    };
 
     const { score, checks } = checkStrength(passwordData.newPassword);
     const passwordsMatch = passwordData.newPassword === passwordData.confirmPassword;
     const isDifferent = passwordData.currentPassword !== passwordData.newPassword;
     const isFormValid = score === 4 && passwordsMatch && isDifferent && passwordData.currentPassword.length > 0;
 
-    const getStrengthColor = (s: number) => {
-        if (s <= 2) return 'bg-red-500';
-        if (s === 3) return 'bg-yellow-500';
-        return 'bg-green-500';
-    };
-
-    const getStrengthLabel = (s: number) => {
-        if (s === 0) return '';
-        if (s <= 2) return 'Weak';
-        if (s === 3) return 'Medium';
-        return 'Strong';
-    };
 
     return (
         <ResponsiveModal
@@ -172,12 +122,15 @@ const SecurityModal: React.FC<SecurityModalProps> = ({ isOpen, onClose }) => {
                                     <div key={device.session_id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
                                         <div className="flex items-center gap-4">
                                             <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-tea-600 shadow-sm">
-                                                <DeviceIcon device={device.user_agent || 'Unknown'} />
+                                                <DeviceIcon ua={device.user_agent || ''} />
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-2">
                                                     <p className="font-bold text-tea-900">
-                                                        {parseUserAgent(device.user_agent || '')}
+                                                        {(() => {
+                                                            const { browser, os } = parseUserAgent(device.user_agent || '');
+                                                            return `${browser} on ${os}`;
+                                                        })()}
                                                     </p>
                                                     {device.is_current && (
                                                         <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-wider rounded-full">
@@ -254,8 +207,8 @@ const SecurityModal: React.FC<SecurityModalProps> = ({ isOpen, onClose }) => {
                                 value={passwordData.newPassword}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
                                 className={`w-full px-4 py-4 bg-gray-50 border rounded-2xl outline-none transition-all font-medium ${passwordData.newPassword && !isDifferent
-                                        ? 'border-red-300 focus:ring-2 focus:ring-red-200'
-                                        : 'border-gray-100 focus:ring-2 focus:ring-tea-500 focus:border-transparent'
+                                    ? 'border-red-300 focus:ring-2 focus:ring-red-200'
+                                    : 'border-gray-100 focus:ring-2 focus:ring-tea-500 focus:border-transparent'
                                     }`}
                                 placeholder="Min 8 characters, numbers & symbols"
                             />
@@ -307,8 +260,8 @@ const SecurityModal: React.FC<SecurityModalProps> = ({ isOpen, onClose }) => {
                                 value={passwordData.confirmPassword}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
                                 className={`w-full px-4 py-4 bg-gray-50 border rounded-2xl outline-none transition-all font-medium ${passwordData.confirmPassword && !passwordsMatch
-                                        ? 'border-red-300 focus:ring-2 focus:ring-red-200'
-                                        : 'border-gray-100 focus:ring-2 focus:ring-tea-500 focus:border-transparent'
+                                    ? 'border-red-300 focus:ring-2 focus:ring-red-200'
+                                    : 'border-gray-100 focus:ring-2 focus:ring-tea-500 focus:border-transparent'
                                     }`}
                                 placeholder="Re-enter new password"
                             />
