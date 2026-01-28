@@ -44,32 +44,34 @@ const SecurityModal: React.FC<SecurityModalProps> = ({ isOpen, onClose }) => {
     const isFormValid = score === 4 && passwordsMatch && isDifferent && passwordData.currentPassword.length > 0;
 
 
+    const header = (
+        <div className="p-5 sm:p-8 border-b border-gray-50 flex justify-between items-center z-20 bg-white">
+            <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-tea-50 text-tea-700 rounded-xl flex items-center justify-center">
+                    {view === 'main' ? <Shield size={22} /> : view === 'confirmLogoutAll' ? <AlertCircle size={22} /> : <KeyRound size={22} />}
+                </div>
+                <h2 className="text-xl sm:text-2xl font-serif font-bold text-tea-900">
+                    {view === 'main' ? 'Security Settings' : view === 'confirmLogoutAll' ? 'Confirm Logout' : 'Change Password'}
+                </h2>
+            </div>
+            <button
+                onClick={onClose}
+                className="p-2 hover:bg-tea-50 rounded-full text-gray-400 hover:text-tea-800 transition-colors"
+            >
+                <X size={24} />
+            </button>
+        </div>
+    );
+
     return (
         <ResponsiveModal
             isOpen={isOpen}
             onClose={onClose}
             className="md:max-w-lg"
             showCloseButton={false}
+            customHeader={header}
         >
-            {/* Header */}
-            <div className="p-8 border-b border-gray-50 flex justify-between items-center z-20">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-tea-50 text-tea-700 rounded-xl flex items-center justify-center">
-                        {view === 'main' ? <Shield size={22} /> : view === 'confirmLogoutAll' ? <AlertCircle size={22} /> : <KeyRound size={22} />}
-                    </div>
-                    <h2 className="text-2xl font-serif font-bold text-tea-900">
-                        {view === 'main' ? 'Security Settings' : view === 'confirmLogoutAll' ? 'Confirm Logout' : 'Change Password'}
-                    </h2>
-                </div>
-                <button
-                    onClick={onClose}
-                    className="p-2 hover:bg-tea-50 rounded-full text-gray-400 hover:text-tea-800 transition-colors"
-                >
-                    <X size={24} />
-                </button>
-            </div>
-
-            <div className="flex-grow overflow-y-auto p-8 pt-2 custom-scrollbar">
+            <div className="flex-grow overflow-y-auto p-5 sm:p-8 custom-scrollbar min-h-[50vh] sm:min-h-0">
                 {view === 'confirmLogoutAll' ? (
                     <div className="space-y-6">
                         <div className="bg-red-50 rounded-2xl p-4 border border-red-100 flex gap-3 text-red-800">
