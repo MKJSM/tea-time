@@ -28,6 +28,7 @@ const ProfilePage: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
   const [isAddressesExpanded, setIsAddressesExpanded] = useState(false);
+  const { data: addresses = [] } = useGetAddressesQuery(undefined, { skip: !isAuthenticated });
 
   React.useEffect(() => {
     if (isAuthenticated) {
@@ -140,8 +141,6 @@ const ProfilePage: React.FC = () => {
       </div>
     );
   };
-
-  const { data: addresses = [] } = useGetAddressesQuery(undefined, { skip: !isAuthenticated });
 
   return (
     <div className="min-h-screen bg-cream-paper pb-32">
@@ -327,13 +326,14 @@ const ProfilePage: React.FC = () => {
       <ResponsiveModal
         isOpen={showLogoutConfirm}
         onClose={() => setShowLogoutConfirm(false)}
-        title="Log Out?"
-        className="max-w-sm mx-auto"
+        showCloseButton={false}
+        className="sm:max-w-sm sm:mx-auto"
       >
-        <div className="p-6 pt-2 text-center">
-          <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+        <div className="p-6 text-center">
+          <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <LogOut size={32} />
           </div>
+          <h3 className="text-2xl font-serif font-bold text-tea-900 mb-2">Log Out?</h3>
           <p className="text-gray-500 mb-8 font-light leading-relaxed">Are you sure you want to log out of your account?</p>
           <div className="flex flex-col gap-3">
             <button
