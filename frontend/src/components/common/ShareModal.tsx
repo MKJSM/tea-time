@@ -48,9 +48,9 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, title, text, u
             isOpen={isOpen}
             onClose={onClose}
             title="Share"
-            className="max-w-sm"
+            className="sm:max-w-sm sm:mx-auto"
         >
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-6 min-h-[30vh] sm:min-h-0">
                 <div className="flex justify-between gap-2">
                     <button onClick={() => handleShare('facebook')} className="flex-1 flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-blue-50 hover:text-blue-600 transition-colors group">
                         <div className="w-10 h-10 bg-blue-100/50 text-blue-600 rounded-full flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">

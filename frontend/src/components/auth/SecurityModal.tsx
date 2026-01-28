@@ -71,7 +71,7 @@ const SecurityModal: React.FC<SecurityModalProps> = ({ isOpen, onClose }) => {
             showCloseButton={false}
             customHeader={header}
         >
-            <div className="flex-grow overflow-y-auto p-5 sm:p-8 custom-scrollbar min-h-[50vh] sm:min-h-0">
+            <div className="flex-grow overflow-y-auto p-5 sm:p-8 custom-scrollbar min-h-[85vh] sm:min-h-0">
                 {view === 'confirmLogoutAll' ? (
                     <div className="space-y-6">
                         <div className="bg-red-50 rounded-2xl p-4 border border-red-100 flex gap-3 text-red-800">
