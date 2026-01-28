@@ -329,7 +329,7 @@ const ProfilePage: React.FC = () => {
         showCloseButton={false}
         className="sm:max-w-sm sm:mx-auto"
       >
-        <div className="p-6 text-center">
+        <div className="p-6 text-center min-h-[30vh] sm:min-h-0 flex flex-col justify-center">
           <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <LogOut size={32} />
           </div>

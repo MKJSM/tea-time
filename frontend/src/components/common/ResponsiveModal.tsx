@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useScrollLock } from '../../hooks/useScrollLock';
@@ -50,10 +51,10 @@ const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
         exit: { y: '100%' }
     };
 
-    return (
+    return createPortal(
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden">
+                <div className="fixed inset-0 z-[5000] flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden">
                     {/* Backdrop */}
                     <motion.div
                         initial={{ opacity: 0 }}
@@ -125,7 +126,8 @@ const ResponsiveModal: React.FC<ResponsiveModalProps> = ({
                     </motion.div>
                 </div>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 };
 
