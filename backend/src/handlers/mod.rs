@@ -174,6 +174,10 @@ pub fn build_router(state: AppState) -> Router {
                 .service(tower_http::services::ServeDir::new("static/assets")),
         )
         .nest_service(
+            "/fonts",
+            tower_http::services::ServeDir::new("static/fonts"),
+        )
+        .nest_service(
             "/favicon.ico",
             tower_http::services::ServeFile::new("static/favicon.ico"),
         )

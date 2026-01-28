@@ -17,6 +17,13 @@ deploy-frontend:
     cp frontend/dist/index.html backend/templates/index.stpl
     # Copy assets
     cp -r frontend/dist/assets/* backend/static/assets/
+    # Copy fonts
+    mkdir -p backend/static/fonts
+    cp -r frontend/dist/fonts/* backend/static/fonts/
+    # Copy other static files (robots.txt, favicon, etc) if they exist
+    cp frontend/dist/*.txt backend/static/ 2>/dev/null || true
+    cp frontend/dist/*.ico backend/static/ 2>/dev/null || true
+    cp frontend/dist/*.png backend/static/ 2>/dev/null || true
     @echo "Frontend assets deployed."
 
 # Build the backend in release mode.
