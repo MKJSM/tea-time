@@ -53,15 +53,34 @@
 }
 
 @layer base {
+  :root {
+      /* Design Tokens */
+    --tea-sage: 140 25% 45%;
+    --tea-forest: 145 40% 25%;
+    --tea-mint: 150 35% 85%;
+    
+    --cream-white: 40 25% 98%;
+    --warm-grey-100: 30 10% 95%;
+    --warm-grey-300: 30 8% 70%;
+    --warm-grey-700: 30 5% 30%;
+    
+    --charcoal-900: 0 0% 15%;
+    --amber-glow: 35 80% 55%;
+  }
+
   body {
-    background-color: #FFF8F0;
-    color: #333333;
+    background-color: hsl(var(--cream-white));
+    color: hsl(var(--warm-grey-700));
     -webkit-tap-highlight-color: transparent;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+      font-family: 'Playfair Display', serif;
   }
 
   /* Improve focus visibility for accessibility */
   :focus-visible {
-    outline: 2px solid #2E7D32;
+    outline: 2px solid hsl(var(--tea-sage));
     outline-offset: 2px;
   }
 
@@ -70,7 +89,7 @@
     position: absolute;
     top: -40px;
     left: 0;
-    background: #1B5E20;
+    background: hsl(var(--tea-forest));
     color: white;
     padding: 8px 16px;
     z-index: 100;
@@ -95,10 +114,21 @@
 
 @layer utilities {
   .glass {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: hsla(40, 25%, 98%, 0.7);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid hsla(0, 0%, 100%, 0.3);
+  }
+
+  .glass-card {
+      background: linear-gradient(
+        135deg,
+        hsla(40, 25%, 98%, 0.8) 0%,
+        hsla(150, 35%, 85%, 0.4) 100%
+      );
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.4);
   }
 
   .scrollbar-hide::-webkit-scrollbar {
@@ -107,6 +137,10 @@
   .scrollbar-hide {
       -ms-overflow-style: none;
       scrollbar-width: none;
+  }
+  
+  .text-shadow-sm {
+      text-shadow: 0 1px 2px rgba(0,0,0,0.1);
   }
 }
 
@@ -121,10 +155,10 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2E7D32;
+  background: hsl(var(--tea-sage));
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #1B5E20;
+  background: hsl(var(--tea-forest));
 }

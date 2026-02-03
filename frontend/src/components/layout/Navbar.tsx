@@ -60,6 +60,21 @@ const Navbar: React.FC = () => {
 
           {/* Desktop Links */}
           <div className="hidden md:flex items-center space-x-8 lg:space-x-10">
+            {/* Menu Dropdown */}
+            <div className="relative group">
+              <button className="text-tea-950/80 hover:text-tea-800 font-bold text-[10px] lg:text-xs uppercase tracking-widest transition-colors flex items-center gap-1">
+                Menu
+              </button>
+              <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-stone-100 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform origin-top-left z-50 overflow-hidden">
+                <Link to="/about" className="block px-6 py-4 text-stone-600 hover:bg-stone-50 hover:text-tea-600 transition-colors font-serif border-b border-stone-50">
+                  About Us
+                </Link>
+                <Link to="/who-we-serve" className="block px-6 py-4 text-stone-600 hover:bg-stone-50 hover:text-tea-600 transition-colors font-serif">
+                  Who We Serve
+                </Link>
+              </div>
+            </div>
+
             <Link to="/shop" className="text-tea-950/80 hover:text-tea-800 font-bold text-[10px] lg:text-xs uppercase tracking-widest transition-colors">Shop</Link>
             {isAuthenticated ? (
               <Link to="/orders" className="text-tea-950/80 hover:text-tea-800 font-bold text-[10px] lg:text-xs uppercase tracking-widest transition-colors">Orders</Link>

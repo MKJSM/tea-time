@@ -1,158 +1,246 @@
-
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowUp, ArrowRight } from 'lucide-react';
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { ChevronDown, ArrowRight } from 'lucide-react';
 
-// Images
-import heroImage from '../assets/mobilitea-hero.png';
-import qualityIcon from '../assets/values-quality.png';
-import customerIcon from '../assets/values-customer.png';
-import sustainabilityIcon from '../assets/values-sustainability.png';
-import innovationIcon from '../assets/values-innovation.png';
-import consistentIcon from '../assets/values-consistent.png';
-import integrityIcon from '../assets/values-integrity.png';
-import coreCompImage from '../assets/core-competencies.png';
+// Assets
+import heroBg from '../assets/premium-hero.png';
+import qualityIcon from '../assets/icon-quality.png';
+import customerIcon from '../assets/icon-customer.png';
+import sustainabilityIcon from '../assets/icon-sustainability.png';
+import innovationIcon from '../assets/icon-innovation.png';
+import consistencyIcon from '../assets/icon-consistency.png';
+import integrityIcon from '../assets/icon-integrity.png';
+import ecoInfographic from '../assets/infographic-ecosystem.png';
 
 const AboutPage: React.FC = () => {
-    const [showBackToTop, setShowBackToTop] = useState(false);
+    // Scroll for parallax
+    const { scrollY } = useScroll();
+    const heroY = useTransform(scrollY, [0, 500], [0, 200]);
 
+    // Typing effect state
+    const taglineText = "Redefining Workplace Refreshment";
+    const [typedText, setTypedText] = useState("");
+    const [showCursor, setShowCursor] = useState(true);
+
+    // Expansion states for cards
+    const [expandedCard, setExpandedCard] = useState<string | null>(null);
+
+    // Typing effect logic
     useEffect(() => {
-        const handleScroll = () => {
-            if (window.scrollY > 400) {
-                setShowBackToTop(true);
+        let i = 0;
+        const typingInterval = setInterval(() => {
+            if (i < taglineText.length) {
+                setTypedText(taglineText.substring(0, i + 1));
+                i++;
             } else {
-                setShowBackToTop(false);
+                clearInterval(typingInterval);
             }
+        }, 80);
+
+        const cursorInterval = setInterval(() => {
+            setShowCursor((prev) => !prev);
+        }, 500);
+
+        return () => {
+            clearInterval(typingInterval);
+            clearInterval(cursorInterval);
         };
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    const scrollToTop = () => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
     const values = [
-        { icon: qualityIcon, title: "Uncompromised Quality", desc: "Sourcing only the finest leaves from high-elevation estates.", colSpan: "md:col-span-2", bg: "bg-stone-50" },
-        { icon: sustainabilityIcon, title: "Zero Waste", desc: "A completely circular ecosystem.", colSpan: "md:col-span-1", bg: "bg-tea-50" },
-        { icon: customerIcon, title: "You-Centric", desc: "Tailored to your team.", colSpan: "md:col-span-1", bg: "bg-amber-50" },
-        { icon: innovationIcon, title: "Tech-Forward", desc: "Seamless app ordering.", colSpan: "md:col-span-2", bg: "bg-stone-50" },
-        { icon: consistentIcon, title: "Reliability", desc: "Every cup, perfect.", colSpan: "md:col-span-1", bg: "bg-stone-100" },
-        { icon: integrityIcon, title: "Integrity", desc: "Honest, transparent pricing.", colSpan: "md:col-span-1", bg: "bg-stone-50" }
+        { id: 'quality', icon: qualityIcon, title: "Quality First", short: "Sourcing finest leaves.", full: "We obsessively source premium leaves from high-elevation estates, ensuring every cup delivers complex, authentic flavor profiles." },
+        { id: 'customer', icon: customerIcon, title: "Customer-Centric", short: "Tailored to you.", full: "Your team's preferences drive our service. From custom blends to personalized delivery schedules, we adapt to your workflow." },
+        { id: 'sustainability', icon: sustainabilityIcon, title: "Sustainability", short: "Zero waste cycle.", full: "Our circular ecosystem eliminates single-use cups. Reusable flasks, electric delivery fleet, and responsible sourcing." },
+        { id: 'innovation', icon: innovationIcon, title: "Innovation", short: "Smart ordering.", full: "Seamless app integration allows for predictive ordering and real-time tracking, bringing the tea ceremony into the digital age." },
+        { id: 'consistency', icon: consistencyIcon, title: "Consistency", short: "Perfect every time.", full: "Standardized brewing protocols and thermal technology guarantee that the 100th cup tastes exactly as perfect as the first." },
+        { id: 'integrity', icon: integrityIcon, title: "Integrity", short: "Honest pricing.", full: "Transparent pricing models and ethical supply chains. We believe in doing good while brewing good." },
     ];
 
-    return (
-        <div className="min-h-screen bg-stone-50 text-stone-900 font-sans overflow-x-hidden">
+    const toggleCard = (id: string) => {
+        setExpandedCard(expandedCard === id ? null : id);
+    };
 
-            {/* 1. Asymmetric Split Hero */}
-            <section className="relative min-h-[90vh] flex flex-col lg:flex-row bg-tea-900">
-                <div className="lg:w-[40%] p-10 lg:p-20 flex flex-col justify-center relative z-10">
+    return (
+        <div className="min-h-screen bg-cream font-sans text-warm-grey-700 overflow-x-hidden selection:bg-tea-sage selection:text-white">
+
+            {/* 2. Deep Luxury Hero */}
+            <section className="relative min-h-screen flex flex-col lg:flex-row bg-tea-900 overflow-hidden">
+                {/* Background Pattern */}
+                <div className="absolute inset-0 opacity-10 pointer-events-none">
+                    <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-tea-500 rounded-full blur-[120px]" />
+                    <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-amber-glow rounded-full blur-[100px]" />
+                </div>
+
+                {/* Left Content */}
+                <div className="relative z-10 w-full lg:w-1/2 flex flex-col justify-center px-6 lg:px-20 pt-32 lg:pt-0">
                     <motion.div
                         initial={{ opacity: 0, x: -50 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 1, ease: "easeOut" }}
                     >
-                        <div className="w-16 h-1 bg-amber-400 mb-8" />
-                        <h1 className="text-5xl md:text-7xl font-serif text-white leading-none mb-6">
-                            Pouring <br /> <span className="text-amber-400 italic">Vitality</span> <br /> Into Work.
+                        <div className="flex items-center gap-4 mb-8">
+                            <span className="h-[1px] w-12 bg-amber-glow"></span>
+                            <span className="text-amber-glow font-mono uppercase tracking-widest text-xs">Est. 2024</span>
+                        </div>
+
+                        <h1 className="text-6xl md:text-8xl font-serif text-cream-white leading-[0.9] mb-8">
+                            Mobili<span className="italic text-tea-300">tea</span>
                         </h1>
-                        <p className="text-tea-100 text-lg md:text-xl font-light leading-relaxed mb-10 max-w-md">
-                            Mobilitea isn't just a service. It's the modern tea house, reimagined for the corporate world.
-                        </p>
-                        <button className="flex items-center gap-3 text-white border-b border-amber-400 pb-1 hover:text-amber-400 transition-colors group">
-                            <span>Explore Our Story</span>
-                            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                        </button>
+
+                        <div className="h-20 overflow-hidden mb-10">
+                            <p className="text-xl md:text-2xl font-light text-tea-100/80 font-sans max-w-md leading-relaxed">
+                                {typedText}
+                                <span className={`${showCursor ? 'opacity-100' : 'opacity-0'} text-amber-glow`}>|</span>
+                            </p>
+                        </div>
+
+                        <div className="flex gap-6">
+                            <button className="px-8 py-4 bg-amber-glow text-tea-900 font-bold rounded-full hover:bg-white transition-colors">
+                                Our Story
+                            </button>
+                            <button className="flex items-center gap-2 text-white px-8 py-4 hover:text-amber-glow transition-colors group">
+                                View Menu <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                            </button>
+                        </div>
                     </motion.div>
                 </div>
 
-                <div className="lg:w-[60%] relative h-[50vh] lg:h-auto overflow-hidden">
+                {/* Right Visual - Arch Mask */}
+                <div className="relative w-full lg:w-1/2 h-[50vh] lg:h-screen flex items-end justify-center lg:justify-end lg:pr-20 lg:pb-20">
                     <motion.div
-                        initial={{ scale: 1.2, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ duration: 1.5, ease: "easeOut" }}
-                        className="absolute inset-0 lg:m-4 rounded-[0px] lg:rounded-[2rem] overflow-hidden"
+                        initial={{ height: "0%" }}
+                        animate={{ height: "85%" }}
+                        transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+                        className="relative w-full max-w-md lg:max-w-xl bg-tea-800 rounded-t-[10rem] overflow-hidden shadow-2xl shadow-black/50"
                     >
-                        <img src={heroImage} alt="Tea Service" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/10" />
-                    </motion.div>
+                        <motion.img
+                            style={{ scale: 1.1, y: heroY }}
+                            src={heroBg}
+                            alt="Premium Tea"
+                            className="w-full h-full object-cover opacity-90"
+                        />
 
-                    {/* Floating Badge */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 50 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 1, duration: 0.8 }}
-                        className="absolute bottom-10 left-10 lg:left-20 bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl text-white max-w-xs hidden lg:block"
-                    >
-                        <p className="font-serif text-lg italic">"The most refreshing part of our day."</p>
-                        <p className="text-xs uppercase tracking-widest mt-2 text-amber-400">— Partner Since 2024</p>
+                        {/* Floating Glass Stat */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 1, duration: 0.8 }}
+                            className="absolute bottom-8 left-8 right-8 bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-2xl text-white"
+                        >
+                            <div className="flex justify-between items-end">
+                                <div>
+                                    <p className="text-xs text-tea-200 uppercase tracking-wider mb-1">Daily Brews</p>
+                                    <p className="text-3xl font-serif">10,000+</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-xs text-tea-200 uppercase tracking-wider mb-1">Satisfaction</p>
+                                    <p className="text-3xl font-serif text-amber-glow">99.8%</p>
+                                </div>
+                            </div>
+                        </motion.div>
                     </motion.div>
                 </div>
             </section>
 
-            {/* 2. Glass Cards Narrative */}
-            <section className="py-32 px-6 relative bg-[#EBE9E4]">
-                <div className="absolute inset-0 opacity-5 bg-[radial-gradient(#444_1px,transparent_1px)] [background-size:16px_16px]" />
-
-                <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-start relative z-10">
-                    <div className="lg:sticky lg:top-32">
-                        <h2 className="text-4xl md:text-6xl font-serif text-stone-900 mb-6">Designed for <br /> <span className="text-tea-700">Peace of Mind.</span></h2>
-                        <p className="text-lg text-stone-600 leading-relaxed max-w-md">
-                            We believe the breakroom should be a sanctuary. A place where noise fades, and clarity returns with every sip.
+            {/* 3. Story Section (Vision & Mission) */}
+            <section className="py-24 px-6 md:px-12 max-w-7xl mx-auto relative z-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16">
+                    {/* Vision Card */}
+                    <motion.div
+                        initial={{ opacity: 0, x: -50 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true, margin: "-100px" }}
+                        transition={{ duration: 0.8 }}
+                        className="glass p-8 md:p-12 rounded-[2rem] shadow-tea-glow hover:shadow-lg transition-all duration-300 group cursor-pointer"
+                    >
+                        <div className="w-16 h-16 bg-tea-mint/30 rounded-full flex items-center justify-center mb-6 text-3xl group-hover:scale-110 transition-transform">🌿</div>
+                        <h2 className="text-3xl font-serif text-charcoal-900 mb-4 flex items-center gap-3">
+                            Our Vision <span className="w-8 h-[1px] bg-tea-sage/30 block" />
+                        </h2>
+                        <p className="text-lg leading-relaxed text-warm-grey-700">
+                            To transform the corporate break from a mundane necessity into a moment of genuine restoration. We envision a world where every sip reconnects you to nature and yourself.
                         </p>
-                    </div>
+                    </motion.div>
 
-                    <div className="space-y-8">
-                        <motion.div
-                            initial={{ opacity: 0, y: 40 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            className="bg-white/80 backdrop-blur-xl p-10 rounded-3xl shadow-sm border border-white/40"
-                        >
-                            <div className="w-12 h-12 bg-tea-100 rounded-full flex items-center justify-center mb-6 text-2xl">🌱</div>
-                            <h3 className="text-2xl font-bold mb-3">Rooted in Nature</h3>
-                            <p className="text-stone-600">Our leaves are hand-picked from biodiversity-friendly estates, ensuring that nature's complex flavors are preserved in every brew.</p>
-                        </motion.div>
-
-                        <motion.div
-                            initial={{ opacity: 0, y: 40 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: 0.2 }}
-                            className="bg-white/80 backdrop-blur-xl p-10 rounded-3xl shadow-sm border border-white/40"
-                        >
-                            <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mb-6 text-2xl">⚡</div>
-                            <h3 className="text-2xl font-bold mb-3">Powered by Tech</h3>
-                            <p className="text-stone-600">With real-time tracking and predictive ordering, we ensure your pantry is never empty, and your team is never thirsty.</p>
-                        </motion.div>
-                    </div>
+                    {/* Mission Card */}
+                    <motion.div
+                        initial={{ opacity: 0, x: 50 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true, margin: "-100px" }}
+                        transition={{ duration: 0.8, delay: 0.2 }}
+                        className="glass p-8 md:p-12 rounded-[2rem] shadow-tea-glow hover:shadow-lg transition-all duration-300 group cursor-pointer"
+                    >
+                        <div className="w-16 h-16 bg-amber-glow/10 rounded-full flex items-center justify-center mb-6 text-3xl group-hover:scale-110 transition-transform">🎯</div>
+                        <h2 className="text-3xl font-serif text-charcoal-900 mb-4 flex items-center gap-3">
+                            Our Mission <span className="w-8 h-[1px] bg-amber-glow/30 block" />
+                        </h2>
+                        <p className="text-lg leading-relaxed text-warm-grey-700">
+                            Delivering premium, sustainable refreshment through smart technology and human-centric service. We bridge the gap between artisanal quality and operational efficiency.
+                        </p>
+                    </motion.div>
                 </div>
             </section>
 
-            {/* 3. Bento Grid Values */}
-            <section className="py-32 px-6 bg-stone-50">
+            {/* 4. Values Grid */}
+            <section className="py-24 px-4 bg-white relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-tea-sage/20 to-transparent" />
+
                 <div className="max-w-7xl mx-auto">
-                    <div className="text-center mb-20 max-w-3xl mx-auto">
-                        <h2 className="text-4xl font-serif font-bold text-stone-900 mb-4">The Mobilitea Difference</h2>
-                        <p className="text-stone-500">Six pillars that define our commitment to excellence.</p>
-                    </div>
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="text-center mb-16"
+                    >
+                        <span className="text-tea-sage font-mono uppercase tracking-widest text-sm">The Mobilitea Way</span>
+                        <h2 className="text-4xl md:text-5xl font-serif text-charcoal-900 mt-4">Core Values</h2>
+                    </motion.div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 justify-items-center">
                         {values.map((val, idx) => (
                             <motion.div
-                                key={idx}
-                                className={`${val.colSpan} ${val.bg} p-8 rounded-[2rem] hover:shadow-xl transition-all duration-300 group flex flex-col justify-between min-h-[240px] border border-black/5`}
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                whileInView={{ opacity: 1, scale: 1 }}
+                                key={val.id}
+                                layout
+                                onClick={() => toggleCard(val.id)}
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ delay: idx * 0.1 }}
+                                className={`
+                                    relative bg-warm-grey-100 rounded-3xl p-8 w-full max-w-sm cursor-pointer overflow-hidden
+                                    border border-black/5 hover:border-tea-sage/30 hover:shadow-md transition-all duration-500
+                                    ${expandedCard === val.id ? 'shadow-lg ring-1 ring-tea-sage bg-white' : ''}
+                                `}
                             >
-                                <div className="w-14 h-14 p-3 bg-white rounded-2xl shadow-sm mb-4 group-hover:scale-110 transition-transform">
-                                    <img src={val.icon} alt={val.title} className="w-full h-full object-contain" />
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-stone-900 mb-2">{val.title}</h3>
-                                    <p className="text-stone-500 text-sm leading-relaxed">{val.desc}</p>
+                                <motion.div layout="position" className="flex items-center gap-4 mb-4">
+                                    <div className="w-12 h-12 bg-white rounded-xl p-2 shadow-sm shrink-0">
+                                        <img src={val.icon} alt={val.title} className="w-full h-full object-contain" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-charcoal-900">{val.title}</h3>
+                                </motion.div>
+
+                                <motion.p layout="position" className="text-tea-forest font-medium">
+                                    {val.short}
+                                </motion.p>
+
+                                <AnimatePresence>
+                                    {expandedCard === val.id && (
+                                        <motion.div
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: 'auto' }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                            className="mt-4 pt-4 border-t border-tea-sage/10"
+                                        >
+                                            <p className="text-warm-grey-700 text-sm leading-relaxed">
+                                                {val.full}
+                                            </p>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+
+                                {/* Simple interactive hint */}
+                                <div className={`absolute top-4 right-4 text-tea-sage/50 transition-transform duration-300 ${expandedCard === val.id ? 'rotate-180' : ''}`}>
+                                    <ChevronDown size={20} />
                                 </div>
                             </motion.div>
                         ))}
@@ -160,58 +248,63 @@ const AboutPage: React.FC = () => {
                 </div>
             </section>
 
-            {/* 4. Dark Ecosystem Section */}
-            <section className="bg-[#1a1a18] py-32 text-white relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-tea-900/30 rounded-full blur-[120px] pointer-events-none" />
+            {/* 5. Competencies / Ecosystem */}
+            <section className="py-24 bg-tea-900 text-white relative overflow-hidden">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-tea-800 via-tea-900 to-black opacity-50" />
 
-                <div className="max-w-7xl mx-auto px-6 relative z-10">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-                        <div>
-                            <span className="text-amber-400 font-bold tracking-widest uppercase text-sm">Full Circle</span>
-                            <h2 className="text-5xl font-serif mt-4 mb-8">The Infinite Loop.</h2>
-                            <p className="text-stone-400 text-lg leading-relaxed mb-12">
-                                We've closed the gap between convenience and sustainability. Our end-to-end model ensures that nothing goes to waste—except the stress of the workday.
-                            </p>
-
-                            <div className="grid grid-cols-2 gap-8">
-                                <div>
-                                    <h4 className="text-3xl font-bold text-white mb-2">100%</h4>
-                                    <p className="text-stone-500 text-sm">Reusable Flasks</p>
-                                </div>
-                                <div>
-                                    <h4 className="text-3xl font-bold text-white mb-2">Zero</h4>
-                                    <p className="text-stone-500 text-sm">Paper Waste</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <motion.div
-                            initial={{ opacity: 0, rotate: -5 }}
-                            whileInView={{ opacity: 1, rotate: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 1 }}
-                            className="bg-white/5 p-10 rounded-full backdrop-blur-sm border border-white/10"
-                        >
-                            <img src={coreCompImage} alt="Ecosystem" className="w-full h-auto drop-shadow-2xl opacity-90 invert-[.05]" />
-                        </motion.div>
+                <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center relative z-10">
+                    <div>
+                        <span className="text-amber-glow font-mono uppercase tracking-widest text-sm">Full Cycle</span>
+                        <h2 className="text-4xl md:text-6xl font-serif mt-4 mb-8 leading-tight text-white">
+                            The Infinite <br /> <span className="text-tea-300 italic">Loop.</span>
+                        </h2>
+                        <ul className="space-y-8 mt-12">
+                            {[
+                                { title: "Smart Order", desc: "Predictive AI ensures you never run out." },
+                                { title: "Precision Brew", desc: "Thermosteel flasks keep it perfect." },
+                                { title: "Zero Waste Return", desc: "We collect, clean, and reuse. 100%." }
+                            ].map((item, i) => (
+                                <motion.li
+                                    key={i}
+                                    initial={{ opacity: 0, x: -20 }}
+                                    whileInView={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: i * 0.2 }}
+                                    className="flex gap-6 items-start group"
+                                >
+                                    <span className="font-mono text-tea-400 text-sm mt-1">0{i + 1}</span>
+                                    <div>
+                                        <h4 className="text-xl font-bold group-hover:text-amber-glow transition-colors">{item.title}</h4>
+                                        <p className="text-tea-100/60 font-light mt-1">{item.desc}</p>
+                                    </div>
+                                </motion.li>
+                            ))}
+                        </ul>
                     </div>
+
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9, rotate: -5 }}
+                        whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 1 }}
+                        className="relative"
+                    >
+                        <div className="absolute -inset-10 bg-tea-500/20 blur-3xl rounded-full" />
+                        <img src={ecoInfographic} alt="Ecosystem" className="relative w-full h-auto drop-shadow-2xl" />
+                    </motion.div>
                 </div>
             </section>
 
-            {/* Back to Top */}
-            <AnimatePresence>
-                {showBackToTop && (
-                    <motion.button
-                        initial={{ opacity: 0, scale: 0 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0 }}
-                        onClick={scrollToTop}
-                        className="fixed bottom-8 right-8 w-14 h-14 bg-amber-400 text-tea-900 flex items-center justify-center rounded-full shadow-lg hover:bg-white transition-colors z-50 font-bold"
-                    >
-                        <ArrowUp size={24} />
-                    </motion.button>
-                )}
-            </AnimatePresence>
+            {/* Footer / CTA */}
+            <section className="py-24 px-6 text-center bg-cream-white">
+                <div className="max-w-2xl mx-auto">
+                    <h2 className="text-4xl font-serif text-charcoal-900 mb-8">Ready to elevate your breakroom?</h2>
+                    <button className="bg-tea-forest text-white px-10 py-5 rounded-full text-lg font-bold shadow-lg shadow-tea-glow hover:scale-105 hover:bg-tea-800 transition-all duration-300">
+                        Experience Mobilitea
+                    </button>
+                    <p className="mt-8 text-sm text-warm-grey-300"> Trusted by 500+ Corporate Offices </p>
+                </div>
+            </section>
+
         </div>
     );
 };

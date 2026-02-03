@@ -23,6 +23,7 @@ const OrdersPage = lazy(() => import('./pages/OrdersPage'));
 const OrderDetailsPage = lazy(() => import('./pages/OrderDetailsPage'));
 const OrderTrackingPage = lazy(() => import('./pages/OrderTrackingPage'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
+const WhoWeServePage = lazy(() => import('./pages/WhoWeServePage'));
 const SupportPage = lazy(() => import('./pages/SupportPage'));
 
 // Lazy load non-critical components (modals, drawers)
@@ -95,6 +96,7 @@ const App: React.FC = () => {
               <Route path="/order/:id" element={<PageWrapper><OrderDetailsPage /></PageWrapper>} />
               <Route path="/tracking/:id" element={<PageWrapper><OrderTrackingPage /></PageWrapper>} />
               <Route path="/about" element={<PageWrapper><AboutPage /></PageWrapper>} />
+              <Route path="/who-we-serve" element={<PageWrapper><WhoWeServePage /></PageWrapper>} />
               <Route path="/support" element={<PageWrapper><SupportPage /></PageWrapper>} />
             </Routes>
           </Suspense>
