@@ -5,6 +5,7 @@ import { ArrowRight, Leaf, Truck, Award, ShieldCheck } from 'lucide-react';
 import { useGetFeaturedProductsQuery } from '../features/products/productsApi';
 import { useAppSelector } from '../store/hooks';
 import ProductCard from '../components/products/ProductCard';
+import EventBanner from '../components/common/EventBanner';
 
 import { getOptimizedImageUrl, PLACEHOLDER_TEA_IMAGE } from '../utils/images';
 
@@ -75,6 +76,9 @@ const HomePage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Event Catering Banner */}
+      <EventBanner />
 
       {/* Featured Benefits */}
       <section className="py-20 bg-white">

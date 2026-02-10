@@ -1,0 +1,30 @@
+<svg width="60" height="80" viewBox="0 0 60 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Tea leaf shape -->
+  <path d="M30 5 Q45 15 50 35 Q52 50 45 65 Q40 75 30 78 Q20 75 15 65 Q8 50 10 35 Q15 15 30 5 Z" 
+        fill="url(#leafGradient)" stroke="#2E7D32" stroke-width="1.5"/>
+  
+  <!-- Central vein -->
+  <path d="M30 8 L30 75" stroke="#1B5E20" stroke-width="1.5" opacity="0.6"/>
+  
+  <!-- Side veins (left) -->
+  <path d="M30 20 Q22 25 18 32" stroke="#1B5E20" stroke-width="1" opacity="0.4"/>
+  <path d="M30 35 Q22 38 18 45" stroke="#1B5E20" stroke-width="1" opacity="0.4"/>
+  <path d="M30 50 Q22 53 20 60" stroke="#1B5E20" stroke-width="1" opacity="0.4"/>
+  
+  <!-- Side veins (right) -->
+  <path d="M30 20 Q38 25 42 32" stroke="#1B5E20" stroke-width="1" opacity="0.4"/>
+  <path d="M30 35 Q38 38 42 45" stroke="#1B5E20" stroke-width="1" opacity="0.4"/>
+  <path d="M30 50 Q38 53 40 60" stroke="#1B5E20" stroke-width="1" opacity="0.4"/>
+  
+  <!-- Gold highlight -->
+  <path d="M32 10 Q40 18 43 30 Q44 40 40 52" 
+        stroke="#FFD700" stroke-width="1.5" opacity="0.3" fill="none"/>
+  
+  <defs>
+    <linearGradient id="leafGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#81C784;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#66BB6A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4CAF50;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+</svg>
