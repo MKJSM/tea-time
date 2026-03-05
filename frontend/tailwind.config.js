@@ -62,6 +62,19 @@ export default {
                     DEFAULT: '#FFF8F0', // Legacy
                     paper: '#FFFEFC'    // Legacy
                 },
+                // Accent colors — warm amber, used for highlights, badges, ratings, CTAs
+                'accent': {
+                    50: 'hsl(35, 80%, 95%)',
+                    100: 'hsl(35, 80%, 88%)',
+                    200: 'hsl(35, 80%, 78%)',
+                    300: 'hsl(35, 80%, 68%)',
+                    400: 'hsl(35, 80%, 62%)',
+                    500: 'hsl(35, 80%, 55%)',  // == amber.glow
+                    600: 'hsl(35, 75%, 48%)',
+                    700: 'hsl(35, 70%, 40%)',
+                    800: 'hsl(35, 65%, 32%)',
+                    900: 'hsl(35, 60%, 20%)',
+                },
                 // Industry Accents
                 'corporate': { blue: 'hsl(210, 75%, 50%)' },
                 'retail': { orange: 'hsl(25, 85%, 55%)' },

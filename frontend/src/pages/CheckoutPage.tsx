@@ -385,11 +385,15 @@ const CheckoutPage: React.FC = () => {
                   <span>Subtotal</span>
                   <span>{formatPrice(subtotal)}</span>
                 </div>
-                <div className="flex justify-between text-tea-300 text-sm">
-                  <span>Tax (10%)</span>
-                  <span>{formatPrice(tax)}</span>
+                <div className="flex justify-between text-tea-400 text-xs">
+                  <span>CGST (5%)</span>
+                  <span>{formatPrice(tax / 2)}</span>
                 </div>
-                <div className="flex justify-between text-xl font-bold pt-2 text-white">
+                <div className="flex justify-between text-tea-400 text-xs">
+                  <span>SGST (5%)</span>
+                  <span>{formatPrice(tax / 2)}</span>
+                </div>
+                <div className="flex justify-between text-xl font-bold pt-2 border-t border-white/10 text-white">
                   <span>Total</span>
                   <span className="text-accent-400">{formatPrice(finalTotal)}</span>
                 </div>

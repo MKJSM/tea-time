@@ -292,3 +292,101 @@ pub fn validate_password_strength(password: &str) -> Result<(), validator::Valid
 
     Ok(())
 }
+
+// ──────────────────────────────────────────────────
+// Event Booking Models
+// ──────────────────────────────────────────────────
+
+/// One product line inside a booking request
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct EventSelectedItem {
+    pub product_id: String,
+    pub product_name: String,
+    pub quantity: i32,
+    pub unit_price: f64,
+}
+
+/// Request body for creating an event booking (catering enquiry)
+#[derive(Serialize, Deserialize, Validate, Debug)]
+pub struct CreateEventBookingRequest {
+    // Contact
+    #[validate(length(min = 1, max = 100, message = "Contact name is required"))]
+    pub contact_name: String,
+    #[validate(length(min = 10, max = 15, message = "Phone must be 10–15 characters"))]
+    pub contact_phone: String,
+    #[validate(email(message = "Invalid email format"))]
+    pub contact_email: String,
+
+    // Event identity
+    #[validate(length(min = 1, max = 200, message = "Event name is required"))]
+    pub event_name: String,
+    #[validate(length(min = 1, max = 50))]
+    pub event_type: String,
+    pub event_date: String, // "YYYY-MM-DD"
+    #[validate(length(min = 1, max = 20))]
+    pub time_slot: String, // "morning" | "afternoon" | "evening"
+    #[validate(length(min = 1, max = 500, message = "Venue address is required"))]
+    pub venue_address: String,
+
+    // Headcount
+    #[validate(range(min = 1, message = "Headcount must be at least 1"))]
+    pub headcount_total: i32,
+    #[serde(default)]
+    pub headcount_adults: i32,
+    #[serde(default)]
+    pub headcount_kids: i32,
+    #[serde(default)]
+    pub headcount_seniors: i32,
+
+    // Product selection
+    pub selected_items: Vec<EventSelectedItem>,
+
+    // Estimated pricing (computed client-side, stored for admin reference)
+    pub estimated_base: f64,
+    pub estimated_deposit: f64,
+    pub estimated_delivery: f64,
+    pub estimated_tax: f64,
+    pub estimated_total: f64,
+
+    pub notes: Option<String>,
+}
+
+/// DB row for event_bookings
+#[derive(Serialize, Deserialize, FromRow, Clone, Debug)]
+pub struct EventBooking {
+    pub id: Uuid,
+    pub user_id: Option<Uuid>,
+    pub contact_name: String,
+    pub contact_phone: String,
+    pub contact_email: String,
+    pub event_name: String,
+    pub event_type: String,
+    pub event_date: chrono::NaiveDate,
+    pub time_slot: String,
+    pub venue_address: String,
+    pub headcount_total: i32,
+    pub headcount_adults: i32,
+    pub headcount_kids: i32,
+    pub headcount_seniors: i32,
+    pub selected_items: sqlx::types::Json<Vec<EventSelectedItem>>,
+    pub estimated_base: f64,
+    pub estimated_deposit: f64,
+    pub estimated_delivery: f64,
+    pub estimated_tax: f64,
+    pub estimated_total: f64,
+    pub notes: Option<String>,
+    pub status: String,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+/// Response after successfully creating a booking
+#[derive(Serialize, Deserialize, Debug)]
+pub struct EventBookingResponse {
+    pub id: Uuid,
+    pub event_name: String,
+    pub event_date: String,
+    pub status: String,
+    pub estimated_total: f64,
+    pub message: String,
+}

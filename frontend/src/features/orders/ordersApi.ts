@@ -123,5 +123,8 @@ export const {
   useGetOrderByIdQuery,
   useCreateOrderMutation,
   useInitiatePaymentMutation,
-  useVerifyPaymentMutation
+  useVerifyPaymentMutation,
+  useCancelOrderMutation,
+  useGetPaymentsQuery,
+  useGetPaymentByIdQuery,
 } = ordersApi;

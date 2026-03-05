@@ -1,6 +1,7 @@
 pub mod addresses;
 pub mod auth;
 pub mod cart;
+pub mod events;
 pub mod favorites;
 pub mod files;
 pub mod orders;
@@ -157,6 +158,9 @@ pub fn build_router(state: AppState) -> Router {
             "/api/products/{id}/favorite",
             post(favorites::add_favorite).delete(favorites::remove_favorite),
         )
+        // Events / Catering Enquiry Routes
+        .route("/api/events", post(events::create_event_booking))
+        .route("/api/events", get(events::list_event_bookings))
         // File Routes
         .route("/api/files/upload", post(files::upload_image))
         // Middleware

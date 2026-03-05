@@ -6,6 +6,7 @@ import { productsApi } from '../features/products/productsApi';
 import { ordersApi } from '../features/orders/ordersApi';
 import { favoritesApi } from '../features/favorites/favoritesApi';
 import { addressesApi } from '../features/addresses/addressesApi';
+import { eventsApi } from '../features/events/eventsApi';
 import { cartPersistenceMiddleware } from '../middleware/cartPersistenceMiddleware';
 import { rtkQueryErrorLogger } from '../middleware/errorLogger';
 
@@ -16,6 +17,7 @@ const rootReducer = combineReducers({
   [ordersApi.reducerPath]: ordersApi.reducer,
   [favoritesApi.reducerPath]: favoritesApi.reducer,
   [addressesApi.reducerPath]: addressesApi.reducer,
+  [eventsApi.reducerPath]: eventsApi.reducer,
 });
 
 export const store = configureStore({
@@ -28,6 +30,7 @@ export const store = configureStore({
       ordersApi.middleware,
       favoritesApi.middleware,
       addressesApi.middleware,
+      eventsApi.middleware,
       cartPersistenceMiddleware,
       rtkQueryErrorLogger
     ),

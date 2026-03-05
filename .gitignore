@@ -61,3 +61,5 @@ db/*.sqlite*
 others/*
 .env
 backend/templates/index.stpl
+
+/target

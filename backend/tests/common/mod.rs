@@ -113,6 +113,9 @@ pub async fn cleanup_test_data(pool: &PgPool) {
         .await;
     let _ = sqlx::query("DELETE FROM order_items").execute(pool).await;
     let _ = sqlx::query("DELETE FROM orders").execute(pool).await;
+    let _ = sqlx::query("DELETE FROM event_bookings")
+        .execute(pool)
+        .await;
     let _ = sqlx::query("DELETE FROM cart_item_customizations")
         .execute(pool)
         .await;
@@ -517,4 +520,126 @@ pub async fn count_user_payments(pool: &PgPool, user_id: Uuid) -> i64 {
     .fetch_one(pool)
     .await
     .unwrap_or(0)
+}
+
+// ─── Event Booking Fixtures ──────────────────────────────────────────────────
+
+/// Test event booking fixture
+pub struct TestEventBooking {
+    pub contact_name: String,
+    pub contact_phone: String,
+    pub contact_email: String,
+    pub event_name: String,
+    pub event_type: String,
+    pub event_date: chrono::NaiveDate,
+    pub time_slot: String,
+    pub venue_address: String,
+    pub headcount_total: i32,
+    pub headcount_adults: i32,
+    pub headcount_kids: i32,
+    pub headcount_seniors: i32,
+    pub estimated_base: f64,
+    pub estimated_deposit: f64,
+    pub estimated_delivery: f64,
+    pub estimated_tax: f64,
+    pub estimated_total: f64,
+    pub user_id: Option<Uuid>,
+}
+
+impl Default for TestEventBooking {
+    fn default() -> Self {
+        Self {
+            contact_name: "Test Host".to_string(),
+            contact_phone: "9876543210".to_string(),
+            contact_email: "host@test.com".to_string(),
+            event_name: "Test Wedding".to_string(),
+            event_type: "wedding".to_string(),
+            event_date: chrono::NaiveDate::from_ymd_opt(2026, 6, 15).unwrap(),
+            time_slot: "evening".to_string(),
+            venue_address: "123 Test Street, Chennai, Tamil Nadu".to_string(),
+            headcount_total: 100,
+            headcount_adults: 80,
+            headcount_kids: 10,
+            headcount_seniors: 10,
+            estimated_base: 5000.0,
+            estimated_deposit: 200.0,
+            estimated_delivery: 200.0,
+            estimated_tax: 250.0,
+            estimated_total: 5650.0,
+            user_id: None,
+        }
+    }
+}
+
+impl TestEventBooking {
+    pub fn with_user(user_id: Uuid) -> Self {
+        Self {
+            user_id: Some(user_id),
+            ..Default::default()
+        }
+    }
+
+    pub async fn insert(&self, pool: &PgPool) -> Result<Uuid, sqlx::Error> {
+        let id = Uuid::new_v4();
+        sqlx::query(
+            r#"
+            INSERT INTO event_bookings (
+                id, user_id, contact_name, contact_phone, contact_email,
+                event_name, event_type, event_date, time_slot, venue_address,
+                headcount_total, headcount_adults, headcount_kids, headcount_seniors,
+                selected_items,
+                estimated_base, estimated_deposit, estimated_delivery, estimated_tax, estimated_total,
+                status
+            )
+            VALUES (
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+                $11, $12, $13, $14,
+                '[]'::jsonb,
+                $15, $16, $17, $18, $19,
+                'pending'
+            )
+            "#,
+        )
+        .bind(id)
+        .bind(self.user_id)
+        .bind(&self.contact_name)
+        .bind(&self.contact_phone)
+        .bind(&self.contact_email)
+        .bind(&self.event_name)
+        .bind(&self.event_type)
+        .bind(self.event_date)
+        .bind(&self.time_slot)
+        .bind(&self.venue_address)
+        .bind(self.headcount_total)
+        .bind(self.headcount_adults)
+        .bind(self.headcount_kids)
+        .bind(self.headcount_seniors)
+        .bind(self.estimated_base)
+        .bind(self.estimated_deposit)
+        .bind(self.estimated_delivery)
+        .bind(self.estimated_tax)
+        .bind(self.estimated_total)
+        .execute(pool)
+        .await?;
+        Ok(id)
+    }
+}
+
+/// Count event bookings for a given email
+pub async fn count_event_bookings_by_email(pool: &PgPool, email: &str) -> i64 {
+    sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM event_bookings WHERE contact_email = $1")
+        .bind(email)
+        .fetch_one(pool)
+        .await
+        .unwrap_or(0)
+}
+
+/// Get event booking status from DB
+pub async fn event_booking_status(pool: &PgPool, id: Uuid) -> Option<String> {
+    sqlx::query_scalar::<_, String>("SELECT status FROM event_bookings WHERE id = $1")
+        .bind(id)
+        .fetch_optional(pool)
+        .await
+        .ok()
+        .flatten()
 }
