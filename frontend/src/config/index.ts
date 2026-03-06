@@ -11,7 +11,10 @@ const getEnv = (key: string, defaultValue: string): string => {
 export const config = {
     api: {
         // Default to relative path '/api' to work with proxy/same-origin
-        baseUrl: getEnv('VITE_API_URL', '/api'),
+        // Use absolute URL in tests to avoid relative URL parsing errors in Node environment
+        baseUrl: (import.meta as any).env?.MODE === 'test'
+            ? 'http://localhost/api'
+            : getEnv('VITE_API_URL', '/api'),
         timeout: 10000,
     },
     storage: {

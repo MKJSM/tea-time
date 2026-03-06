@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     ArrowLeft, ArrowRight, Calendar, Users, Coffee, Star,
-    MapPin, CheckCircle, Loader2,
+    MapPin, CheckCircle, Loader2, Clock,
     Minus, Plus, Sparkles, Package, Phone, FileText
 } from 'lucide-react';
 import { useGetProductsPaginatedQuery } from '../features/products/productsApi';
@@ -155,7 +155,7 @@ const EventsPage: React.FC = () => {
         form.headcountTotal > 0 &&
         form.headcountAdults + form.headcountKids + form.headcountSeniors === form.headcountTotal;
 
-    const isStep3Valid = Object.keys(selectedItems).length > 0;
+    const isStep3Valid = true; // Selection is optional, user can Skip
 
     const handleSubmit = async () => {
         try {
@@ -191,32 +191,61 @@ const EventsPage: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-cream">
-            {/* Hero */}
-            <section className="relative bg-gradient-to-br from-tea-900 via-tea-800 to-tea-700 text-white py-20 overflow-hidden">
-                <div className="absolute inset-0 opacity-10" style={{
-                    backgroundImage: 'radial-gradient(circle at 30% 50%, hsl(35,80%,55%) 0%, transparent 50%), radial-gradient(circle at 80% 20%, hsl(150,35%,80%) 0%, transparent 40%)'
-                }} />
-                <div className="max-w-5xl mx-auto px-4 relative">
-                    <Link to="/" className="inline-flex items-center gap-2 text-tea-200 hover:text-white mb-8 transition-colors text-sm font-medium">
+            <section className="relative min-h-[60vh] flex items-center overflow-hidden">
+                <div className="absolute inset-0 z-0">
+                    <div className="absolute inset-0 bg-gradient-to-br from-tea-900 via-tea-950 to-tea-900" />
+                    <div className="absolute inset-0 opacity-20" style={{
+                        backgroundImage: 'radial-gradient(circle at 30% 50%, hsl(35,80%,55%) 0%, transparent 50%), radial-gradient(circle at 80% 20%, hsl(150,35%,80%) 0%, transparent 40%)'
+                    }} />
+                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=2000')] bg-cover bg-center mix-blend-overlay opacity-30" />
+                </div>
+
+                <div className="max-w-5xl mx-auto px-4 relative z-10 w-full animate-fadeIn">
+                    <Link to="/" className="inline-flex items-center gap-2 text-tea-200 hover:text-white mb-10 transition-colors text-sm font-bold uppercase tracking-widest">
                         <ArrowLeft size={16} /> Back to Home
                     </Link>
-                    <div className="inline-flex items-center gap-2 bg-accent-600/20 border border-accent-500/30 rounded-full px-4 py-1 mb-4">
+                    <div className="inline-flex items-center gap-2 bg-accent-600/20 border border-accent-500/30 rounded-full px-4 py-1.5 mb-6 backdrop-blur-md">
                         <Sparkles size={14} className="text-accent-400" />
-                        <span className="text-accent-300 text-xs font-bold uppercase tracking-widest">Bulk & Event Catering</span>
+                        <span className="text-accent-300 text-[10px] font-bold uppercase tracking-widest">Premium Event Service</span>
                     </div>
-                    <h1 className="text-5xl md:text-6xl font-serif font-bold mb-4 leading-tight">
+                    <h1 className="text-6xl md:text-8xl font-serif font-bold text-white mb-6 leading-tight">
                         Tea Catering<br />
-                        <span className="text-accent-400">for Your Event</span>
+                        <span className="text-accent-400 italic">for Your Event</span>
                     </h1>
-                    <p className="text-tea-200 text-lg max-w-2xl">
-                        Weddings, corporate events, birthdays — we bring premium handcrafted tea to every occasion.
-                        Fill in the details and we'll call you within <strong className="text-white">30–60 minutes</strong> to confirm.
+                    <p className="text-tea-100 text-xl max-w-2xl font-light leading-relaxed">
+                        From corporate gatherings to grand weddings, we bring the ritual of tea to your special moments.
+                        Tell us about your event and get an instant quote.
                     </p>
                 </div>
             </section>
 
+            {/* Features Section */}
+            <section className="bg-white py-24 border-y border-tea-100">
+                <div className="max-w-7xl mx-auto px-4">
+                    <div className="text-center mb-16">
+                        <h2 className="text-4xl md:text-5xl font-serif font-bold text-tea-900 mb-4 italic">Experience the Extraordinary</h2>
+                        <p className="text-tea-600 max-w-2xl mx-auto">We don't just serve tea; we create immersive sensory experiences that leave lasting impressions on your guests.</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+                        {[
+                            { title: 'Handcrafted Blends', desc: 'Sourced from the finest estates in India and blended by hand for every order.', icon: <Sparkles className="text-accent-500" size={24} /> },
+                            { title: 'Live Tea Bar', desc: 'Our experts serve hot and cold tea live, ensuring the perfect temperature and aroma.', icon: <Clock className="text-accent-500" size={24} /> },
+                            { title: 'Sustainable Elegance', desc: 'Eco-friendly packaging and premium glass setups that look as good as they taste.', icon: <Star className="text-accent-500" size={24} /> }
+                        ].map((feat, i) => (
+                            <div key={i} className="flex flex-col items-center text-center p-8 rounded-3xl hover:bg-tea-50 transition-all duration-300 group border border-transparent hover:border-tea-100">
+                                <div className="w-16 h-16 bg-cream rounded-2xl flex items-center justify-center mb-6 shadow-inner group-hover:scale-110 transition-transform">
+                                    {feat.icon}
+                                </div>
+                                <h3 className="text-xl font-bold text-tea-900 mb-3">{feat.title}</h3>
+                                <p className="text-tea-600 text-sm leading-relaxed">{feat.desc}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
             {/* Main */}
-            <div className="max-w-4xl mx-auto px-4 py-12">
+            <div className="max-w-4xl mx-auto px-4 py-20">
 
                 {step < 5 && (
                     <>
@@ -228,13 +257,14 @@ const EventsPage: React.FC = () => {
                                 style={{ width: `${((step - 1) / (STEPS.length - 1)) * 100}%` }}
                             />
                             {STEPS.filter(s => s.id < 5).map((s) => {
-                                const Icon = s.icon;
+                                const StepIcon = s.icon;
                                 const done = step > s.id;
                                 const active = step === s.id;
                                 return (
                                     <div key={s.id} className="relative z-10 flex flex-col items-center gap-1">
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${done ? 'bg-tea-700 border-tea-700 text-white' : active ? 'bg-white border-tea-700 text-tea-700' : 'bg-white border-tea-200 text-tea-300'}`}>
-                                            {done ? <CheckCircle size={18} /> : <Icon size={18} />}
+                                        <div className={`w-10 h-10 rounded-full flex flex-col items-center justify-center border-2 transition-all ${done ? 'bg-tea-700 border-tea-700 text-white' : active ? 'bg-white border-tea-700 text-tea-700' : 'bg-white border-tea-200 text-tea-300'}`}>
+                                            {done ? <CheckCircle size={18} /> : <StepIcon size={18} />}
+                                            <span className="text-[10px] font-bold leading-none mt-0.5">{s.id}</span>
                                         </div>
                                         <span className={`text-[10px] font-bold uppercase tracking-wider hidden sm:block ${active ? 'text-tea-800' : done ? 'text-tea-600' : 'text-tea-300'}`}>{s.label}</span>
                                     </div>
@@ -263,16 +293,16 @@ const EventsPage: React.FC = () => {
                                             <h3 className="text-sm font-bold text-tea-800 mb-4 flex items-center gap-2"><Phone size={14} /> Your Contact</h3>
                                             <div className="grid sm:grid-cols-2 gap-4">
                                                 <div>
-                                                    <label className={labelBase}>Full Name *</label>
-                                                    <input className={inputBase} placeholder="Arjun Sharma" value={form.contactName} onChange={e => setField('contactName', e.target.value)} />
+                                                    <label htmlFor="contactName" className={labelBase}>Full Name *</label>
+                                                    <input id="contactName" className={inputBase} placeholder="Arjun Sharma" value={form.contactName} onChange={e => setField('contactName', e.target.value)} />
                                                 </div>
                                                 <div>
-                                                    <label className={labelBase}>Phone *</label>
-                                                    <input className={inputBase} type="tel" placeholder="9876543210" value={form.contactPhone} onChange={e => setField('contactPhone', e.target.value)} />
+                                                    <label htmlFor="contactPhone" className={labelBase}>Phone *</label>
+                                                    <input id="contactPhone" className={inputBase} type="tel" placeholder="9876543210" value={form.contactPhone} onChange={e => setField('contactPhone', e.target.value)} />
                                                 </div>
                                                 <div className="sm:col-span-2">
-                                                    <label className={labelBase}>Email *</label>
-                                                    <input className={inputBase} type="email" placeholder="arjun@example.com" value={form.contactEmail} onChange={e => setField('contactEmail', e.target.value)} />
+                                                    <label htmlFor="contactEmail" className={labelBase}>Email *</label>
+                                                    <input id="contactEmail" className={inputBase} type="email" placeholder="arjun@example.com" value={form.contactEmail} onChange={e => setField('contactEmail', e.target.value)} />
                                                 </div>
                                             </div>
                                         </div>
@@ -281,30 +311,30 @@ const EventsPage: React.FC = () => {
                                             <h3 className="text-sm font-bold text-tea-800 mb-4 flex items-center gap-2"><Calendar size={14} /> Event Info</h3>
                                             <div className="grid sm:grid-cols-2 gap-4">
                                                 <div>
-                                                    <label className={labelBase}>Event Name *</label>
-                                                    <input className={inputBase} placeholder="Sharma Wedding Reception" value={form.eventName} onChange={e => setField('eventName', e.target.value)} />
+                                                    <label htmlFor="eventName" className={labelBase}>Event Name *</label>
+                                                    <input id="eventName" className={inputBase} placeholder="Sharma Wedding Reception" value={form.eventName} onChange={e => setField('eventName', e.target.value)} />
                                                 </div>
                                                 <div>
-                                                    <label className={labelBase}>Event Type *</label>
-                                                    <select className={inputBase} value={form.eventType} onChange={e => setField('eventType', e.target.value)}>
+                                                    <label htmlFor="eventType" className={labelBase}>Event Type *</label>
+                                                    <select id="eventType" className={inputBase} value={form.eventType} onChange={e => setField('eventType', e.target.value)}>
                                                         <option value="">Select type...</option>
                                                         {EVENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                                                     </select>
                                                 </div>
                                                 <div>
-                                                    <label className={labelBase}>Event Date *</label>
-                                                    <input className={inputBase} type="date" min={new Date().toISOString().split('T')[0]} value={form.eventDate} onChange={e => setField('eventDate', e.target.value)} />
+                                                    <label htmlFor="eventDate" className={labelBase}>Event Date *</label>
+                                                    <input id="eventDate" className={inputBase} type="date" min={new Date().toISOString().split('T')[0]} value={form.eventDate} onChange={e => setField('eventDate', e.target.value)} />
                                                 </div>
                                                 <div>
-                                                    <label className={labelBase}>Time Slot *</label>
-                                                    <select className={inputBase} value={form.timeSlot} onChange={e => setField('timeSlot', e.target.value)}>
+                                                    <label htmlFor="timeSlot" className={labelBase}>Time Slot *</label>
+                                                    <select id="timeSlot" className={inputBase} value={form.timeSlot} onChange={e => setField('timeSlot', e.target.value)}>
                                                         <option value="">Select slot...</option>
                                                         {TIME_SLOTS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                                                     </select>
                                                 </div>
                                                 <div className="sm:col-span-2">
-                                                    <label className={labelBase}><MapPin size={12} className="inline mr-1" />Venue / Delivery Address *</label>
-                                                    <textarea className={inputBase + ' resize-none'} rows={2} placeholder="123 MG Road, Bangalore, Karnataka 560001" value={form.venueAddress} onChange={e => setField('venueAddress', e.target.value)} />
+                                                    <label htmlFor="venueAddress" className={labelBase}><MapPin size={12} className="inline mr-1" />Venue / Delivery Address *</label>
+                                                    <textarea id="venueAddress" className={inputBase + ' resize-none'} rows={2} placeholder="123 MG Road, Bangalore, Karnataka 560001" value={form.venueAddress} onChange={e => setField('venueAddress', e.target.value)} />
                                                 </div>
                                             </div>
                                         </div>
@@ -312,7 +342,8 @@ const EventsPage: React.FC = () => {
                                         <button
                                             onClick={() => setStep(2)}
                                             disabled={!isStep1Valid}
-                                            className="w-full py-4 bg-tea-700 text-white font-bold rounded-2xl hover:bg-tea-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                            className="w-full py-4 bg-tea-700 text-white font-bold rounded-2xl hover:bg-tea-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-tea-900/10"
+                                            aria-label="Next step"
                                         >
                                             Next: Headcount <ArrowRight size={18} />
                                         </button>
@@ -330,8 +361,9 @@ const EventsPage: React.FC = () => {
                                         <div className={sectionCard + ' space-y-6'}>
                                             {/* Total */}
                                             <div>
-                                                <label className={labelBase}>Total Guests *</label>
+                                                <label htmlFor="headcountTotal" className={labelBase}>Total Guests *</label>
                                                 <input
+                                                    id="headcountTotal"
                                                     type="number"
                                                     min={1}
                                                     className={inputBase + ' text-lg font-bold'}
@@ -340,7 +372,6 @@ const EventsPage: React.FC = () => {
                                                     onChange={e => {
                                                         const val = parseInt(e.target.value) || 0;
                                                         setField('headcountTotal', val);
-                                                        // Reset breakdown when total changes
                                                         setField('headcountAdults', 0);
                                                         setField('headcountKids', 0);
                                                         setField('headcountSeniors', 0);
@@ -352,23 +383,27 @@ const EventsPage: React.FC = () => {
                                                 <>
                                                     <p className="text-xs text-tea-600 font-medium">Now break it down (must add up to {form.headcountTotal}):</p>
                                                     {[
-                                                        { key: 'headcountAdults', label: 'Adults (18–59)' },
-                                                        { key: 'headcountKids', label: 'Children (under 18)' },
-                                                        { key: 'headcountSeniors', label: 'Senior Citizens (60+)' },
-                                                    ].map(({ key, label }) => (
+                                                        { key: 'headcountAdults', label: 'Adults (18–59)', ariaLabelPrefix: 'Adults' },
+                                                        { key: 'headcountKids', label: 'Children (under 18)', ariaLabelPrefix: 'Children' },
+                                                        { key: 'headcountSeniors', label: 'Senior Citizens (60+)', ariaLabelPrefix: 'Senior Citizens' },
+                                                    ].map(({ key, label, ariaLabelPrefix }) => (
                                                         <div key={key} className="flex items-center justify-between">
                                                             <span className="text-sm font-medium text-tea-800">{label}</span>
                                                             <div className="flex items-center gap-3">
                                                                 <button
+                                                                    type="button"
                                                                     onClick={() => setField(key as keyof FormState, Math.max(0, (form[key as keyof FormState] as number) - 1))}
                                                                     className="w-9 h-9 rounded-full border border-tea-200 flex items-center justify-center hover:bg-tea-50 transition-colors"
+                                                                    aria-label={`Decrease ${ariaLabelPrefix} headcount`}
                                                                 >
                                                                     <Minus size={14} />
                                                                 </button>
-                                                                <span className="w-10 text-center font-bold text-tea-900">{form[key as keyof FormState] as number}</span>
+                                                                <div className="w-10 text-center font-bold text-tea-900">{form[key as keyof FormState] as number}</div>
                                                                 <button
+                                                                    type="button"
                                                                     onClick={() => setField(key as keyof FormState, (form[key as keyof FormState] as number) + 1)}
                                                                     className="w-9 h-9 rounded-full border border-tea-200 flex items-center justify-center hover:bg-tea-50 transition-colors"
+                                                                    aria-label={`Increase ${ariaLabelPrefix} headcount`}
                                                                 >
                                                                     <Plus size={14} />
                                                                 </button>
@@ -395,7 +430,8 @@ const EventsPage: React.FC = () => {
                                             <button
                                                 onClick={() => setStep(3)}
                                                 disabled={!isStep2Valid}
-                                                className="flex-[2] py-4 bg-tea-700 text-white font-bold rounded-2xl hover:bg-tea-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                                className="flex-[2] py-4 bg-tea-700 text-white font-bold rounded-2xl hover:bg-tea-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-tea-900/10"
+                                                aria-label="Next step"
                                             >
                                                 Next: Menu <ArrowRight size={18} />
                                             </button>
@@ -433,16 +469,28 @@ const EventsPage: React.FC = () => {
                                                             <div className="flex items-center gap-2 flex-shrink-0">
                                                                 {qty > 0 ? (
                                                                     <>
-                                                                        <button onClick={() => adjustQty(product, -1)} className="w-8 h-8 rounded-full bg-tea-50 border border-tea-200 flex items-center justify-center hover:bg-tea-100 transition-colors">
+                                                                        <button
+                                                                            onClick={() => adjustQty(product, -1)}
+                                                                            className="w-8 h-8 rounded-full bg-tea-50 border border-tea-200 flex items-center justify-center hover:bg-tea-100 transition-colors"
+                                                                            aria-label={`Decrease ${product.name}`}
+                                                                        >
                                                                             <Minus size={12} />
                                                                         </button>
                                                                         <span className="w-6 text-center font-bold text-tea-900 text-sm">{qty}</span>
-                                                                        <button onClick={() => adjustQty(product, 1)} className="w-8 h-8 rounded-full bg-tea-700 text-white flex items-center justify-center hover:bg-tea-800 transition-colors">
+                                                                        <button
+                                                                            onClick={() => adjustQty(product, 1)}
+                                                                            className="w-8 h-8 rounded-full bg-tea-700 text-white flex items-center justify-center hover:bg-tea-800 transition-colors"
+                                                                            aria-label={`Increase ${product.name}`}
+                                                                        >
                                                                             <Plus size={12} />
                                                                         </button>
                                                                     </>
                                                                 ) : (
-                                                                    <button onClick={() => adjustQty(product, 1)} className="px-3 py-1.5 bg-tea-700 text-white text-xs font-bold rounded-lg hover:bg-tea-800 transition-colors">
+                                                                    <button
+                                                                        onClick={() => adjustQty(product, 1)}
+                                                                        className="px-3 py-1.5 bg-tea-700 text-white text-xs font-bold rounded-lg hover:bg-tea-800 transition-colors"
+                                                                        aria-label={`Add ${product.name}`}
+                                                                    >
                                                                         Add
                                                                     </button>
                                                                 )}
@@ -472,10 +520,10 @@ const EventsPage: React.FC = () => {
                                             </button>
                                             <button
                                                 onClick={() => setStep(4)}
-                                                disabled={!isStep3Valid}
-                                                className="flex-[2] py-4 bg-tea-700 text-white font-bold rounded-2xl hover:bg-tea-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                                className="flex-[2] py-4 bg-tea-700 text-white font-bold rounded-2xl hover:bg-tea-800 transition-all flex items-center justify-center gap-2"
+                                                aria-label={Object.keys(selectedItems).length > 0 ? "See Quote" : "Skip"}
                                             >
-                                                See Quote <ArrowRight size={18} />
+                                                {Object.keys(selectedItems).length > 0 ? 'See Quote' : 'Skip'} <ArrowRight size={18} />
                                             </button>
                                         </div>
                                     </div>
@@ -485,11 +533,10 @@ const EventsPage: React.FC = () => {
                                 {step === 4 && (
                                     <div className="space-y-6">
                                         <div>
-                                            <h2 className="text-2xl font-serif font-bold text-tea-900 mb-1">Your Approximate Quote</h2>
-                                            <p className="text-tea-600 text-sm">Final pricing will be confirmed by our team during the call.</p>
+                                            <h2 className="text-2xl font-serif font-bold text-tea-900 mb-1">Your Quote</h2>
+                                            <p className="text-tea-600 text-sm">Estimated pricing based on your details.</p>
                                         </div>
 
-                                        {/* Summary card */}
                                         <div className="bg-tea-900 text-white rounded-3xl p-8 shadow-2xl">
                                             <div className="flex items-center gap-3 mb-6">
                                                 <div className="w-10 h-10 bg-accent-500/20 rounded-xl flex items-center justify-center">
@@ -501,7 +548,6 @@ const EventsPage: React.FC = () => {
                                                 </div>
                                             </div>
 
-                                            {/* Items */}
                                             <div className="space-y-2 mb-6 pb-6 border-b border-white/10 max-h-40 overflow-y-auto">
                                                 {(Object.values(selectedItems) as SelectedItem[]).map(item => (
                                                     <div key={item.product_id} className="flex justify-between text-xs">
@@ -511,14 +557,13 @@ const EventsPage: React.FC = () => {
                                                 ))}
                                             </div>
 
-                                            {/* Pricing breakdown */}
                                             <div className="space-y-3 mb-6">
                                                 <div className="flex justify-between text-sm text-tea-300">
                                                     <span>Product Subtotal</span>
                                                     <span>{formatPrice(quote.base)}</span>
                                                 </div>
                                                 <div className="flex justify-between text-sm text-tea-300">
-                                                    <span>Flask Security Deposit</span>
+                                                    <span>Security Deposit</span>
                                                     <span>{formatPrice(quote.deposit)}</span>
                                                 </div>
                                                 <div className="flex justify-between text-sm text-tea-300">
@@ -536,17 +581,16 @@ const EventsPage: React.FC = () => {
                                             </div>
 
                                             <p className="text-tea-400 text-xs text-center">
-                                                * Flask deposits are fully refundable on return. Final invoice issued after confirmation call.
+                                                * Final invoice will be shared after confirmation call.
                                             </p>
                                         </div>
 
-                                        {/* Notes */}
                                         <div className={sectionCard}>
                                             <label className={labelBase}><FileText size={12} className="inline mr-1" />Special Requirements (optional)</label>
                                             <textarea
                                                 className={inputBase + ' resize-none'}
                                                 rows={3}
-                                                placeholder="Dietary restrictions, preferred blends, themed setup requirements..."
+                                                placeholder="Any specific requests..."
                                                 value={form.notes}
                                                 onChange={e => setField('notes', e.target.value)}
                                             />
@@ -560,9 +604,10 @@ const EventsPage: React.FC = () => {
                                                 onClick={handleSubmit}
                                                 disabled={isSubmitting}
                                                 className="flex-[2] py-4 bg-gradient-to-r from-tea-800 to-tea-700 text-white font-bold rounded-2xl hover:from-tea-900 hover:to-tea-800 transition-all shadow-xl flex items-center justify-center gap-2 disabled:opacity-60"
+                                                aria-label="Send Enquiry"
                                             >
                                                 {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}
-                                                {isSubmitting ? 'Submitting...' : 'Book My Event'}
+                                                {isSubmitting ? 'Submitting...' : 'Send Enquiry'}
                                             </button>
                                         </div>
                                     </div>
@@ -583,29 +628,9 @@ const EventsPage: React.FC = () => {
                             <CheckCircle size={48} className="text-tea-700" />
                         </div>
                         <h2 className="text-3xl font-serif font-bold text-tea-900 mb-3">You're all set!</h2>
-                        <p className="text-tea-600 text-lg mb-2">Your booking request has been received.</p>
+                        <p className="text-tea-600 text-lg mb-2">Booking received for {confirmedBooking.event_name}.</p>
                         <div className="inline-block bg-accent-50 border border-accent-200 rounded-2xl px-6 py-4 mb-6">
                             <p className="text-accent-700 font-bold text-sm">⏰ Our team will call you within <span className="text-accent-600 text-base">30–60 minutes</span></p>
-                            <p className="text-accent-600 text-xs mt-1">to confirm details and finalize the invoice.</p>
-                        </div>
-
-                        <div className="bg-white rounded-2xl border border-tea-100 p-6 mb-8 text-left max-w-sm mx-auto">
-                            <p className="text-xs text-tea-500 font-bold uppercase tracking-widest mb-3">Booking Reference</p>
-                            <p className="font-mono text-xs text-tea-700 break-all">{confirmedBooking.id}</p>
-                            <div className="mt-4 pt-4 border-t border-tea-50 space-y-2">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-tea-500">Event</span>
-                                    <span className="font-bold text-tea-900">{confirmedBooking.event_name}</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-tea-500">Date</span>
-                                    <span className="font-bold text-tea-900">{confirmedBooking.event_date}</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-tea-500">Estimate</span>
-                                    <span className="font-bold text-accent-600">{formatPrice(confirmedBooking.estimated_total)}</span>
-                                </div>
-                            </div>
                         </div>
 
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -616,29 +641,10 @@ const EventsPage: React.FC = () => {
                                 onClick={() => { setStep(1); setForm(initialForm); setSelectedItems({}); setConfirmedBooking(null); }}
                                 className="px-8 py-3 border border-tea-200 text-tea-700 font-bold rounded-2xl hover:bg-tea-50 transition-colors"
                             >
-                                Book Another Event
+                                Book Another
                             </button>
                         </div>
                     </motion.div>
-                )}
-
-                {/* Trust signals */}
-                {step < 5 && (
-                    <div className="mt-12 pt-8 border-t border-tea-100">
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
-                            {[
-                                { number: '500+', label: 'Events Served' },
-                                { number: '4.9★', label: 'Average Rating' },
-                                { number: '10K+', label: 'Happy Guests' },
-                                { number: '30–60 min', label: 'Callback Time' },
-                            ].map((s) => (
-                                <div key={s.label}>
-                                    <div className="text-2xl font-serif font-bold text-tea-700">{s.number}</div>
-                                    <div className="text-xs text-tea-500 font-medium mt-1">{s.label}</div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
                 )}
             </div>
         </div>

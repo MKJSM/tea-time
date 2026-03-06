@@ -15,9 +15,10 @@ export const mockProducts = [
         id: 'prod-1',
         name: 'Masala Chai',
         description: 'A rich spicy tea blend',
-        base_price: 25.0,
-        category: ['Tea', 'Hot'],
-        image_urls: ['/tea-masala.jpg'],
+        price: 25.0,
+        categories: ['Tea', 'Hot'],
+        image: '/tea-masala.jpg',
+        images: ['/tea-masala.jpg'],
         is_active: true,
         stock_quantity: 200,
         rating: 4.5,
@@ -28,9 +29,10 @@ export const mockProducts = [
         id: 'prod-2',
         name: 'Green Tea',
         description: 'Light refreshing green tea',
-        base_price: 20.0,
-        category: ['Tea', 'Hot'],
-        image_urls: ['/tea-green.jpg'],
+        price: 20.0,
+        categories: ['Tea', 'Hot'],
+        image: '/tea-green.jpg',
+        images: ['/tea-green.jpg'],
         is_active: true,
         stock_quantity: 150,
         rating: 4.2,
@@ -41,9 +43,10 @@ export const mockProducts = [
         id: 'prod-3',
         name: 'Cold Coffee',
         description: 'Chilled coffee with milk',
-        base_price: 35.0,
-        category: ['Coffee', 'Cold'],
-        image_urls: ['/coffee-cold.jpg'],
+        price: 35.0,
+        categories: ['Coffee', 'Cold'],
+        image: '/coffee-cold.jpg',
+        images: ['/coffee-cold.jpg'],
         is_active: true,
         stock_quantity: 100,
         rating: 4.7,
@@ -66,7 +69,7 @@ export const mockEventBookingResponse = {
 
 export const handlers = [
     // Products list (paginated)
-    http.get('/api/products', () => {
+    http.get('http://localhost/api/products', () => {
         return HttpResponse.json({
             data: mockProducts,
             total: mockProducts.length,
@@ -77,19 +80,19 @@ export const handlers = [
     }),
 
     // Product by ID
-    http.get('/api/products/:id', ({ params }) => {
+    http.get('http://localhost/api/products/:id', ({ params }) => {
         const product = mockProducts.find((p) => p.id === params.id);
         if (!product) return new HttpResponse(null, { status: 404 });
         return HttpResponse.json(product);
     }),
 
     // Create event booking
-    http.post('/api/events', () => {
+    http.post('http://localhost/api/events', () => {
         return HttpResponse.json(mockEventBookingResponse, { status: 201 });
     }),
 
     // List event bookings (admin)
-    http.get('/api/events', () => {
+    http.get('http://localhost/api/events', () => {
         return HttpResponse.json({
             data: [],
             total: 0,

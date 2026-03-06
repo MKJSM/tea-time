@@ -4,14 +4,24 @@
  */
 import { describe, it, expect, beforeAll, afterEach, afterAll } from 'vitest';
 import { configureStore } from '@reduxjs/toolkit';
-import { eventsApi, CreateEventBookingRequest } from '../../features/events/eventsApi';
-import { server, mockEventBookingResponse } from '../../test/server';
+import { productsApi } from '../../../features/products/productsApi';
+import { favoritesApi } from '../../../features/favorites/favoritesApi';
+import authReducer from '../../../features/auth/authSlice';
+import cartReducer from '../../../features/cart/cartSlice';
+import { eventsApi, CreateEventBookingRequest } from '../eventsApi';
+import { server, mockEventBookingResponse } from '../../../test/server';
 import { http, HttpResponse } from 'msw';
 
 function makeStore() {
     return configureStore({
-        reducer: { [eventsApi.reducerPath]: eventsApi.reducer },
-        middleware: (g) => g({ serializableCheck: false }).concat(eventsApi.middleware),
+        reducer: {
+            [eventsApi.reducerPath]: eventsApi.reducer,
+            [productsApi.reducerPath]: productsApi.reducer,
+            [favoritesApi.reducerPath]: favoritesApi.reducer,
+            auth: authReducer,
+            cart: cartReducer,
+        },
+        middleware: (g) => g({ serializableCheck: false }).concat(eventsApi.middleware, productsApi.middleware, favoritesApi.middleware),
     });
 }
 
@@ -67,7 +77,7 @@ describe('eventsApi — createEventBooking mutation', () => {
     it('mutation reflects error state on server failure', async () => {
         // Override handler to return 500
         server.use(
-            http.post('/api/events', () => {
+            http.post('http://localhost/api/events', () => {
                 return HttpResponse.json({ error: 'Internal server error' }, { status: 500 });
             })
         );

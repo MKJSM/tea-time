@@ -9,7 +9,7 @@ default: all
 # Build the frontend and copy the assets to the backend directory.
 deploy-frontend:
     @echo "Building frontend..."
-    cd frontend && bun install && bun run build
+    cd frontend && npm install && npm run build
     @echo "Deploying to backend..."
     mkdir -p backend/static/assets
     mkdir -p backend/templates
@@ -17,9 +17,9 @@ deploy-frontend:
     cp frontend/dist/index.html backend/templates/index.stpl
     # Copy assets
     cp -r frontend/dist/assets/* backend/static/assets/
-    # Copy fonts
+    # Copy fonts (if present)
     mkdir -p backend/static/fonts
-    cp -r frontend/dist/fonts/* backend/static/fonts/
+    cp -r frontend/dist/fonts/* backend/static/fonts/ 2>/dev/null || true
     # Copy other static files (robots.txt, favicon, etc) if they exist
     cp frontend/dist/*.txt backend/static/ 2>/dev/null || true
     cp frontend/dist/*.ico backend/static/ 2>/dev/null || true
@@ -54,7 +54,7 @@ all: run
 # Apply database migrations
 migrate:
     @echo "Applying migrations..."
-    cd backend && cargo sqlx migrate run
+    cd backend && cargo sqlx migrate run --source db/migration
     @echo "Migrations applied."
 
 # Create database and user (requires psql to be connected to a server with permission to create DBs/users)

@@ -32,7 +32,7 @@ pub async fn create_event_booking(
     let selected_items_json = serde_json::to_value(&body.selected_items)
         .map_err(|e| AppError::InternalServerError(e.to_string()))?;
 
-    let booking = sqlx::query!(
+    let booking = sqlx::query(
         r#"
         INSERT INTO event_bookings (
             user_id,
@@ -52,38 +52,39 @@ pub async fn create_event_booking(
             $20,
             'pending'
         )
-        RETURNING id, event_name, event_date::text AS event_date, status, estimated_total
+        RETURNING id, event_name, event_date, status, estimated_total
         "#,
-        user_id,
-        body.contact_name,
-        body.contact_phone,
-        body.contact_email,
-        body.event_name,
-        body.event_type,
-        event_date,
-        body.time_slot,
-        body.venue_address,
-        body.headcount_total,
-        body.headcount_adults,
-        body.headcount_kids,
-        body.headcount_seniors,
-        selected_items_json,
-        body.estimated_base,
-        body.estimated_deposit,
-        body.estimated_delivery,
-        body.estimated_tax,
-        body.estimated_total,
-        body.notes,
     )
+    .bind(user_id)
+    .bind(&body.contact_name)
+    .bind(&body.contact_phone)
+    .bind(&body.contact_email)
+    .bind(&body.event_name)
+    .bind(&body.event_type)
+    .bind(event_date) // This works with sqlx::query for chrono::NaiveDate
+    .bind(&body.time_slot)
+    .bind(&body.venue_address)
+    .bind(body.headcount_total)
+    .bind(body.headcount_adults)
+    .bind(body.headcount_kids)
+    .bind(body.headcount_seniors)
+    .bind(selected_items_json)
+    .bind(body.estimated_base)
+    .bind(body.estimated_deposit)
+    .bind(body.estimated_delivery)
+    .bind(body.estimated_tax)
+    .bind(body.estimated_total)
+    .bind(&body.notes)
     .fetch_one(&state.db)
     .await?;
 
+    use sqlx::Row;
     let response = EventBookingResponse {
-        id: booking.id,
-        event_name: booking.event_name,
-        event_date: booking.event_date.unwrap_or_default(),
-        status: booking.status,
-        estimated_total: booking.estimated_total,
+        id: booking.get("id"),
+        event_name: booking.get("event_name"),
+        event_date: booking.get::<chrono::NaiveDate, _>("event_date").to_string(),
+        status: booking.get("status"),
+        estimated_total: booking.get("estimated_total"),
         message: "Your event booking request has been received! Our team will call you within 30–60 minutes to confirm the details and finalize your booking.".into(),
     };
 

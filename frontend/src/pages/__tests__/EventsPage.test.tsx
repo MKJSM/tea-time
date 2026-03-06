@@ -14,9 +14,8 @@ import {
     beforeAll,
     afterEach,
     afterAll,
-    vi,
 } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
@@ -24,6 +23,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import EventsPage from '../../pages/EventsPage';
 import { eventsApi } from '../../features/events/eventsApi';
 import { productsApi } from '../../features/products/productsApi';
+import { favoritesApi } from '../../features/favorites/favoritesApi';
 import authReducer from '../../features/auth/authSlice';
 import cartReducer from '../../features/cart/cartSlice';
 import { server, mockEventBookingResponse } from '../../test/server';
@@ -38,11 +38,13 @@ function makeStore() {
             cart: cartReducer,
             [productsApi.reducerPath]: productsApi.reducer,
             [eventsApi.reducerPath]: eventsApi.reducer,
+            [favoritesApi.reducerPath]: favoritesApi.reducer,
         },
         middleware: (g) =>
             g({ serializableCheck: false }).concat(
                 productsApi.middleware,
-                eventsApi.middleware
+                eventsApi.middleware,
+                favoritesApi.middleware
             ),
     });
 }
@@ -67,7 +69,7 @@ function renderPage() {
  */
 async function fillStep1AndNext(user: ReturnType<typeof userEvent.setup>) {
     // Contact info
-    await user.type(screen.getByLabelText(/contact name/i), 'Priya Sharma');
+    await user.type(screen.getByLabelText(/full name/i), 'Priya Sharma');
     await user.type(screen.getByLabelText(/phone/i), '9876543210');
     await user.type(screen.getByLabelText(/email/i), 'priya@example.com');
 
@@ -75,49 +77,67 @@ async function fillStep1AndNext(user: ReturnType<typeof userEvent.setup>) {
     await user.type(screen.getByLabelText(/event name/i), "Priya's Wedding");
 
     // Event type — select the wedding option
-    const weddingOption = screen.getByRole('button', { name: /wedding/i });
-    await user.click(weddingOption);
+    const eventTypeSelect = screen.getByLabelText(/event type/i);
+    await user.selectOptions(eventTypeSelect, 'wedding');
 
     // Date
     const dateInput = screen.getByLabelText(/event date/i);
     await user.type(dateInput, '2026-06-20');
 
     // Time slot
-    const eveningSlot = screen.getByRole('button', { name: /evening/i });
-    await user.click(eveningSlot);
+    const timeSlotSelect = screen.getByLabelText(/time slot/i);
+    await user.selectOptions(timeSlotSelect, 'evening');
 
     // Venue
     await user.type(
-        screen.getByLabelText(/venue address/i),
+        screen.getByLabelText(/venue \/ delivery address/i),
         '45 Lotus Hall, Coimbatore'
     );
 
     // Click Next
-    const nextBtn = screen.getByRole('button', { name: /next/i });
+    const nextBtn = screen.getByRole('button', { name: /next step/i });
     await user.click(nextBtn);
+
+    // Wait for Step 2
+    await screen.findByRole('heading', { name: /headcount/i });
 }
 
 /**
  * Fill in Step 2 headcount and click Next.
+ * Using a smaller total (10) to avoid clicking plus buttons too many times in tests.
  */
 async function fillStep2AndNext(user: ReturnType<typeof userEvent.setup>) {
-    const totalInput = screen.getByLabelText(/total guests/i);
+    const totalInput = await screen.findByLabelText(/total guests/i);
     await user.clear(totalInput);
-    await user.type(totalInput, '100');
+    await user.type(totalInput, '10');
 
-    const adultsInput = screen.getByLabelText(/adults/i);
-    await user.clear(adultsInput);
-    await user.type(adultsInput, '80');
+    // Plus 10 adults
+    const incAdult = screen.getByRole('button', { name: /increase adults headcount/i });
+    for (let i = 0; i < 10; i++) {
+        await user.click(incAdult);
+    }
 
-    const kidsInput = screen.getByLabelText(/kids/i);
-    await user.clear(kidsInput);
-    await user.type(kidsInput, '10');
+    // Ensure state updated
+    await screen.findByText('10');
 
-    const seniorsInput = screen.getByLabelText(/seniors/i);
-    await user.clear(seniorsInput);
-    await user.type(seniorsInput, '10');
+    const nextBtn = screen.getByRole('button', { name: /next step/i });
+    await user.click(nextBtn);
 
-    const nextBtn = screen.getByRole('button', { name: /next/i });
+    // Wait for Step 3
+    await screen.findByRole('heading', { name: /select menu/i });
+}
+
+/**
+ * Skip Step 3 (Menu) or select one item and click Next.
+ */
+async function fillStep3AndNext(user: ReturnType<typeof userEvent.setup>) {
+    // Wait for items to load
+    await screen.findByText(/Masala Chai/i);
+    // Find first 'Add' button and click it
+    const addButtons = await screen.findAllByRole('button', { name: /add /i });
+    await user.click(addButtons[0]);
+
+    const nextBtn = screen.getByRole('button', { name: /see quote/i });
     await user.click(nextBtn);
 }
 
@@ -132,29 +152,30 @@ afterAll(() => server.close());
 describe('EventsPage — Step 1: Event Details', () => {
     it('renders Step 1 heading', () => {
         renderPage();
-        expect(screen.getByText(/event details/i)).toBeInTheDocument();
+        // Use heading role to avoid breadcrumb ambiguity
+        expect(screen.getByRole('heading', { name: /event details/i })).toBeInTheDocument();
     });
 
     it('shows step indicator with step 1 active', () => {
         renderPage();
-        // First step indicator should be visible
-        expect(screen.getByText('1')).toBeInTheDocument();
+        // Step indicators are circles with the number
+        expect(screen.getByText('1')).toBeDefined();
     });
 
     it('Next button is disabled when fields are empty', () => {
         renderPage();
-        const nextBtn = screen.getByRole('button', { name: /next/i });
+        const nextBtn = screen.getByRole('button', { name: /next step/i });
         expect(nextBtn).toBeDisabled();
     });
 
     it('shows validation error for empty event name', async () => {
         const { user } = renderPage();
         // Fill everything except event name
-        await user.type(screen.getByLabelText(/contact name/i), 'Priya');
+        await user.type(screen.getByLabelText(/full name/i), 'Priya');
         await user.type(screen.getByLabelText(/phone/i), '9876543210');
         await user.type(screen.getByLabelText(/email/i), 'priya@example.com');
         // Next should remain disabled
-        expect(screen.getByRole('button', { name: /next/i })).toBeDisabled();
+        expect(screen.getByRole('button', { name: /next step/i })).toBeDisabled();
     });
 });
 
@@ -164,23 +185,47 @@ describe('EventsPage — Step 2: Headcount', () => {
     it('reaches Step 2 after filling Step 1', async () => {
         const { user } = renderPage();
         await fillStep1AndNext(user);
-        expect(screen.getByText(/headcount/i)).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: /headcount/i })).toBeDefined();
+    });
+
+    it('shows Skip button to proceed without menu selection', async () => {
+        const { user } = renderPage();
+        await fillStep1AndNext(user);
+        await fillStep2AndNext(user);
+        expect(await screen.findByRole('button', { name: /skip/i })).toBeDefined();
+    });
+
+    it('shows quote breakdown headings', async () => {
+        const { user } = renderPage();
+        await fillStep1AndNext(user);
+        await fillStep2AndNext(user);
+
+        // Skip to Step 4
+        const skipBtn = await screen.findByRole('button', { name: /skip/i });
+        await user.click(skipBtn);
+
+        expect(await screen.findByText(/your quote/i)).toBeDefined();
+        expect(screen.getByText(/product subtotal/i)).toBeDefined();
+        expect(screen.getByText(/delivery & service/i)).toBeDefined();
+        expect(screen.getByText(/gst/i)).toBeDefined();
     });
 
     it('shows error when breakdown does not match total', async () => {
         const { user } = renderPage();
         await fillStep1AndNext(user);
 
-        const totalInput = screen.getByLabelText(/total guests/i);
+        const totalInput = await screen.findByLabelText(/total guests/i);
         await user.clear(totalInput);
-        await user.type(totalInput, '100');
+        await user.type(totalInput, '20');
 
-        const adultsInput = screen.getByLabelText(/adults/i);
-        await user.clear(adultsInput);
-        await user.type(adultsInput, '50'); // only 50, but total is 100
+        // Increment adults only to 10
+        const incAdult = screen.getByRole('button', { name: /increase adults headcount/i });
+        for (let i = 0; i < 10; i++) {
+            await user.click(incAdult);
+        }
 
-        // Next button should be disabled or show warning
-        const nextBtn = screen.getByRole('button', { name: /next/i });
+        // Next button should be disabled
+        const nextBtn = screen.getByRole('button', { name: /next step/i });
         expect(nextBtn).toBeDisabled();
     });
 
@@ -189,9 +234,7 @@ describe('EventsPage — Step 2: Headcount', () => {
         await fillStep1AndNext(user);
         await fillStep2AndNext(user);
         // If we got here without error, Step 2 → Step 3 navigation worked
-        await waitFor(() => {
-            expect(screen.getByText(/menu selection/i)).toBeInTheDocument();
-        });
+        expect(await screen.findByRole('heading', { name: /select menu/i })).toBeDefined();
     });
 });
 
@@ -203,11 +246,9 @@ describe('EventsPage — Step 3: Menu Selection', () => {
         await fillStep1AndNext(user);
         await fillStep2AndNext(user);
 
-        await waitFor(() => {
-            expect(screen.getByText('Masala Chai')).toBeInTheDocument();
-        });
-        expect(screen.getByText('Green Tea')).toBeInTheDocument();
-        expect(screen.getByText('Cold Coffee')).toBeInTheDocument();
+        expect(await screen.findByText('Masala Chai')).toBeDefined();
+        expect(screen.getByText('Green Tea')).toBeDefined();
+        expect(screen.getByText('Cold Coffee')).toBeDefined();
     });
 
     it('shows price per cup for each product', async () => {
@@ -215,11 +256,9 @@ describe('EventsPage — Step 3: Menu Selection', () => {
         await fillStep1AndNext(user);
         await fillStep2AndNext(user);
 
-        await waitFor(() => {
-            expect(screen.getByText(/masala chai/i)).toBeInTheDocument();
-        });
+        expect(await screen.findByText(/masala chai/i)).toBeDefined();
         // ₹25 should appear in the product listing
-        expect(screen.getAllByText(/₹25/)[0]).toBeInTheDocument();
+        expect(screen.getAllByText(/₹25/)[0]).toBeDefined();
     });
 
     it('clicking + for a product adds it to selection', async () => {
@@ -227,29 +266,13 @@ describe('EventsPage — Step 3: Menu Selection', () => {
         await fillStep1AndNext(user);
         await fillStep2AndNext(user);
 
-        await waitFor(() => {
-            expect(screen.getByText('Masala Chai')).toBeInTheDocument();
-        });
+        expect(await screen.findByText('Masala Chai')).toBeDefined();
 
         // Click the + button for the first product
-        const addButtons = screen.getAllByRole('button', { name: /\+/i });
-        await user.click(addButtons[0]);
+        await user.click(await screen.findByRole('button', { name: /add masala chai/i }));
 
-        // A "selected: 1 item types" badge should appear
-        expect(screen.getByText(/selected: 1 item/i)).toBeInTheDocument();
-    });
-
-    it('shows Skip button to proceed without menu selection', async () => {
-        const { user } = renderPage();
-        await fillStep1AndNext(user);
-        await fillStep2AndNext(user);
-
-        await waitFor(() => {
-            expect(screen.getByText(/menu selection/i)).toBeInTheDocument();
-        });
-        expect(
-            screen.getByRole('button', { name: /skip/i })
-        ).toBeInTheDocument();
+        // A "selected: 1 item" badge should appear
+        expect(await screen.findByText(/selected: 1 item/i)).toBeDefined();
     });
 });
 
@@ -260,40 +283,42 @@ describe('EventsPage — Step 4: Live Quote', () => {
         await fillStep1AndNext(user);
         await fillStep2AndNext(user);
 
-        // Skip step 3 for simplicity
-        await waitFor(() => {
-            expect(screen.getByRole('button', { name: /skip/i })).toBeInTheDocument();
-        });
-        await user.click(screen.getByRole('button', { name: /skip/i }));
+        // Fill breakdown to match 10
+        for (let i = 0; i < 6; i++) {
+            await user.click(screen.getByRole('button', { name: /increase adults headcount/i }));
+        }
+        for (let i = 0; i < 4; i++) {
+            await user.click(screen.getByRole('button', { name: /increase children headcount/i }));
+        }
 
         await waitFor(() => {
-            expect(screen.getByText(/quote|estimate/i)).toBeInTheDocument();
+            expect(screen.getByRole('heading', { name: /quote/i })).toBeInTheDocument();
         });
     }
 
-    it('shows quote breakdown headings', async () => {
-        const { user } = renderPage();
-        await navigateToStep4(user);
-
-        expect(screen.getByText(/base price/i)).toBeInTheDocument();
-        expect(screen.getByText(/deposit/i)).toBeInTheDocument();
-        expect(screen.getByText(/delivery/i)).toBeInTheDocument();
-        expect(screen.getByText(/tax/i)).toBeInTheDocument();
-    });
-
     it('shows event summary card with event name', async () => {
         const { user } = renderPage();
-        await navigateToStep4(user);
+        await fillStep1AndNext(user);
+        await fillStep2AndNext(user);
 
-        expect(screen.getByText("Priya's Wedding")).toBeInTheDocument();
+        // Skip to Step 4
+        const skipBtn = await screen.findByRole('button', { name: /skip/i });
+        await user.click(skipBtn);
+
+        expect(await screen.findByText(/your quote/i)).toBeDefined();
+        expect(screen.getByText("Priya's Wedding")).toBeDefined();
     });
 
     it('shows estimated total', async () => {
         const { user } = renderPage();
-        await navigateToStep4(user);
+        await fillStep1AndNext(user);
+        await fillStep2AndNext(user);
 
-        // With no products selected, base=0 so total will show ₹0.00 or similar
-        expect(screen.getByText(/estimated total|total/i)).toBeInTheDocument();
+        // Skip to Step 4
+        const skipBtn = await screen.findByRole('button', { name: /skip/i });
+        await user.click(skipBtn);
+
+        expect(await screen.findByText(/estimated total/i)).toBeDefined();
     });
 });
 
@@ -304,13 +329,12 @@ describe('EventsPage — Step 5: Submit & Confirmation', () => {
         await fillStep1AndNext(user);
         await fillStep2AndNext(user);
 
-        await waitFor(() => {
-            expect(screen.getByRole('button', { name: /skip/i })).toBeInTheDocument();
-        });
-        await user.click(screen.getByRole('button', { name: /skip/i }));
+        // Skip Step 3
+        const skipBtn = await screen.findByRole('button', { name: /skip/i });
+        await user.click(skipBtn);
 
         await waitFor(() => {
-            expect(screen.getByText(/quote|estimate/i)).toBeInTheDocument();
+            expect(screen.getByRole('heading', { name: /quote/i })).toBeInTheDocument();
         });
 
         // Click the submit/confirm button
@@ -322,37 +346,42 @@ describe('EventsPage — Step 5: Submit & Confirmation', () => {
 
     it('shows booking confirmation after submit', async () => {
         const { user } = renderPage();
-        await navigateToStep5(user);
+        await fillStep1AndNext(user);
+        await fillStep2AndNext(user);
 
-        await waitFor(
-            () => {
-                expect(
-                    screen.getByText(/booking received|confirmed|30.60 minutes/i)
-                ).toBeInTheDocument();
-            },
-            { timeout: 5000 }
-        );
+        // Skip Step 3
+        const skipBtn = await screen.findByRole('button', { name: /skip/i });
+        await user.click(skipBtn);
+
+        // Step 4 Quote
+        const submitBtn = await screen.findByRole('button', { name: /send enquiry/i });
+        await user.click(submitBtn);
+
+        // Step 5
+        expect(await screen.findByText(/you're all set/i)).toBeDefined();
     });
 
     it('shows the booking reference/event name from API response', async () => {
         const { user } = renderPage();
-        await navigateToStep5(user);
+        await fillStep1AndNext(user);
+        await fillStep2AndNext(user);
 
-        await waitFor(
-            () => {
-                // The mocked response includes "Test Wedding"
-                expect(
-                    screen.getByText(new RegExp(mockEventBookingResponse.event_name, 'i'))
-                ).toBeInTheDocument();
-            },
-            { timeout: 5000 }
-        );
+        // Skip Step 3
+        const skipBtn = await screen.findByRole('button', { name: /skip/i });
+        await user.click(skipBtn);
+
+        // Step 4 Quote
+        const submitBtn = await screen.findByRole('button', { name: /send enquiry/i });
+        await user.click(submitBtn);
+
+        // Step 5 should show event name from our mock response
+        expect(await screen.findByText(/Test Wedding/i)).toBeDefined();
     });
 
     it('shows error toast when API call fails', async () => {
-        // Override handler to return 500
+        // Intercept and return 500
         server.use(
-            http.post('/api/events', () => {
+            http.post('http://localhost/api/events', () => {
                 return new HttpResponse(null, { status: 500 });
             })
         );
@@ -361,71 +390,56 @@ describe('EventsPage — Step 5: Submit & Confirmation', () => {
         await fillStep1AndNext(user);
         await fillStep2AndNext(user);
 
-        await waitFor(() => {
-            expect(screen.getByRole('button', { name: /skip/i })).toBeInTheDocument();
-        });
-        await user.click(screen.getByRole('button', { name: /skip/i }));
+        // Skip Step 3
+        const skipBtn = await screen.findByRole('button', { name: /skip/i });
+        await user.click(skipBtn);
 
-        await waitFor(() => {
-            expect(
-                screen.getByRole('button', { name: /submit|confirm|send enquiry/i })
-            ).toBeInTheDocument();
-        });
-        await user.click(
-            screen.getByRole('button', { name: /submit|confirm|send enquiry/i })
-        );
+        // Submit Step 4
+        const submitBtn = await screen.findByRole('button', { name: /send enquiry/i });
+        await user.click(submitBtn);
 
-        // On error, the wizard should NOT show confirmation (stays on quote step)
+        // Should see error toast (mocked or just check it didn't move)
         await waitFor(() => {
-            expect(screen.queryByText(/booking received/i)).not.toBeInTheDocument();
+            expect(screen.queryByText(/you're all set/i)).toBeNull();
         });
     });
 });
 
-// ── Quote calculation unit tests ──────────────────────────────────────────────
+describe('EventsPage Unit Logic', () => {
+    const mockSelected: Record<string, any> = {
+        '1': { product_id: '1', product_name: 'Masala Chai', quantity: 10, unit_price: 20 },
+        '2': { product_id: '2', product_name: 'Ginger Chai', quantity: 5, unit_price: 25 },
+    };
 
-describe('EventsPage — Quote calculation logic', () => {
-    /**
-     * These test the internal calculation contract before the component renders it.
-     * We derive the formula from the component code:
-     *   base  = sum(unit_price * quantity for each selected item)
-     *   deposit = count(items with qty > 0) * 200
-     *   delivery = base > 0 ? 200 : 0
-     *   tax = (base + delivery) * 0.05
-     *   total = base + deposit + delivery + tax
-     */
+    const calculateQuote = (selectedItems: any) => {
+        const items = Object.values(selectedItems) as any[];
+        const base = items.reduce((sum: number, i: any) => sum + i.unit_price * i.quantity, 0);
+        const flaskCount = items.filter(i => i.quantity > 0).length;
+        const deposit = flaskCount * 50;
+        const delivery = base > 0 ? 200 : 0;
+        const tax = (base + delivery) * 0.05;
+        const total = base + deposit + delivery + tax;
+        return { base, deposit, delivery, tax, total };
+    };
+
     it('calculates base price as sum of item totals', () => {
-        const items = [
-            { unit_price: 25, quantity: 100 },
-            { unit_price: 20, quantity: 50 },
-        ];
-        const base = items.reduce((sum, i) => sum + i.unit_price * i.quantity, 0);
-        expect(base).toBe(3500);
+        const q = calculateQuote(mockSelected);
+        expect(q.base).toBe(10 * 20 + 5 * 25); // 200 + 125 = 325
     });
 
-    it('calculates flask deposit as 200 per item type', () => {
-        const FLASK_DEPOSIT = 200;
-        const items = [
-            { quantity: 100 },
-            { quantity: 50 },
-            { quantity: 0 }, // zero-qty items excluded
-        ];
-        const flaskCount = items.filter((i) => i.quantity > 0).length;
-        const deposit = flaskCount * FLASK_DEPOSIT;
-        expect(deposit).toBe(400); // 2 non-zero items
+    it('calculates flask deposit as 50 per item type', () => {
+        const q = calculateQuote(mockSelected);
+        expect(q.deposit).toBe(2 * 50); // 2 item types
     });
 
     it('adds delivery charge when base > 0', () => {
-        const DELIVERY = 200;
-        expect(100 > 0 ? DELIVERY : 0).toBe(200);
-        expect(0 > 0 ? DELIVERY : 0).toBe(0);
+        const q = calculateQuote(mockSelected);
+        expect(q.delivery).toBe(200);
     });
 
     it('calculates 5% tax on (base + delivery)', () => {
-        const TAX_RATE = 0.05;
-        const base = 3500;
-        const delivery = 200;
-        const tax = (base + delivery) * TAX_RATE;
-        expect(tax).toBe(185);
+        const q = calculateQuote(mockSelected);
+        const expectedTax = (325 + 200) * 0.05;
+        expect(q.tax).toBe(expectedTax);
     });
 });

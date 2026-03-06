@@ -1,0 +1,23 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90m/home/jayasuriya/workspace/tea-time/frontend[39m
+
+ [32m✓[39m src/pages/__tests__/EventsPage.test.tsx [2m([22m[2m21 tests[22m[2m)[22m[33m 16184[2mms[22m[39m
+     [33m[2m✓[22m[39m reaches Step 2 after filling Step 1 [33m 729[2mms[22m[39m
+     [33m[2m✓[22m[39m shows Skip button to proceed without menu selection [33m 1171[2mms[22m[39m
+     [33m[2m✓[22m[39m shows quote breakdown headings [33m 1427[2mms[22m[39m
+     [33m[2m✓[22m[39m shows error when breakdown does not match total [33m 857[2mms[22m[39m
+     [33m[2m✓[22m[39m Next enabled when headcount breakdown sums to total [33m 1102[2mms[22m[39m
+     [33m[2m✓[22m[39m loads and renders products from API [33m 1104[2mms[22m[39m
+     [33m[2m✓[22m[39m shows price per cup for each product [33m 1147[2mms[22m[39m
+     [33m[2m✓[22m[39m clicking + for a product adds it to selection [33m 1145[2mms[22m[39m
+     [33m[2m✓[22m[39m shows event summary card with event name [33m 1367[2mms[22m[39m
+     [33m[2m✓[22m[39m shows estimated total [33m 1406[2mms[22m[39m
+     [33m[2m✓[22m[39m shows booking confirmation after submit [33m 1458[2mms[22m[39m
+     [33m[2m✓[22m[39m shows the booking reference/event name from API response [33m 1417[2mms[22m[39m
+     [33m[2m✓[22m[39m shows error toast when API call fails [33m 1423[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m21 passed[39m[22m[90m (21)[39m
+[2m   Start at [22m 08:43:03
+[2m   Duration [22m 17.15s[2m (transform 149ms, setup 95ms, import 482ms, tests 16.18s, environment 294ms)[22m
+
