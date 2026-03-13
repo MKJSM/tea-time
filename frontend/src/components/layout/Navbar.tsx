@@ -77,7 +77,10 @@ const Navbar: React.FC = () => {
 
             <Link to="/shop" className="text-tea-950/80 hover:text-tea-800 font-bold text-[10px] lg:text-xs uppercase tracking-widest transition-colors">Shop</Link>
             {isAuthenticated ? (
-              <Link to="/orders" className="text-tea-950/80 hover:text-tea-800 font-bold text-[10px] lg:text-xs uppercase tracking-widest transition-colors">Orders</Link>
+              <>
+                <Link to="/orders" className="text-tea-950/80 hover:text-tea-800 font-bold text-[10px] lg:text-xs uppercase tracking-widest transition-colors">Orders</Link>
+                <Link to="/event-bookings" className="text-tea-950/80 hover:text-tea-800 font-bold text-[10px] lg:text-xs uppercase tracking-widest transition-colors">Events</Link>
+              </>
             ) : (
               // Render empty invisible placeholder to maintain height if needed, but horizontal shift is inevitable if item appears. 
               // Ideally we shouldn't reserve space for "Orders" if user isn't logged in, that looks weird.

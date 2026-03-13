@@ -390,3 +390,13 @@ pub struct EventBookingResponse {
     pub estimated_total: f64,
     pub message: String,
 }
+
+/// Request body for updating event booking status (shop owner / admin)
+#[derive(Serialize, Deserialize, Validate, Debug)]
+pub struct UpdateEventBookingStatusRequest {
+    #[validate(length(min = 1, max = 20))]
+    pub status: String, // "confirmed" | "cancelled"
+    pub notes: Option<String>,
+    pub cancellation_reason: Option<String>,
+}
+

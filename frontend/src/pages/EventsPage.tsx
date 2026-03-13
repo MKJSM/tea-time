@@ -634,8 +634,8 @@ const EventsPage: React.FC = () => {
                         </div>
 
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <Link to="/" className="px-8 py-3 bg-tea-700 text-white font-bold rounded-2xl hover:bg-tea-800 transition-colors">
-                                Back to Home
+                            <Link to="/event-bookings" className="px-8 py-3 bg-tea-700 text-white font-bold rounded-2xl hover:bg-tea-800 transition-colors">
+                                View My Bookings
                             </Link>
                             <button
                                 onClick={() => { setStep(1); setForm(initialForm); setSelectedItems({}); setConfirmedBooking(null); }}

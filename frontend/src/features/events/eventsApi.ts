@@ -39,10 +39,75 @@ export interface EventBookingResponse {
     message: string;
 }
 
+export interface EventBookingStatusHistory {
+    id: string;
+    old_status: string | null;
+    new_status: string;
+    notes: string | null;
+    created_at: string | null;
+}
+
+export interface EventBookingDetail {
+    id: string;
+    user_id: string | null;
+    contact_name: string;
+    contact_phone: string;
+    contact_email: string;
+    event_name: string;
+    event_type: string;
+    event_date: string;
+    time_slot: string;
+    venue_address: string;
+    headcount_total: number;
+    headcount_adults: number;
+    headcount_kids: number;
+    headcount_seniors: number;
+    selected_items: EventSelectedItem[];
+    estimated_base: number;
+    estimated_deposit: number;
+    estimated_delivery: number;
+    estimated_tax: number;
+    estimated_total: number;
+    notes: string | null;
+    admin_notes: string | null;
+    status: string;
+    cancellation_reason: string | null;
+    confirmed_at: string | null;
+    cancelled_at: string | null;
+    created_at: string | null;
+    updated_at: string | null;
+    status_history: EventBookingStatusHistory[];
+}
+
+export interface EventBookingSummary {
+    id: string;
+    contact_name: string;
+    contact_email: string;
+    event_name: string;
+    event_type: string;
+    event_date: string;
+    time_slot: string;
+    venue_address: string;
+    headcount_total: number;
+    selected_items: EventSelectedItem[];
+    estimated_total: number;
+    status: string;
+    cancellation_reason: string | null;
+    confirmed_at: string | null;
+    cancelled_at: string | null;
+    created_at: string | null;
+}
+
+export interface UpdateEventBookingStatusRequest {
+    status: 'confirmed' | 'cancelled';
+    notes?: string;
+    cancellation_reason?: string;
+}
+
 export const eventsApi = createApi({
     reducerPath: 'eventsApi',
     baseQuery: axiosBaseQuery(),
-    tagTypes: ['Events'],
+    tagTypes: ['Events', 'MyEvents'],
     endpoints: (builder) => ({
         createEventBooking: builder.mutation<EventBookingResponse, CreateEventBookingRequest>({
             query: (data) => ({
@@ -50,11 +115,34 @@ export const eventsApi = createApi({
                 method: 'POST',
                 body: data,
             }),
-            invalidatesTags: ['Events'],
+            invalidatesTags: ['Events', 'MyEvents'],
         }),
         getEventBookings: builder.query<{ data: any[]; total: number }, void>({
             query: () => ({ url: '/events', method: 'GET' }),
             providesTags: ['Events'],
+        }),
+        getMyEventBookings: builder.query<{ data: EventBookingSummary[]; total: number }, void>({
+            query: () => ({ url: '/events/my', method: 'GET' }),
+            providesTags: ['MyEvents'],
+        }),
+        getEventBookingById: builder.query<EventBookingDetail, string>({
+            query: (id) => ({ url: `/events/${id}`, method: 'GET' }),
+            providesTags: (_result, _err, id) => [{ type: 'MyEvents', id }],
+        }),
+        updateEventBookingStatus: builder.mutation<
+            { id: string; old_status: string; status: string; message: string },
+            { id: string; body: UpdateEventBookingStatusRequest }
+        >({
+            query: ({ id, body }) => ({
+                url: `/events/${id}/status`,
+                method: 'PATCH',
+                body,
+            }),
+            invalidatesTags: (_result, _err, { id }) => [
+                'Events',
+                'MyEvents',
+                { type: 'MyEvents', id },
+            ],
         }),
     }),
 });
@@ -62,4 +150,7 @@ export const eventsApi = createApi({
 export const {
     useCreateEventBookingMutation,
     useGetEventBookingsQuery,
+    useGetMyEventBookingsQuery,
+    useGetEventBookingByIdQuery,
+    useUpdateEventBookingStatusMutation,
 } = eventsApi;

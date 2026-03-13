@@ -13,7 +13,7 @@ use crate::state::AppState;
 use axum::http::Request;
 use axum::{
     extract::DefaultBodyLimit,
-    routing::{delete, get, post, put},
+    routing::{delete, get, patch, post, put},
     Router,
 };
 use pages::index_handler;
@@ -161,6 +161,9 @@ pub fn build_router(state: AppState) -> Router {
         // Events / Catering Enquiry Routes
         .route("/api/events", post(events::create_event_booking))
         .route("/api/events", get(events::list_event_bookings))
+        .route("/api/events/my", get(events::list_my_event_bookings))
+        .route("/api/events/{id}", get(events::get_event_booking))
+        .route("/api/events/{id}/status", patch(events::update_event_booking_status))
         // File Routes
         .route("/api/files/upload", post(files::upload_image))
         // Middleware

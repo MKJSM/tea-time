@@ -26,6 +26,8 @@ const AboutPage = lazy(() => import('./pages/AboutPage'));
 const WhoWeServePage = lazy(() => import('./pages/WhoWeServePage'));
 const SupportPage = lazy(() => import('./pages/SupportPage'));
 const EventsPage = lazy(() => import('./pages/EventsPage'));
+const EventBookingsPage = lazy(() => import('./pages/EventBookingsPage'));
+const EventBookingDetailPage = lazy(() => import('./pages/EventBookingDetailPage'));
 
 // Lazy load non-critical components (modals, drawers)
 const AuthModal = lazy(() => import('./components/auth/AuthModal'));
@@ -100,6 +102,8 @@ const App: React.FC = () => {
               <Route path="/who-we-serve" element={<PageWrapper><WhoWeServePage /></PageWrapper>} />
               <Route path="/support" element={<PageWrapper><SupportPage /></PageWrapper>} />
               <Route path="/events" element={<PageWrapper><EventsPage /></PageWrapper>} />
+              <Route path="/event-bookings" element={<PageWrapper><EventBookingsPage /></PageWrapper>} />
+              <Route path="/event-booking/:id" element={<PageWrapper><EventBookingDetailPage /></PageWrapper>} />
             </Routes>
           </Suspense>
         </main>
