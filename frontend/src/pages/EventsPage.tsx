@@ -7,16 +7,16 @@ import {
     Minus, Plus, Sparkles, Package, Phone, FileText
 } from 'lucide-react';
 import { useGetProductsPaginatedQuery } from '../features/products/productsApi';
-import { useCreateEventBookingMutation, EventSelectedItem } from '../features/events/eventsApi';
+import { useCreateEventBookingMutation } from '../features/events/eventsApi';
 import { useAppSelector } from '../store/hooks';
 import { formatPrice } from '../utils/format';
 import toast from 'react-hot-toast';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const FLASK_DEPOSIT_PER_UNIT = 50;   // ₹50 per flask/hot drink
-const DELIVERY_CHARGE = 200;          // Flat delivery fee
-const TAX_RATE = 0.05;                // 5% GST
+const FLASK_DEPOSIT_PER_UNIT = 50;
+const DELIVERY_CHARGE = 200;
+const TAX_RATE = 0.05;
 
 const EVENT_TYPES = [
     { value: 'wedding', label: 'Wedding' },
@@ -33,10 +33,11 @@ const TIME_SLOTS = [
     { value: 'evening', label: '🌙 Evening (5pm – 10pm)' },
 ];
 
+// New order: Menu → Headcount → Event Details → Quote → Confirm
 const STEPS = [
-    { id: 1, label: 'Event Details', icon: Calendar },
+    { id: 1, label: 'Menu', icon: Coffee },
     { id: 2, label: 'Headcount', icon: Users },
-    { id: 3, label: 'Menu', icon: Coffee },
+    { id: 3, label: 'Event Details', icon: Calendar },
     { id: 4, label: 'Quote', icon: Star },
     { id: 5, label: 'Confirm', icon: CheckCircle },
 ];
@@ -55,11 +56,9 @@ interface FormState {
     headcountTotal: number;
     headcountAdults: number;
     headcountKids: number;
-    headcountSeniors: number;
     notes: string;
 }
 
-// Local definition avoids import resolution issues for Object.values typing
 interface SelectedItem {
     product_id: string;
     product_name: string;
@@ -73,7 +72,7 @@ const initialForm: FormState = {
     contactName: '', contactPhone: '', contactEmail: '',
     eventName: '', eventType: '', eventDate: '', timeSlot: '',
     venueAddress: '', notes: '',
-    headcountTotal: 0, headcountAdults: 0, headcountKids: 0, headcountSeniors: 0,
+    headcountTotal: 0, headcountAdults: 0, headcountKids: 0,
 };
 
 // ─── Shared Styles ───────────────────────────────────────────────────────────
@@ -93,10 +92,10 @@ const EventsPage: React.FC = () => {
     const { isAuthenticated } = useAppSelector((s) => s.auth);
     const [createBooking, { isLoading: isSubmitting }] = useCreateEventBookingMutation();
 
-    // Fetch products for menu selection
+    // Fetch products for step 1 (menu)
     const { data: productsData, isLoading: isLoadingProducts } = useGetProductsPaginatedQuery(
         { page: 1, limit: 50 },
-        { skip: step !== 3 }
+        { skip: step !== 1 }
     );
 
     // ── Handlers ──────────────────────────────────────────────────────────────
@@ -130,7 +129,6 @@ const EventsPage: React.FC = () => {
     const quote = useMemo(() => {
         const items = Object.values(selectedItems) as SelectedItem[];
         const base = items.reduce((sum: number, i: SelectedItem) => sum + i.unit_price * i.quantity, 0);
-        // Flask deposit: count hot drink items (non-zero qty)
         const flaskCount = items.filter(i => i.quantity > 0).length;
         const deposit = flaskCount * FLASK_DEPOSIT_PER_UNIT;
         const delivery = base > 0 ? DELIVERY_CHARGE : 0;
@@ -141,7 +139,11 @@ const EventsPage: React.FC = () => {
 
     // ── Validation ───────────────────────────────────────────────────────────
 
-    const isStep1Valid =
+    const isStep2Valid =
+        form.headcountTotal > 0 &&
+        form.headcountAdults + form.headcountKids === form.headcountTotal;
+
+    const isStep3Valid =
         form.contactName.trim() &&
         form.contactPhone.trim().length >= 10 &&
         form.contactEmail.includes('@') &&
@@ -150,12 +152,6 @@ const EventsPage: React.FC = () => {
         form.eventDate &&
         form.timeSlot &&
         form.venueAddress.trim();
-
-    const isStep2Valid =
-        form.headcountTotal > 0 &&
-        form.headcountAdults + form.headcountKids + form.headcountSeniors === form.headcountTotal;
-
-    const isStep3Valid = true; // Selection is optional, user can Skip
 
     const handleSubmit = async () => {
         try {
@@ -171,7 +167,7 @@ const EventsPage: React.FC = () => {
                 headcount_total: form.headcountTotal,
                 headcount_adults: form.headcountAdults,
                 headcount_kids: form.headcountKids,
-                headcount_seniors: form.headcountSeniors,
+                headcount_seniors: 0,
                 selected_items: Object.values(selectedItems),
                 estimated_base: quote.base,
                 estimated_deposit: quote.deposit,
@@ -244,7 +240,7 @@ const EventsPage: React.FC = () => {
                 </div>
             </section>
 
-            {/* Main */}
+            {/* Main Wizard */}
             <div className="max-w-4xl mx-auto px-4 py-20">
 
                 {step < 5 && (
@@ -281,170 +277,13 @@ const EventsPage: React.FC = () => {
                                 exit={{ opacity: 0, x: -20 }}
                                 transition={{ duration: 0.25 }}
                             >
-                                {/* ── STEP 1: Event Details ──────────────────────────────── */}
+
+                                {/* ── STEP 1: Menu Selection ──────────────────────────────── */}
                                 {step === 1 && (
                                     <div className="space-y-6">
                                         <div>
-                                            <h2 className="text-2xl font-serif font-bold text-tea-900 mb-1">Event Details</h2>
-                                            <p className="text-tea-600 text-sm">Tell us about you and your event.</p>
-                                        </div>
-
-                                        <div className={sectionCard}>
-                                            <h3 className="text-sm font-bold text-tea-800 mb-4 flex items-center gap-2"><Phone size={14} /> Your Contact</h3>
-                                            <div className="grid sm:grid-cols-2 gap-4">
-                                                <div>
-                                                    <label htmlFor="contactName" className={labelBase}>Full Name *</label>
-                                                    <input id="contactName" className={inputBase} placeholder="Arjun Sharma" value={form.contactName} onChange={e => setField('contactName', e.target.value)} />
-                                                </div>
-                                                <div>
-                                                    <label htmlFor="contactPhone" className={labelBase}>Phone *</label>
-                                                    <input id="contactPhone" className={inputBase} type="tel" placeholder="9876543210" value={form.contactPhone} onChange={e => setField('contactPhone', e.target.value)} />
-                                                </div>
-                                                <div className="sm:col-span-2">
-                                                    <label htmlFor="contactEmail" className={labelBase}>Email *</label>
-                                                    <input id="contactEmail" className={inputBase} type="email" placeholder="arjun@example.com" value={form.contactEmail} onChange={e => setField('contactEmail', e.target.value)} />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className={sectionCard}>
-                                            <h3 className="text-sm font-bold text-tea-800 mb-4 flex items-center gap-2"><Calendar size={14} /> Event Info</h3>
-                                            <div className="grid sm:grid-cols-2 gap-4">
-                                                <div>
-                                                    <label htmlFor="eventName" className={labelBase}>Event Name *</label>
-                                                    <input id="eventName" className={inputBase} placeholder="Sharma Wedding Reception" value={form.eventName} onChange={e => setField('eventName', e.target.value)} />
-                                                </div>
-                                                <div>
-                                                    <label htmlFor="eventType" className={labelBase}>Event Type *</label>
-                                                    <select id="eventType" className={inputBase} value={form.eventType} onChange={e => setField('eventType', e.target.value)}>
-                                                        <option value="">Select type...</option>
-                                                        {EVENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label htmlFor="eventDate" className={labelBase}>Event Date *</label>
-                                                    <input id="eventDate" className={inputBase} type="date" min={new Date().toISOString().split('T')[0]} value={form.eventDate} onChange={e => setField('eventDate', e.target.value)} />
-                                                </div>
-                                                <div>
-                                                    <label htmlFor="timeSlot" className={labelBase}>Time Slot *</label>
-                                                    <select id="timeSlot" className={inputBase} value={form.timeSlot} onChange={e => setField('timeSlot', e.target.value)}>
-                                                        <option value="">Select slot...</option>
-                                                        {TIME_SLOTS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                                                    </select>
-                                                </div>
-                                                <div className="sm:col-span-2">
-                                                    <label htmlFor="venueAddress" className={labelBase}><MapPin size={12} className="inline mr-1" />Venue / Delivery Address *</label>
-                                                    <textarea id="venueAddress" className={inputBase + ' resize-none'} rows={2} placeholder="123 MG Road, Bangalore, Karnataka 560001" value={form.venueAddress} onChange={e => setField('venueAddress', e.target.value)} />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <button
-                                            onClick={() => setStep(2)}
-                                            disabled={!isStep1Valid}
-                                            className="w-full py-4 bg-tea-700 text-white font-bold rounded-2xl hover:bg-tea-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-tea-900/10"
-                                            aria-label="Next step"
-                                        >
-                                            Next: Headcount <ArrowRight size={18} />
-                                        </button>
-                                    </div>
-                                )}
-
-                                {/* ── STEP 2: Headcount ─────────────────────────────────── */}
-                                {step === 2 && (
-                                    <div className="space-y-6">
-                                        <div>
-                                            <h2 className="text-2xl font-serif font-bold text-tea-900 mb-1">Headcount</h2>
-                                            <p className="text-tea-600 text-sm">Total guests and age breakdown.</p>
-                                        </div>
-
-                                        <div className={sectionCard + ' space-y-6'}>
-                                            {/* Total */}
-                                            <div>
-                                                <label htmlFor="headcountTotal" className={labelBase}>Total Guests *</label>
-                                                <input
-                                                    id="headcountTotal"
-                                                    type="number"
-                                                    min={1}
-                                                    className={inputBase + ' text-lg font-bold'}
-                                                    placeholder="100"
-                                                    value={form.headcountTotal || ''}
-                                                    onChange={e => {
-                                                        const val = parseInt(e.target.value) || 0;
-                                                        setField('headcountTotal', val);
-                                                        setField('headcountAdults', 0);
-                                                        setField('headcountKids', 0);
-                                                        setField('headcountSeniors', 0);
-                                                    }}
-                                                />
-                                            </div>
-
-                                            {form.headcountTotal > 0 && (
-                                                <>
-                                                    <p className="text-xs text-tea-600 font-medium">Now break it down (must add up to {form.headcountTotal}):</p>
-                                                    {[
-                                                        { key: 'headcountAdults', label: 'Adults (18–59)', ariaLabelPrefix: 'Adults' },
-                                                        { key: 'headcountKids', label: 'Children (under 18)', ariaLabelPrefix: 'Children' },
-                                                        { key: 'headcountSeniors', label: 'Senior Citizens (60+)', ariaLabelPrefix: 'Senior Citizens' },
-                                                    ].map(({ key, label, ariaLabelPrefix }) => (
-                                                        <div key={key} className="flex items-center justify-between">
-                                                            <span className="text-sm font-medium text-tea-800">{label}</span>
-                                                            <div className="flex items-center gap-3">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setField(key as keyof FormState, Math.max(0, (form[key as keyof FormState] as number) - 1))}
-                                                                    className="w-9 h-9 rounded-full border border-tea-200 flex items-center justify-center hover:bg-tea-50 transition-colors"
-                                                                    aria-label={`Decrease ${ariaLabelPrefix} headcount`}
-                                                                >
-                                                                    <Minus size={14} />
-                                                                </button>
-                                                                <div className="w-10 text-center font-bold text-tea-900">{form[key as keyof FormState] as number}</div>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setField(key as keyof FormState, (form[key as keyof FormState] as number) + 1)}
-                                                                    className="w-9 h-9 rounded-full border border-tea-200 flex items-center justify-center hover:bg-tea-50 transition-colors"
-                                                                    aria-label={`Increase ${ariaLabelPrefix} headcount`}
-                                                                >
-                                                                    <Plus size={14} />
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-
-                                                    {/* Running total */}
-                                                    <div className={`flex justify-between p-3 rounded-xl text-sm font-bold ${form.headcountAdults + form.headcountKids + form.headcountSeniors === form.headcountTotal
-                                                        ? 'bg-tea-50 text-tea-700'
-                                                        : 'bg-red-50 text-red-600'
-                                                        }`}>
-                                                        <span>Sum of breakdown</span>
-                                                        <span>{form.headcountAdults + form.headcountKids + form.headcountSeniors} / {form.headcountTotal}</span>
-                                                    </div>
-                                                </>
-                                            )}
-                                        </div>
-
-                                        <div className="flex gap-4">
-                                            <button onClick={() => setStep(1)} className="flex-1 py-4 border border-tea-200 text-tea-700 font-bold rounded-2xl hover:bg-tea-50 transition-all flex items-center justify-center gap-2">
-                                                <ArrowLeft size={18} /> Back
-                                            </button>
-                                            <button
-                                                onClick={() => setStep(3)}
-                                                disabled={!isStep2Valid}
-                                                className="flex-[2] py-4 bg-tea-700 text-white font-bold rounded-2xl hover:bg-tea-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-tea-900/10"
-                                                aria-label="Next step"
-                                            >
-                                                Next: Menu <ArrowRight size={18} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* ── STEP 3: Product Selection ──────────────────────────── */}
-                                {step === 3 && (
-                                    <div className="space-y-6">
-                                        <div>
-                                            <h2 className="text-2xl font-serif font-bold text-tea-900 mb-1">Select Menu Items</h2>
-                                            <p className="text-tea-600 text-sm">Choose what you'd like served. Use quantities per serving.</p>
+                                            <h2 className="text-2xl font-serif font-bold text-tea-900 mb-1">Select Your Menu</h2>
+                                            <p className="text-tea-600 text-sm">Pick the teas and items you'd like served at your event.</p>
                                         </div>
 
                                         {isLoadingProducts ? (
@@ -503,7 +342,7 @@ const EventsPage: React.FC = () => {
 
                                         {Object.keys(selectedItems).length > 0 && (
                                             <div className="bg-tea-50 rounded-2xl p-4 border border-tea-100">
-                                                <p className="text-xs text-tea-600 font-bold uppercase tracking-widest mb-2">Selected: {Object.keys(selectedItems).length} item types</p>
+                                                <p className="text-xs text-tea-600 font-bold uppercase tracking-widest mb-2">Selected: {Object.keys(selectedItems).length} item type{Object.keys(selectedItems).length !== 1 ? 's' : ''}</p>
                                                 <div className="flex flex-wrap gap-2">
                                                     {(Object.values(selectedItems) as SelectedItem[]).map(item => (
                                                         <span key={item.product_id} className="text-xs bg-tea-700 text-white rounded-full px-3 py-1 font-medium">
@@ -514,16 +353,170 @@ const EventsPage: React.FC = () => {
                                             </div>
                                         )}
 
+                                        <button
+                                            onClick={() => setStep(2)}
+                                            className="w-full py-4 bg-tea-700 text-white font-bold rounded-2xl hover:bg-tea-800 transition-all flex items-center justify-center gap-2 shadow-lg shadow-tea-900/10"
+                                            aria-label="Next step"
+                                        >
+                                            {Object.keys(selectedItems).length > 0 ? 'Next: Headcount' : 'Skip to Headcount'} <ArrowRight size={18} />
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* ── STEP 2: Headcount ─────────────────────────────────── */}
+                                {step === 2 && (
+                                    <div className="space-y-6">
+                                        <div>
+                                            <h2 className="text-2xl font-serif font-bold text-tea-900 mb-1">Headcount</h2>
+                                            <p className="text-tea-600 text-sm">How many guests are attending?</p>
+                                        </div>
+
+                                        <div className={sectionCard + ' space-y-6'}>
+                                            <div>
+                                                <label htmlFor="headcountTotal" className={labelBase}>Total Guests *</label>
+                                                <input
+                                                    id="headcountTotal"
+                                                    type="number"
+                                                    min={1}
+                                                    className={inputBase + ' text-lg font-bold'}
+                                                    placeholder="100"
+                                                    value={form.headcountTotal || ''}
+                                                    onChange={e => {
+                                                        const val = parseInt(e.target.value) || 0;
+                                                        setField('headcountTotal', val);
+                                                        setField('headcountAdults', 0);
+                                                        setField('headcountKids', 0);
+                                                    }}
+                                                />
+                                            </div>
+
+                                            {form.headcountTotal > 0 && (
+                                                <>
+                                                    <p className="text-xs text-tea-600 font-medium">Break it down (must add up to {form.headcountTotal}):</p>
+                                                    {[
+                                                        { key: 'headcountAdults', label: 'Adults (18+)', ariaLabelPrefix: 'Adults' },
+                                                        { key: 'headcountKids', label: 'Children (under 18)', ariaLabelPrefix: 'Children' },
+                                                    ].map(({ key, label, ariaLabelPrefix }) => (
+                                                        <div key={key} className="flex items-center justify-between">
+                                                            <span className="text-sm font-medium text-tea-800">{label}</span>
+                                                            <div className="flex items-center gap-3">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setField(key as keyof FormState, Math.max(0, (form[key as keyof FormState] as number) - 1))}
+                                                                    className="w-9 h-9 rounded-full border border-tea-200 flex items-center justify-center hover:bg-tea-50 transition-colors"
+                                                                    aria-label={`Decrease ${ariaLabelPrefix}`}
+                                                                >
+                                                                    <Minus size={14} />
+                                                                </button>
+                                                                <div className="w-10 text-center font-bold text-tea-900">{form[key as keyof FormState] as number}</div>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setField(key as keyof FormState, (form[key as keyof FormState] as number) + 1)}
+                                                                    className="w-9 h-9 rounded-full border border-tea-200 flex items-center justify-center hover:bg-tea-50 transition-colors"
+                                                                    aria-label={`Increase ${ariaLabelPrefix}`}
+                                                                >
+                                                                    <Plus size={14} />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+
+                                                    <div className={`flex justify-between p-3 rounded-xl text-sm font-bold ${form.headcountAdults + form.headcountKids === form.headcountTotal
+                                                        ? 'bg-tea-50 text-tea-700'
+                                                        : 'bg-red-50 text-red-600'
+                                                        }`}>
+                                                        <span>Sum</span>
+                                                        <span>{form.headcountAdults + form.headcountKids} / {form.headcountTotal}</span>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+
+                                        <div className="flex gap-4">
+                                            <button onClick={() => setStep(1)} className="flex-1 py-4 border border-tea-200 text-tea-700 font-bold rounded-2xl hover:bg-tea-50 transition-all flex items-center justify-center gap-2">
+                                                <ArrowLeft size={18} /> Back
+                                            </button>
+                                            <button
+                                                onClick={() => setStep(3)}
+                                                disabled={!isStep2Valid}
+                                                className="flex-[2] py-4 bg-tea-700 text-white font-bold rounded-2xl hover:bg-tea-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-tea-900/10"
+                                                aria-label="Next step"
+                                            >
+                                                Next: Event Details <ArrowRight size={18} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ── STEP 3: Event Details ──────────────────────────────── */}
+                                {step === 3 && (
+                                    <div className="space-y-6">
+                                        <div>
+                                            <h2 className="text-2xl font-serif font-bold text-tea-900 mb-1">Event Details</h2>
+                                            <p className="text-tea-600 text-sm">Tell us about you and your event.</p>
+                                        </div>
+
+                                        <div className={sectionCard}>
+                                            <h3 className="text-sm font-bold text-tea-800 mb-4 flex items-center gap-2"><Phone size={14} /> Your Contact</h3>
+                                            <div className="grid sm:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label htmlFor="contactName" className={labelBase}>Full Name *</label>
+                                                    <input id="contactName" className={inputBase} placeholder="Arjun Sharma" value={form.contactName} onChange={e => setField('contactName', e.target.value)} />
+                                                </div>
+                                                <div>
+                                                    <label htmlFor="contactPhone" className={labelBase}>Phone *</label>
+                                                    <input id="contactPhone" className={inputBase} type="tel" placeholder="9876543210" value={form.contactPhone} onChange={e => setField('contactPhone', e.target.value)} />
+                                                </div>
+                                                <div className="sm:col-span-2">
+                                                    <label htmlFor="contactEmail" className={labelBase}>Email *</label>
+                                                    <input id="contactEmail" className={inputBase} type="email" placeholder="arjun@example.com" value={form.contactEmail} onChange={e => setField('contactEmail', e.target.value)} />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className={sectionCard}>
+                                            <h3 className="text-sm font-bold text-tea-800 mb-4 flex items-center gap-2"><Calendar size={14} /> Event Info</h3>
+                                            <div className="grid sm:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label htmlFor="eventName" className={labelBase}>Event Name *</label>
+                                                    <input id="eventName" className={inputBase} placeholder="Sharma Wedding Reception" value={form.eventName} onChange={e => setField('eventName', e.target.value)} />
+                                                </div>
+                                                <div>
+                                                    <label htmlFor="eventType" className={labelBase}>Event Type *</label>
+                                                    <select id="eventType" className={inputBase} value={form.eventType} onChange={e => setField('eventType', e.target.value)}>
+                                                        <option value="">Select type...</option>
+                                                        {EVENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label htmlFor="eventDate" className={labelBase}>Event Date *</label>
+                                                    <input id="eventDate" className={inputBase} type="date" min={new Date().toISOString().split('T')[0]} value={form.eventDate} onChange={e => setField('eventDate', e.target.value)} />
+                                                </div>
+                                                <div>
+                                                    <label htmlFor="timeSlot" className={labelBase}>Time Slot *</label>
+                                                    <select id="timeSlot" className={inputBase} value={form.timeSlot} onChange={e => setField('timeSlot', e.target.value)}>
+                                                        <option value="">Select slot...</option>
+                                                        {TIME_SLOTS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                                                    </select>
+                                                </div>
+                                                <div className="sm:col-span-2">
+                                                    <label htmlFor="venueAddress" className={labelBase}><MapPin size={12} className="inline mr-1" />Venue / Delivery Address *</label>
+                                                    <textarea id="venueAddress" className={inputBase + ' resize-none'} rows={2} placeholder="123 MG Road, Bangalore, Karnataka 560001" value={form.venueAddress} onChange={e => setField('venueAddress', e.target.value)} />
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <div className="flex gap-4">
                                             <button onClick={() => setStep(2)} className="flex-1 py-4 border border-tea-200 text-tea-700 font-bold rounded-2xl hover:bg-tea-50 transition-all flex items-center justify-center gap-2">
                                                 <ArrowLeft size={18} /> Back
                                             </button>
                                             <button
                                                 onClick={() => setStep(4)}
-                                                className="flex-[2] py-4 bg-tea-700 text-white font-bold rounded-2xl hover:bg-tea-800 transition-all flex items-center justify-center gap-2"
-                                                aria-label={Object.keys(selectedItems).length > 0 ? "See Quote" : "Skip"}
+                                                disabled={!isStep3Valid}
+                                                className="flex-[2] py-4 bg-tea-700 text-white font-bold rounded-2xl hover:bg-tea-800 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-tea-900/10"
+                                                aria-label="Next step"
                                             >
-                                                {Object.keys(selectedItems).length > 0 ? 'See Quote' : 'Skip'} <ArrowRight size={18} />
+                                                See Quote <ArrowRight size={18} />
                                             </button>
                                         </div>
                                     </div>
@@ -534,7 +527,7 @@ const EventsPage: React.FC = () => {
                                     <div className="space-y-6">
                                         <div>
                                             <h2 className="text-2xl font-serif font-bold text-tea-900 mb-1">Your Quote</h2>
-                                            <p className="text-tea-600 text-sm">Estimated pricing based on your details.</p>
+                                            <p className="text-tea-600 text-sm">Estimated pricing — review before submitting.</p>
                                         </div>
 
                                         <div className="bg-tea-900 text-white rounded-3xl p-8 shadow-2xl">
@@ -548,14 +541,16 @@ const EventsPage: React.FC = () => {
                                                 </div>
                                             </div>
 
-                                            <div className="space-y-2 mb-6 pb-6 border-b border-white/10 max-h-40 overflow-y-auto">
-                                                {(Object.values(selectedItems) as SelectedItem[]).map(item => (
-                                                    <div key={item.product_id} className="flex justify-between text-xs">
-                                                        <span className="text-tea-300">{item.product_name} ×{item.quantity}</span>
-                                                        <span className="text-white font-medium">{formatPrice(item.unit_price * item.quantity)}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                            {Object.keys(selectedItems).length > 0 && (
+                                                <div className="space-y-2 mb-6 pb-6 border-b border-white/10 max-h-40 overflow-y-auto">
+                                                    {(Object.values(selectedItems) as SelectedItem[]).map(item => (
+                                                        <div key={item.product_id} className="flex justify-between text-xs">
+                                                            <span className="text-tea-300">{item.product_name} ×{item.quantity}</span>
+                                                            <span className="text-white font-medium">{formatPrice(item.unit_price * item.quantity)}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
 
                                             <div className="space-y-3 mb-6">
                                                 <div className="flex justify-between text-sm text-tea-300">
@@ -585,12 +580,33 @@ const EventsPage: React.FC = () => {
                                             </p>
                                         </div>
 
+                                        {/* Summary cards — go back to edit */}
+                                        <div className="grid sm:grid-cols-3 gap-3">
+                                            <button onClick={() => setStep(1)} className="bg-white border border-tea-100 rounded-xl p-4 text-left hover:border-tea-300 transition-colors group">
+                                                <p className="text-[10px] text-tea-400 font-bold uppercase tracking-widest mb-1 flex items-center gap-1"><Coffee size={10} /> Menu</p>
+                                                <p className="text-tea-700 text-xs font-semibold group-hover:text-tea-900">
+                                                    {Object.keys(selectedItems).length > 0 ? `${Object.keys(selectedItems).length} item type${Object.keys(selectedItems).length !== 1 ? 's' : ''}` : 'No items selected'}
+                                                </p>
+                                                <p className="text-[10px] text-tea-400 mt-1 group-hover:text-accent-600">tap to edit →</p>
+                                            </button>
+                                            <button onClick={() => setStep(2)} className="bg-white border border-tea-100 rounded-xl p-4 text-left hover:border-tea-300 transition-colors group">
+                                                <p className="text-[10px] text-tea-400 font-bold uppercase tracking-widest mb-1 flex items-center gap-1"><Users size={10} /> Guests</p>
+                                                <p className="text-tea-700 text-xs font-semibold group-hover:text-tea-900">{form.headcountTotal} people</p>
+                                                <p className="text-[10px] text-tea-400 mt-1 group-hover:text-accent-600">tap to edit →</p>
+                                            </button>
+                                            <button onClick={() => setStep(3)} className="bg-white border border-tea-100 rounded-xl p-4 text-left hover:border-tea-300 transition-colors group">
+                                                <p className="text-[10px] text-tea-400 font-bold uppercase tracking-widest mb-1 flex items-center gap-1"><Calendar size={10} /> Event</p>
+                                                <p className="text-tea-700 text-xs font-semibold group-hover:text-tea-900 truncate">{form.eventName || '—'}</p>
+                                                <p className="text-[10px] text-tea-400 mt-1 group-hover:text-accent-600">tap to edit →</p>
+                                            </button>
+                                        </div>
+
                                         <div className={sectionCard}>
                                             <label className={labelBase}><FileText size={12} className="inline mr-1" />Special Requirements (optional)</label>
                                             <textarea
                                                 className={inputBase + ' resize-none'}
                                                 rows={3}
-                                                placeholder="Any specific requests..."
+                                                placeholder="Any specific requests, dietary needs, setup preferences..."
                                                 value={form.notes}
                                                 onChange={e => setField('notes', e.target.value)}
                                             />
@@ -628,7 +644,7 @@ const EventsPage: React.FC = () => {
                             <CheckCircle size={48} className="text-tea-700" />
                         </div>
                         <h2 className="text-3xl font-serif font-bold text-tea-900 mb-3">You're all set!</h2>
-                        <p className="text-tea-600 text-lg mb-2">Booking received for {confirmedBooking.event_name}.</p>
+                        <p className="text-tea-600 text-lg mb-2">Booking received for <span className="font-bold text-tea-800">{confirmedBooking.event_name}</span>.</p>
                         <div className="inline-block bg-accent-50 border border-accent-200 rounded-2xl px-6 py-4 mb-6">
                             <p className="text-accent-700 font-bold text-sm">⏰ Our team will call you within <span className="text-accent-600 text-base">30–60 minutes</span></p>
                         </div>
