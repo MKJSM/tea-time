@@ -9,7 +9,8 @@ use validator::Validate;
 use crate::{
     auth::{AuthSession, RequiredAuthUser},
     domain::models::{
-        CreateEventBookingRequest, EventBookingResponse, UpdateEventBookingStatusRequest,
+        CreateEventBookingRequest, EditEventBookingRequest, EventBookingResponse,
+        UpdateEventBookingStatusRequest,
     },
     error::AppError,
     state::AppState,
@@ -432,5 +433,101 @@ pub async fn update_event_booking_status(
         "old_status": old_status,
         "status": body.status,
         "message": format!("Event booking has been {}.", body.status),
+    })))
+}
+
+/// PUT /api/events/:id
+/// Customer edits their own pending event booking.
+/// Only allowed while status = 'pending'.
+#[tracing::instrument(skip(state, user, body))]
+pub async fn edit_event_booking(
+    State(state): State<AppState>,
+    user: RequiredAuthUser,
+    Path(id): Path<Uuid>,
+    Json(body): Json<EditEventBookingRequest>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    body.validate()
+        .map_err(|e| AppError::BadRequest(format!("Validation error: {}", e)))?;
+
+    // Fetch booking and verify ownership + status
+    let current = sqlx::query!(
+        "SELECT id, user_id, status FROM event_bookings WHERE id = $1",
+        id
+    )
+    .fetch_optional(&state.db)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Event booking not found".into()))?;
+
+    // Must be the owner
+    if current.user_id != Some(user.0.id) {
+        return Err(AppError::Forbidden("You can only edit your own bookings".into()));
+    }
+
+    // Can only edit pending bookings
+    if current.status != "pending" {
+        return Err(AppError::BadRequest(
+            "Only pending bookings can be edited".into(),
+        ));
+    }
+
+    // Parse event_date if provided — validate format, pass as text (cast to date in SQL)
+    let event_date_str: Option<String> = if let Some(ref d) = body.event_date {
+        chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d")
+            .map_err(|_| AppError::BadRequest("Invalid event_date format. Use YYYY-MM-DD".into()))?;
+        Some(d.clone())
+    } else {
+        None
+    };
+
+    let selected_items_json = if let Some(ref items) = body.selected_items {
+        Some(
+            serde_json::to_value(items)
+                .map_err(|e| AppError::InternalServerError(e.to_string()))?,
+        )
+    } else {
+        None
+    };
+
+    // Use sqlx::query (non-macro) to avoid chrono/time::Date type mismatch
+    sqlx::query(
+        r#"
+        UPDATE event_bookings SET
+            event_date        = COALESCE($1::date, event_date),
+            time_slot         = COALESCE($2, time_slot),
+            venue_address     = COALESCE($3, venue_address),
+            headcount_total   = COALESCE($4, headcount_total),
+            headcount_adults  = COALESCE($5, headcount_adults),
+            headcount_kids    = COALESCE($6, headcount_kids),
+            selected_items    = COALESCE($7, selected_items),
+            estimated_base    = COALESCE($8, estimated_base),
+            estimated_deposit = COALESCE($9, estimated_deposit),
+            estimated_delivery= COALESCE($10, estimated_delivery),
+            estimated_tax     = COALESCE($11, estimated_tax),
+            estimated_total   = COALESCE($12, estimated_total),
+            notes             = COALESCE($13, notes),
+            updated_at        = NOW()
+        WHERE id = $14
+        "#,
+    )
+    .bind(event_date_str)
+    .bind(body.time_slot)
+    .bind(body.venue_address)
+    .bind(body.headcount_total)
+    .bind(body.headcount_adults)
+    .bind(body.headcount_kids)
+    .bind(selected_items_json)
+    .bind(body.estimated_base)
+    .bind(body.estimated_deposit)
+    .bind(body.estimated_delivery)
+    .bind(body.estimated_tax)
+    .bind(body.estimated_total)
+    .bind(body.notes)
+    .bind(id)
+    .execute(&state.db)
+    .await?;
+
+    Ok(Json(serde_json::json!({
+        "id": id,
+        "message": "Booking updated successfully.",
     })))
 }

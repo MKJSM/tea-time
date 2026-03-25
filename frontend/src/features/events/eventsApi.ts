@@ -104,6 +104,22 @@ export interface UpdateEventBookingStatusRequest {
     cancellation_reason?: string;
 }
 
+export interface EditEventBookingRequest {
+    event_date?: string;
+    time_slot?: string;
+    venue_address?: string;
+    headcount_total?: number;
+    headcount_adults?: number;
+    headcount_kids?: number;
+    selected_items?: EventSelectedItem[];
+    estimated_base?: number;
+    estimated_deposit?: number;
+    estimated_delivery?: number;
+    estimated_tax?: number;
+    estimated_total?: number;
+    notes?: string;
+}
+
 export const eventsApi = createApi({
     reducerPath: 'eventsApi',
     baseQuery: axiosBaseQuery(),
@@ -144,6 +160,20 @@ export const eventsApi = createApi({
                 { type: 'MyEvents', id },
             ],
         }),
+        editEventBooking: builder.mutation<
+            { id: string; message: string },
+            { id: string; body: EditEventBookingRequest }
+        >({
+            query: ({ id, body }) => ({
+                url: `/events/${id}`,
+                method: 'PUT',
+                body,
+            }),
+            invalidatesTags: (_result, _err, { id }) => [
+                'MyEvents',
+                { type: 'MyEvents', id },
+            ],
+        }),
     }),
 });
 
@@ -153,4 +183,5 @@ export const {
     useGetMyEventBookingsQuery,
     useGetEventBookingByIdQuery,
     useUpdateEventBookingStatusMutation,
+    useEditEventBookingMutation,
 } = eventsApi;

@@ -163,6 +163,7 @@ pub fn build_router(state: AppState) -> Router {
         .route("/api/events", get(events::list_event_bookings))
         .route("/api/events/my", get(events::list_my_event_bookings))
         .route("/api/events/{id}", get(events::get_event_booking))
+        .route("/api/events/{id}", put(events::edit_event_booking))
         .route("/api/events/{id}/status", patch(events::update_event_booking_status))
         // File Routes
         .route("/api/files/upload", post(files::upload_image))

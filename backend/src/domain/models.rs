@@ -400,3 +400,24 @@ pub struct UpdateEventBookingStatusRequest {
     pub cancellation_reason: Option<String>,
 }
 
+/// Request body for editing a pending event booking (customer)
+#[derive(Serialize, Deserialize, Validate, Debug)]
+pub struct EditEventBookingRequest {
+    // Optional fields — only provided fields are updated
+    pub event_date: Option<String>, // "YYYY-MM-DD"
+    #[validate(length(min = 1, max = 20))]
+    pub time_slot: Option<String>,
+    #[validate(length(min = 1, max = 500))]
+    pub venue_address: Option<String>,
+    pub headcount_total: Option<i32>,
+    pub headcount_adults: Option<i32>,
+    pub headcount_kids: Option<i32>,
+    pub selected_items: Option<Vec<EventSelectedItem>>,
+    pub estimated_base: Option<f64>,
+    pub estimated_deposit: Option<f64>,
+    pub estimated_delivery: Option<f64>,
+    pub estimated_tax: Option<f64>,
+    pub estimated_total: Option<f64>,
+    pub notes: Option<String>,
+}
+
