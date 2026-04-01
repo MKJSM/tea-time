@@ -1,11 +1,16 @@
 # Tea Time
 
-Minimal full-stack scaffold:
+Workspace scaffold with separate backend and frontend package boundaries.
 
-- `frontend/`: React + Vite app
-- `backend/`: Rust + Axum app
-- `backend/public/`: deployed frontend build output served by backend
+## Structure
+
+- `backend/server/`: backend binary crate
+- `backend/libs/`: feature library crates
+- `backend/crates/`: shared backend infrastructure crates
 - `backend/db/migration/`: PostgreSQL migrations
+- `frontend/apps/customer/`: customer frontend app
+- `frontend/apps/admin/`: admin frontend app
+- `frontend/packages/`: shared frontend packages
 
 ## Requirements
 
@@ -30,7 +35,7 @@ just all
 
 The backend now requires PostgreSQL before it can start.
 
-Copy `backend/.env.example` values into your environment or `.env` file before running the backend.
+Copy `backend/.env.example` to `backend/.env` or export equivalent variables before running the backend.
 
 Example:
 
@@ -43,14 +48,25 @@ PORT=3001
 ## Recommended backend flow
 
 1. Start PostgreSQL and create the target database.
-2. Export `DATABASE_URL` and optional `DATABASE_POOL_SIZE`.
+2. Create `backend/.env` with `DATABASE_URL` and optional `DATABASE_POOL_SIZE`.
 3. Run `just migrate` to apply SQL files from `backend/db/migration`.
 4. Run `just backend-run` to start only the backend.
+
+## Frontend build and serving
+
+- customer app builds into `frontend/dist/customer`
+- admin app builds into `frontend/dist/admin`
+- `just sync-frontend` copies:
+  - customer build to `backend/server/public/`
+  - admin build to `backend/server/public/admin/`
+- backend serves:
+  - customer app at `/`
+  - admin app at `/admin`
 
 ## Full app flow
 
 - `just run`
-  Builds the frontend, copies `frontend/dist` into `backend/public`, then starts the backend.
+  Builds both frontend apps, copies them into `backend/server/public`, then starts the backend server.
 
 - `just all`
-  Same as `just run`: builds the frontend, syncs the frontend build into the backend public directory, and starts the backend server.
+  Same as `just run`: builds both frontend apps, syncs them into the backend public directory, and starts the backend server.

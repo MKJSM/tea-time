@@ -114,23 +114,106 @@ dependencies = [
 ]
 
 [[package]]
-name = "backend"
+name = "backend_admin"
+version = "0.1.0"
+dependencies = [
+ "backend_session",
+ "backend_shared",
+ "chrono",
+ "deadpool-postgres",
+ "serde",
+ "serde_json",
+ "uuid",
+]
+
+[[package]]
+name = "backend_auth"
 version = "0.1.0"
 dependencies = [
  "argon2",
- "axum",
+ "backend_session",
+ "rand_core 0.6.4",
+]
+
+[[package]]
+name = "backend_category"
+version = "0.1.0"
+dependencies = [
+ "backend_shared",
  "chrono",
  "deadpool-postgres",
- "dotenvy",
- "rand_core 0.6.4",
  "serde",
  "serde_json",
- "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "backend_customer"
+version = "0.1.0"
+dependencies = [
+ "backend_session",
+ "backend_shared",
+ "chrono",
+ "deadpool-postgres",
+ "serde",
+ "serde_json",
+ "uuid",
+]
+
+[[package]]
+name = "backend_db"
+version = "0.1.0"
+dependencies = [
+ "deadpool-postgres",
  "tokio-postgres",
+]
+
+[[package]]
+name = "backend_product"
+version = "0.1.0"
+dependencies = [
+ "backend_shared",
+ "chrono",
+ "deadpool-postgres",
+ "serde",
+ "serde_json",
+ "uuid",
+]
+
+[[package]]
+name = "backend_server"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "backend_admin",
+ "backend_auth",
+ "backend_category",
+ "backend_customer",
+ "backend_db",
+ "backend_product",
+ "backend_session",
+ "backend_shared",
+ "deadpool-postgres",
+ "dotenvy",
+ "serde_json",
+ "tokio",
  "tower-http",
  "tracing",
  "tracing-subscriber",
- "uuid",
+]
+
+[[package]]
+name = "backend_session"
+version = "0.1.0"
+
+[[package]]
+name = "backend_shared"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "deadpool-postgres",
+ "serde_json",
+ "tokio-postgres",
 ]
 
 [[package]]
@@ -917,10 +1000,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8dc729a129e682e8d24170cd30ae1aa01b336b096cbb56df6d534ffec133d186"
 dependencies = [
  "bytes",
- "chrono",
  "fallible-iterator",
  "postgres-protocol",
- "uuid",
 ]
 
 [[package]]

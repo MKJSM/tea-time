@@ -1,0 +1,9 @@
+[package]
+name = "backend_db"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+deadpool-postgres = "0.14"
+tokio-postgres = "0.7"
+

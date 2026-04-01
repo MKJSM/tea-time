@@ -1,0 +1,10 @@
+[package]
+name = "backend_auth"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+argon2 = "0.5"
+backend_session = { path = "../session" }
+rand_core = { version = "0.6", features = ["std"] }
+

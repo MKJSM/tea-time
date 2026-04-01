@@ -1,0 +1,23 @@
+[package]
+name = "backend_server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.8"
+backend_admin = { path = "../libs/admin" }
+backend_auth = { path = "../crates/auth" }
+backend_category = { path = "../libs/category" }
+backend_customer = { path = "../libs/customer" }
+backend_db = { path = "../crates/db" }
+backend_product = { path = "../libs/product" }
+backend_session = { path = "../crates/session" }
+backend_shared = { path = "../crates/shared" }
+deadpool-postgres = "0.14"
+dotenvy = "0.15"
+serde_json = "1.0"
+tokio = { version = "1", features = ["full"] }
+tower-http = { version = "0.6", features = ["fs", "trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+

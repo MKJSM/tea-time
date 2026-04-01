@@ -2,5 +2,6 @@
 /backend/target
 /frontend/node_modules
 /frontend/dist
+/frontend/*.tsbuildinfo
+/.codex
 /.DS_Store
-
