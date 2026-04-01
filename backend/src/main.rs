@@ -1,13 +1,17 @@
-use axum::{routing::get, Json, Router};
+use backend::{config::Config, libs::db, routes, state::AppState};
+use deadpool_postgres::Pool;
 use std::net::SocketAddr;
-use tower_http::services::{ServeDir, ServeFile};
-use tower_http::trace::TraceLayer;
 
-async fn health() -> Json<serde_json::Value> {
-    Json(serde_json::json!({
-        "ok": true,
-        "service": "backend"
-    }))
+async fn initialize_database(config: &Config) -> Pool {
+    let db = db::connect(config)
+        .await
+        .unwrap_or_else(|error| panic!("failed to connect to postgres: {error}"));
+
+    db::migrate(&db)
+        .await
+        .unwrap_or_else(|error| panic!("failed to run migrations: {error}"));
+
+    db
 }
 
 #[tokio::main]
@@ -19,14 +23,21 @@ async fn main() {
         )
         .init();
 
-    let app = Router::new()
-        .route("/api/health", get(health))
-        .fallback_service(
-            ServeDir::new("public").fallback(ServeFile::new("public/index.html")),
-        )
-        .layer(TraceLayer::new_for_http());
+    let config = Config::from_env().unwrap_or_else(|error| {
+        panic!("failed to load config: {error}. set DATABASE_URL before starting the backend")
+    });
+    let migrate_only = std::env::args().any(|arg| arg == "--migrate-only");
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3001));
+    let db = initialize_database(&config).await;
+
+    if migrate_only {
+        tracing::info!("database migrations completed");
+        return;
+    }
+
+    let app = routes::build_router(AppState { db });
+
+    let addr = SocketAddr::from(([127, 0, 0, 1], config.server_port));
     tracing::info!("listening on http://{}", addr);
 
     let listener = tokio::net::TcpListener::bind(addr)
