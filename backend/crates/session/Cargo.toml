@@ -4,4 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-
+backend_shared = { path = "../shared" }
+chrono = { version = "0.4", features = ["serde"] }
+deadpool-postgres = "0.14"
+uuid = { version = "1", features = ["v4"] }
