@@ -3,8 +3,12 @@ resolver = "2"
 members = [
     "backend/server",
     "backend/libs/admin",
+    "backend/libs/address",
+    "backend/libs/banner",
     "backend/libs/customer",
     "backend/libs/category",
+    "backend/libs/order",
+    "backend/libs/payment",
     "backend/libs/product",
     "backend/crates/auth",
     "backend/crates/db",

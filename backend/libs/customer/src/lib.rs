@@ -66,6 +66,25 @@ pub struct UserProfile {
     pub last_name: String,
     pub phone: Option<String>,
     pub email: String,
+    pub avatar_url: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct CreateCustomerInput {
+    pub user_name: String,
+    pub first_name: String,
+    pub last_name: String,
+    pub phone: Option<String>,
+    pub email: String,
+    pub password: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct UpdateProfileInput {
+    pub first_name: String,
+    pub last_name: String,
+    pub phone: Option<String>,
+    pub avatar_url: Option<String>,
 }
 
 pub async fn health(pool: &Pool) -> Result<serde_json::Value, AppError> {
@@ -161,6 +180,7 @@ pub async fn register(
             last_name,
             phone,
             email,
+            avatar_url: None,
         },
         session_cookie: CUSTOMER_SESSION_COOKIE,
     };
@@ -183,7 +203,7 @@ pub async fn login(
     let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
     let row = client
         .query_opt(
-            "SELECT u.id::text, u.user_name, u.first_name, u.last_name, u.phone, u.email, uh.hash_value
+            "SELECT u.id::text, u.user_name, u.first_name, u.last_name, u.phone, u.email, u.avatar_url, uh.hash_value
              FROM \"user\" u
              INNER JOIN user_hash uh ON uh.user_id = u.id
              WHERE u.email = $1
@@ -194,7 +214,7 @@ pub async fn login(
 
     let row =
         row.ok_or_else(|| AppError::Unauthorized("invalid customer credentials".to_string()))?;
-    let password_hash: String = row.get(6);
+    let password_hash: String = row.get(7);
     let password_ok = verify_password(&input.password, &password_hash)
         .map_err(|error| AppError::Config(format!("failed to verify password: {error}")))?;
 
@@ -213,6 +233,7 @@ pub async fn login(
             last_name: row.get(3),
             phone: row.get(4),
             email: row.get(5),
+            avatar_url: row.get(6),
         },
         session_cookie: CUSTOMER_SESSION_COOKIE,
     };
@@ -225,7 +246,7 @@ pub async fn me(pool: &Pool, user_id: Uuid) -> Result<AuthResponse, AppError> {
     let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
     let row = client
         .query_opt(
-            "SELECT id::text, user_name, first_name, last_name, phone, email
+            "SELECT id::text, user_name, first_name, last_name, phone, email, avatar_url
              FROM \"user\"
              WHERE id = $1::text::uuid",
             &[&user_id.to_string()],
@@ -242,9 +263,63 @@ pub async fn me(pool: &Pool, user_id: Uuid) -> Result<AuthResponse, AppError> {
             last_name: row.get(3),
             phone: row.get(4),
             email: row.get(5),
+            avatar_url: row.get(6),
         },
         session_cookie: CUSTOMER_SESSION_COOKIE,
     })
+}
+
+pub async fn update_profile(
+    pool: &Pool,
+    user_id: Uuid,
+    input: UpdateProfileInput,
+) -> Result<AuthResponse, AppError> {
+    if input.first_name.trim().is_empty() || input.last_name.trim().is_empty() {
+        return Err(AppError::BadRequest("first_name and last_name are required".into()));
+    }
+    let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
+    let updated = client.execute(
+        "UPDATE \"user\" SET first_name = $2, last_name = $3, phone = $4, avatar_url = $5, modified_on = NOW()
+         WHERE id = $1::text::uuid",
+        &[&user_id.to_string(), &input.first_name, &input.last_name, &input.phone, &input.avatar_url]
+    ).await?;
+    if updated == 0 {
+        return Err(AppError::NotFound("customer not found".into()));
+    }
+    me(pool, user_id).await
+}
+
+pub async fn create_by_admin(pool: &Pool, input: CreateCustomerInput) -> Result<AuthResponse, AppError> {
+    let register_input = RegisterInput {
+        user_name: input.user_name,
+        first_name: input.first_name,
+        last_name: input.last_name,
+        phone: input.phone,
+        email: input.email,
+        password: input.password,
+    };
+    let (response, _session) = register(pool, register_input).await?;
+    Ok(response)
+}
+
+pub async fn list_customers(pool: &Pool) -> Result<serde_json::Value, AppError> {
+    let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
+    let rows = client.query(
+        "SELECT id::text, user_name, first_name, last_name, phone, email, avatar_url FROM \"user\" ORDER BY created_on DESC",
+        &[]
+    ).await?;
+    Ok(serde_json::json!({
+        "ok": true,
+        "items": rows.iter().map(|row| serde_json::json!({
+            "id": row.get::<_, String>(0),
+            "user_name": row.get::<_, String>(1),
+            "first_name": row.get::<_, String>(2),
+            "last_name": row.get::<_, String>(3),
+            "phone": row.get::<_, Option<String>>(4),
+            "email": row.get::<_, String>(5),
+            "avatar_url": row.get::<_, Option<String>>(6),
+        })).collect::<Vec<_>>()
+    }))
 }
 
 fn validate_registration_input(input: &RegisterInput) -> Result<(), AppError> {
