@@ -6,7 +6,7 @@ use axum::{
 use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 
 use crate::state::AppState;
-use backend_session::{cookie_name, lookup_subject_id, SessionScope};
+use backend_session::{cookie_name, delete_session, lookup_subject_id, SessionScope};
 use backend_shared::AppError;
 
 pub fn router() -> Router<AppState> {
@@ -14,6 +14,7 @@ pub fn router() -> Router<AppState> {
         .route("/health", get(health))
         .route("/login", post(login))
         .route("/me", get(me))
+        .route("/logout", post(logout))
 }
 
 async fn health() -> Json<serde_json::Value> {
@@ -44,6 +45,24 @@ async fn me(
     Ok(Json(backend_admin::me(&state.db, admin_id).await?))
 }
 
+async fn logout(
+    State(state): State<AppState>,
+    jar: CookieJar,
+) -> Result<(CookieJar, Json<serde_json::Value>), AppError> {
+    let cookie_name = cookie_name(SessionScope::Admin);
+    let maybe_token = jar.get(cookie_name).map(|cookie| cookie.value().to_string());
+
+    if let Some(token) = maybe_token {
+        delete_session(&state.db, SessionScope::Admin, &token).await?;
+    }
+
+    Ok((without_session_cookie(jar, SessionScope::Admin), Json(serde_json::json!({
+        "ok": true,
+        "scope": "admin_auth",
+        "logged_out": true,
+    }))))
+}
+
 fn with_session_cookie(jar: CookieJar, session_token: String) -> CookieJar {
     let cookie = Cookie::build((cookie_name(SessionScope::Admin), session_token))
         .path("/")
@@ -52,4 +71,8 @@ fn with_session_cookie(jar: CookieJar, session_token: String) -> CookieJar {
         .build();
 
     jar.add(cookie)
+}
+
+fn without_session_cookie(jar: CookieJar, scope: SessionScope) -> CookieJar {
+    jar.remove(Cookie::build((cookie_name(scope), "")).path("/").build())
 }

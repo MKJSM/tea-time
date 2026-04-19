@@ -3,7 +3,7 @@ use deadpool_postgres::Pool;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use backend_auth::verify_password;
+use backend_auth::{hash_password, verify_password};
 use backend_session::{create_session, SessionScope, SessionToken, ADMIN_SESSION_COOKIE};
 use backend_shared::{map_pool_error_to_app_error, AppError};
 
@@ -62,6 +62,50 @@ pub fn auth_health() -> serde_json::Value {
     })
 }
 
+pub async fn ensure_default_admin(
+    pool: &Pool,
+    email: &str,
+    password: &str,
+) -> Result<(), AppError> {
+    if email.trim().is_empty() || password.trim().is_empty() {
+        return Ok(());
+    }
+
+    let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
+    let normalized_email = email.trim().to_lowercase();
+    let existing = client
+        .query_opt(
+            "SELECT id::text FROM admin_user WHERE email = $1",
+            &[&normalized_email],
+        )
+        .await?;
+
+    if existing.is_some() {
+        return Ok(());
+    }
+
+    let password_hash = hash_password(password.trim())
+        .map_err(|error| AppError::Config(format!("failed to hash default admin password: {error}")))?;
+
+    client
+        .execute(
+            "INSERT INTO admin_user (id, user_name, first_name, last_name, phone, email, password_hash)
+             VALUES ($1::text::uuid, $2, $3, $4, $5, $6, $7)",
+            &[
+                &Uuid::new_v4().to_string(),
+                &"admin".to_string(),
+                &"Tea".to_string(),
+                &"Admin".to_string(),
+                &Option::<String>::None,
+                &normalized_email,
+                &password_hash,
+            ],
+        )
+        .await?;
+
+    Ok(())
+}
+
 pub async fn login(
     pool: &Pool,
     input: LoginInput,
@@ -117,7 +161,7 @@ pub async fn me(pool: &Pool, admin_id: Uuid) -> Result<AuthResponse, AppError> {
         .query_opt(
             "SELECT id::text, user_name, first_name, last_name, phone, email
              FROM admin_user
-             WHERE id = $1::uuid",
+             WHERE id = $1::text::uuid",
             &[&admin_id.to_string()],
         )
         .await?;

@@ -14,7 +14,7 @@ use tower_http::trace::TraceLayer;
 use crate::state::AppState;
 
 async fn customer_spa() -> Html<String> {
-    match tokio::fs::read_to_string("backend/server/public/index.html").await {
+    match tokio::fs::read_to_string("frontend/dist/customer/index.html").await {
         Ok(html) => Html(html),
         Err(_) => Html("Customer app not built".to_string()),
     }
@@ -34,10 +34,10 @@ pub fn build_router(state: AppState) -> Router {
         .nest("/api/admin", admin::router())
         .nest_service(
             "/admin",
-            ServeDir::new("backend/server/public/admin")
-                .not_found_service(ServeFile::new("backend/server/public/admin/index.html")),
+            ServeDir::new("frontend/dist/admin")
+                .not_found_service(ServeFile::new("frontend/dist/admin/index.html")),
         )
-        .nest_service("/assets", ServeDir::new("backend/server/public/assets"))
+        .nest_service("/assets", ServeDir::new("frontend/dist/customer/assets"))
         .route("/", get(customer_spa))
         .fallback(get(app_fallback))
         .with_state(state)

@@ -5,6 +5,8 @@ pub struct Config {
     pub database_url: String,
     pub db_pool_size: usize,
     pub server_port: u16,
+    pub default_admin_email: String,
+    pub default_admin_password: String,
 }
 
 impl Config {
@@ -21,11 +23,17 @@ impl Config {
             .ok()
             .and_then(|value| value.parse::<u16>().ok())
             .unwrap_or(3001);
+        let default_admin_email =
+            env::var("DEFAULT_ADMIN_EMAIL").unwrap_or_else(|_| "admin@tea-time.local".to_string());
+        let default_admin_password =
+            env::var("DEFAULT_ADMIN_PASSWORD").unwrap_or_else(|_| "TeaTimeAdmin123!".to_string());
 
         Ok(Self {
             database_url,
             db_pool_size,
             server_port,
+            default_admin_email,
+            default_admin_password,
         })
     }
 }

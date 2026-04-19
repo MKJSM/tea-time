@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mobilitea Homepage</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f7f4ef;
+      --surface: #ffffff;
+      --surface-soft: #f3eee6;
+      --text: #26241f;
+      --muted: #6e685f;
+      --line: rgba(50, 43, 35, 0.08);
+      --primary: #2f5d3a;
+      --primary-2: #3b7449;
+      --accent: #c7a35f;
+      --shadow: 0 18px 55px rgba(33, 31, 25, 0.10);
+      --radius: 28px;
+      --max: 1200px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: "Manrope", system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(199,163,95,.10), transparent 22%),
+        radial-gradient(circle at bottom right, rgba(47,93,58,.08), transparent 18%),
+        var(--bg);
+    }
+
+    h1, h2, h3, h4, .serif {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      letter-spacing: -0.02em;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; }
+    .container { width: min(var(--max), calc(100% - 32px)); margin: 0 auto; }
+    .section { padding: 82px 0; }
+
+    .fade-up { opacity: 0; transform: translateY(24px); transition: opacity .7s ease, transform .7s ease; }
+    .fade-up.in-view { opacity: 1; transform: translateY(0); }
+
+    @keyframes floatY {
+      0%,100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    @keyframes pulseGlow {
+      0%,100% { box-shadow: 0 0 0 rgba(199,163,95,0); }
+      50% { box-shadow: 0 0 28px rgba(199,163,95,.18); }
+    }
+    @keyframes shimmer {
+      0% { transform: translateX(-120%); }
+      100% { transform: translateX(120%); }
+    }
+    @keyframes marquee {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.72);
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      backdrop-filter: blur(10px);
+    }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(247,244,239,.86);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--line);
+    }
+    .header-row {
+      min-height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; }
+    .brand-mark {
+      width: 40px; height: 40px; border-radius: 14px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      position: relative; box-shadow: var(--shadow);
+    }
+    .brand-mark::before {
+      content: ""; position: absolute; inset: 10px; border: 2px solid rgba(255,255,255,.94);
+      border-radius: 999px 999px 8px 999px; transform: rotate(-35deg);
+    }
+    .brand small { display: block; color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .16em; font-weight: 700; }
+    .nav { display: flex; gap: 26px; color: var(--muted); font-size: 14px; font-weight: 700; }
+    .header-actions { display: flex; align-items: center; gap: 10px; }
+    .icon-btn, .outline-btn, .primary-btn {
+      border-radius: 999px; border: 1px solid var(--line); background: rgba(255,255,255,.82);
+      color: var(--text); cursor: pointer; transition: .2s ease;
+    }
+    .icon-btn { width: 42px; height: 42px; display: grid; place-items: center; }
+    .outline-btn, .primary-btn { padding: 13px 20px; font-weight: 800; }
+    .primary-btn {
+      border-color: transparent; color: white; background: linear-gradient(135deg, var(--primary), var(--primary-2));
+      box-shadow: 0 10px 26px rgba(47,93,58,.22);
+    }
+
+    .hero { padding: 26px 0 20px; }
+    .hero-slider {
+      position: relative; min-height: 690px; border-radius: 38px; overflow: hidden;
+      border: 1px solid var(--line); box-shadow: var(--shadow);
+      background: linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.26)), linear-gradient(135deg, #3d5a36, #7e8f45 44%, #2e4626);
+    }
+    .hero-slide {
+      position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity .45s ease;
+    }
+    .hero-slide.active { opacity: 1; pointer-events: auto; }
+    .hero-slide-content {
+      position: relative; z-index: 2; min-height: 690px; display: grid;
+      grid-template-columns: 1.06fr .94fr; align-items: center; gap: 28px; padding: 54px;
+    }
+    .hero-copy { max-width: 570px; color: white; }
+    .hero-copy .eyebrow { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.16); color: #f5dfb2; }
+    .hero-copy h1 { margin: 16px 0; color: white; font-size: clamp(52px, 6vw, 86px); line-height: .92; }
+    .hero-copy p { margin: 0; color: rgba(255,255,255,.92); font-size: 18px; line-height: 1.75; }
+    .hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; }
+    .hero-ctas .outline-btn { background: rgba(255,255,255,.12); color: white; border-color: rgba(255,255,255,.18); }
+    .slide-badges { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+    .slide-badge {
+      padding: 10px 14px; border-radius: 999px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.16);
+      font-size: 13px; font-weight: 700; color: white; backdrop-filter: blur(10px);
+    }
+    .hero-art { position: relative; min-height: 520px; }
+    .tea-field {
+      position: absolute; inset: 0;
+      background: radial-gradient(circle at 70% 12%, rgba(255,231,177,.34), transparent 18%), repeating-radial-gradient(circle at 10% 100%, rgba(66,98,41,.72) 0 18px, rgba(45,73,28,.84) 18px 38px);
+      transform: scale(1.18) translate(-2%, 3%);
+    }
+    .hero-overlay {
+      position: absolute; inset: 0; background: linear-gradient(90deg, rgba(18,24,18,.62) 0%, rgba(18,24,18,.28) 38%, rgba(18,24,18,.08) 100%);
+      z-index: 1;
+    }
+    .cup {
+      position: absolute; right: 56px; bottom: 64px; width: 278px; height: 205px; border-radius: 0 0 120px 120px / 0 0 70px 70px;
+      background: linear-gradient(180deg, #6e5a4f, #4d4038); box-shadow: 0 30px 42px rgba(0,0,0,.28); animation: floatY 4s ease-in-out infinite;
+    }
+    .cup::before {
+      content: ""; position: absolute; left: 12px; right: 12px; top: 12px; height: 42px; border-radius: 999px;
+      background: radial-gradient(circle at 50% 46%, #b68760 0%, #8a6249 62%, #654637 100%);
+    }
+    .cup::after {
+      content: ""; position: absolute; top: 46px; right: -58px; width: 78px; height: 96px;
+      border: 14px solid #5d4b42; border-left: 0; border-radius: 0 56px 56px 0;
+    }
+    .steam, .steam::before, .steam::after {
+      position: absolute; width: 76px; height: 170px; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,.36), transparent 60%); filter: blur(7px); opacity: .82;
+    }
+    .steam { right: 178px; bottom: 236px; animation: floatY 3.4s ease-in-out infinite; }
+    .steam::before { content: ""; left: -42px; top: -34px; }
+    .steam::after { content: ""; left: 38px; top: -52px; }
+    .wood {
+      position: absolute; left: 34px; right: 34px; bottom: 18px; height: 120px; border-radius: 999px;
+      background: radial-gradient(circle at 50% 50%, #7f5e3d 0, #61462f 58%, #3c291e 100%);
+    }
+    .hero-card {
+      position: absolute; left: 26px; bottom: 24px; width: 280px; padding: 18px; border-radius: 24px;
+      background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.16); color: white; backdrop-filter: blur(16px); animation: pulseGlow 3.2s ease-in-out infinite;
+    }
+    .hero-card h4 { margin: 0 0 8px; font-size: 18px; }
+    .hero-card p { margin: 0; font-size: 14px; line-height: 1.6; color: rgba(255,255,255,.84); }
+
+    .phone-mock {
+      position: absolute; right: 88px; top: 42px; width: 262px; padding: 12px; border-radius: 34px; background: #111; box-shadow: 0 24px 34px rgba(0,0,0,.30); animation: floatY 4.2s ease-in-out infinite;
+    }
+    .phone-screen {
+      min-height: 470px; padding: 16px; border-radius: 24px; background: linear-gradient(180deg, #f7f2eb, #dde8de); color: #201d19;
+    }
+    .mock-card {
+      margin-top: 12px; padding: 12px; border-radius: 18px; background: rgba(255,255,255,.88); box-shadow: 0 8px 18px rgba(0,0,0,.08); font-size: 13px; color: #565049;
+    }
+
+    .event-bg {
+      position: absolute; inset: 0; background: radial-gradient(circle at 20% 20%, rgba(255,255,255,.20), transparent 16%), linear-gradient(135deg, #6f295e 0%, #b055ac 40%, #dd8dbd 100%);
+    }
+    .event-panel {
+      position: absolute; left: 44px; bottom: 56px; z-index: 2; max-width: 430px; padding: 28px; border-radius: 28px;
+      background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.18); color: white; backdrop-filter: blur(18px); box-shadow: 0 20px 35px rgba(0,0,0,.16);
+    }
+    .event-panel h3 { margin: 0 0 12px; font-size: 46px; line-height: .94; color: white; }
+    .event-panel p { margin: 0 0 16px; color: rgba(255,255,255,.90); line-height: 1.7; font-size: 15px; }
+
+    .slide-indicators {
+      position: absolute; left: 54px; bottom: 28px; z-index: 3; display: flex; gap: 10px;
+    }
+    .slide-dot {
+      width: 12px; height: 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.18); cursor: pointer;
+    }
+    .slide-dot.active { width: 34px; background: var(--accent); border-color: transparent; }
+
+    .ticker-wrap {
+      overflow: hidden; margin-top: 18px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: rgba(255,255,255,.6);
+    }
+    .ticker {
+      display: flex; width: max-content; animation: marquee 22s linear infinite; gap: 28px; padding: 16px 0;
+    }
+    .ticker-item {
+      display: inline-flex; align-items: center; gap: 10px; padding: 0 6px; color: var(--muted); font-weight: 700; white-space: nowrap;
+    }
+    .ticker-item b { color: var(--primary); }
+
+    .section-head {
+      display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 28px;
+    }
+    .section-head h2 { margin: 12px 0 0; font-size: clamp(34px, 4vw, 54px); line-height: .98; }
+    .section-head p { max-width: 580px; margin: 8px 0 0; color: var(--muted); line-height: 1.75; }
+
+    .feature-grid, .serve-grid, .testimonial-grid, .steps, .footer-grid, .category-grid {
+      display: grid; gap: 18px;
+    }
+    .feature-grid { grid-template-columns: repeat(5, minmax(0,1fr)); }
+    .serve-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    .steps { grid-template-columns: repeat(4, minmax(0,1fr)); }
+    .testimonial-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    .footer-grid { grid-template-columns: 1.2fr .9fr .9fr 1fr; }
+    .category-grid { grid-template-columns: repeat(4, minmax(0,1fr)); }
+
+    .card {
+      background: rgba(255,255,255,.82); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+    }
+    .feature-card, .serve-card, .step, .testimonial, .footer-card { padding: 24px; }
+    .icon {
+      width: 44px; height: 44px; display: grid; place-items: center; border-radius: 14px; background: linear-gradient(135deg, rgba(47,93,58,.12), rgba(199,163,95,.12)); border: 1px solid var(--line); color: var(--primary); font-size: 20px; margin-bottom: 16px;
+    }
+    .feature-card h3, .serve-card h3, .step h3 { margin: 0 0 10px; font-size: 21px; }
+    .feature-card p, .serve-card p, .step p, .testimonial p { margin: 0; line-height: 1.7; color: var(--muted); }
+
+    .category-card { overflow: hidden; transition: transform .25s ease, box-shadow .25s ease; }
+    .category-card:hover { transform: translateY(-6px); }
+    .category-media {
+      position: relative; height: 228px; overflow: hidden; background: linear-gradient(145deg, #51694b, #1d2b20);
+    }
+    .category-media::after {
+      content: ""; position: absolute; top: 0; left: -130%; width: 50%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.20), transparent); transform: skewX(-22deg);
+    }
+    .category-card:hover .category-media::after { animation: shimmer .9s ease; }
+    .category-media.cooler { background: linear-gradient(145deg, #d8a4a9, #69444d); }
+    .category-media.milkshake { background: linear-gradient(145deg, #f1bdca, #7a415f); }
+    .category-media.juice { background: linear-gradient(145deg, #d9f0a5, #4a7233); }
+    .category-media.snack { background: linear-gradient(145deg, #7b6547, #39281c); }
+    .category-media.sandwich { background: linear-gradient(145deg, #e0b881, #7b5631); }
+    .category-media.dessert { background: linear-gradient(145deg, #a08259, #503c26); }
+
+    .kettle {
+      position: absolute; left: 32px; right: 32px; bottom: 18px; height: 120px; border-radius: 26px 26px 20px 20px; background: linear-gradient(180deg, #272727, #060606); box-shadow: 0 16px 30px rgba(0,0,0,.35);
+    }
+    .kettle::before {
+      content: ""; position: absolute; right: -22px; top: 28px; width: 44px; height: 54px; border: 8px solid #0b0b0b; border-left: 0; border-radius: 0 20px 20px 0;
+    }
+    .glass {
+      position: absolute; left: 96px; bottom: 26px; width: 120px; height: 164px; border-radius: 24px 24px 16px 16px; background: linear-gradient(180deg, rgba(255,255,255,.76), rgba(255,255,255,.18)); box-shadow: inset 0 0 0 2px rgba(255,255,255,.3), 0 18px 28px rgba(0,0,0,.28);
+    }
+    .glass::before {
+      content: ""; position: absolute; inset: 24px 12px 14px; border-radius: 14px; background: linear-gradient(180deg, #ffb3c0, #f26a80 70%, #cc4f64);
+    }
+    .biscuit-stack {
+      position: absolute; left: 30px; right: 30px; bottom: 30px; height: 140px;
+    }
+    .cookie {
+      position: absolute; width: 122px; height: 122px; border-radius: 50%; background: radial-gradient(circle at 38% 38%, #d2ac6d, #aa7b45 68%, #835830 100%); box-shadow: 0 18px 28px rgba(0,0,0,.28);
+    }
+    .cookie.one { left: 18px; bottom: 0; }
+    .cookie.two { left: 104px; bottom: 12px; }
+    .cookie.three { left: 168px; bottom: -2px; width: 92px; height: 92px; }
+    .cake-loaf {
+      position: absolute; left: 46px; right: 46px; bottom: 34px; height: 134px; border-radius: 26px 26px 14px 14px; background: linear-gradient(180deg, #b18552, #7b552f); box-shadow: 0 20px 30px rgba(0,0,0,.25);
+    }
+    .cake-loaf::before {
+      content: ""; position: absolute; left: 0; right: 0; top: -18px; height: 34px; border-radius: 18px 18px 8px 8px; background: linear-gradient(180deg, #d8af73, #a37847);
+    }
+    .category-body { padding: 18px 18px 20px; }
+    .category-body h3 { margin: 0 0 6px; font-size: 22px; }
+    .category-body p { margin: 0; color: var(--muted); line-height: 1.65; font-size: 14px; }
+
+    .step-num {
+      width: 42px; height: 42px; border-radius: 999px; display: grid; place-items: center; background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; font-weight: 800; margin-bottom: 14px;
+    }
+    .cta-row { display: flex; justify-content: center; margin-top: 28px; }
+
+    .cta-band {
+      border-radius: 36px; padding: 42px; background: linear-gradient(135deg, rgba(47,93,58,1), rgba(199,163,95,.94)); color: white; box-shadow: var(--shadow); position: relative; overflow: hidden;
+    }
+    .cta-band::before {
+      content: ""; position: absolute; inset: -10% auto auto 62%; width: 360px; height: 360px; border-radius: 50%; background: rgba(255,255,255,.12); filter: blur(12px);
+    }
+    .cta-band h2 { margin: 18px 0 12px; font-size: clamp(34px, 4vw, 58px); line-height: 1; max-width: 760px; position: relative; z-index: 1; }
+    .cta-band p { max-width: 760px; margin: 0 0 24px; font-size: 17px; line-height: 1.8; opacity: .94; position: relative; z-index: 1; }
+    .cta-band .eyebrow { background: rgba(255,255,255,.16); color: white; border-color: rgba(255,255,255,.16); position: relative; z-index: 1; }
+    .cta-band .outline-btn { background: rgba(255,255,255,.14); color: white; border-color: rgba(255,255,255,.18); }
+
+    .footer-card ul { list-style: none; padding: 0; margin: 16px 0 0; display: grid; gap: 10px; color: var(--muted); }
+    .footer-bottom { padding: 18px 0 34px; color: var(--muted); font-size: 14px; }
+
+    @media (max-width: 1100px) {
+      .hero-slide-content { grid-template-columns: 1fr; }
+      .feature-grid, .category-grid, .steps, .serve-grid, .testimonial-grid, .footer-grid { grid-template-columns: 1fr 1fr; }
+      .section-head { display: block; }
+    }
+
+    @media (max-width: 760px) {
+      .nav { display: none; }
+      .section { padding: 66px 0; }
+      .hero-slider, .hero-slide-content { min-height: auto; }
+      .hero-slide-content { padding: 28px 22px 68px; }
+      .hero-copy h1 { font-size: 48px; }
+      .hero-copy p { font-size: 16px; }
+      .feature-grid, .category-grid, .steps, .serve-grid, .testimonial-grid, .footer-grid { grid-template-columns: 1fr; }
+      .phone-mock { position: relative; right: auto; top: auto; margin: 18px auto 0; }
+      .event-panel { position: relative; left: auto; bottom: auto; margin: 220px 16px 0; }
+      .cup { width: 198px; height: 145px; right: 32px; }
+      .steam { right: 108px; bottom: 170px; }
+      .hero-card { width: calc(100% - 32px); left: 16px; }
+      .slide-indicators { left: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-row">
+      <a href="#home" class="brand">
+        <span class="brand-mark"></span>
+        <span>
+          <span class="serif" style="font-size:22px;line-height:1;">Mobilitea</span>
+          <small>Sip. Energize. Repeat.</small>
+        </span>
+      </a>
+      <nav class="nav">
+        <a href="#home">Home</a>
+        <a href="#categories">Menu</a>
+        <a href="#why">Why us</a>
+        <a href="#ritual">Our process</a>
+        <a href="#corporate">Who we serve</a>
+      </nav>
+      <div class="header-actions">
+        <button class="icon-btn" aria-label="Search">⌕</button>
+        <button class="icon-btn" aria-label="Cart">🛒</button>
+        <button class="primary-btn">Subscribe now</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="home">
+    <section class="hero">
+      <div class="container">
+        <div class="hero-slider">
+          <article class="hero-slide active">
+            <div class="tea-field"></div>
+            <div class="hero-overlay"></div>
+            <div class="hero-slide-content">
+              <div class="hero-copy">
+                <span class="eyebrow">Cover page 1</span>
+                <h1>Refreshment That Moves with Your Workday.</h1>
+                <p>Daily delivery of hot & cold beverages—tea, coffee, fresh juices—plus snacks, served at your workplace morning and evening, through a hassle-free subscription.</p>
+                <p style="margin-top:14px;">Because energized teams build better businesses. MOBILITEA is on a mission to create a complete refreshment solution ecosystem—reliable, refreshing, and made for workspaces.</p>
+                <div class="hero-ctas">
+                  <button class="primary-btn">Subscribe now</button>
+                  <button class="outline-btn">Explore menu</button>
+                </div>
+                <div class="slide-badges">
+                  <span class="slide-badge">Delivered in hygienic thermosteel flasks</span>
+                  <span class="slide-badge">Freshly brewed using high-quality ingredients</span>
+                  <span class="slide-badge">Crafted with love, care, and passion</span>
+                </div>
+              </div>
+              <div class="hero-art">
+                <div class="wood"></div>
+                <div class="cup"></div>
+                <div class="steam"></div>
+                <div class="hero-card">
+                  <h4>SIP. ENERGIZE. REPEAT.</h4>
+                  <p>Reliable workplace refreshment, built around daily comfort and clean delivery.</p>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="hero-slide">
+            <div style="position:absolute;inset:0;background:radial-gradient(circle at 22% 14%, rgba(255,255,255,.14), transparent 18%), linear-gradient(135deg, #efe7df 0%, #dedfd8 36%, #cfdbc8 100%);"></div>
+            <div class="hero-overlay"></div>
+            <div class="hero-slide-content">
+              <div class="hero-copy">
+                <span class="eyebrow">Cover page 2</span>
+                <h1>One App. Endless Refreshment.</h1>
+                <p>With the MOBILITEA app, ordering your daily beverages and snacks is just a tap away—simple, reliable, and made for busy workdays. Creating a complete refreshment solution ecosystem powered by smart technology.</p>
+                <div class="hero-ctas">
+                  <button class="primary-btn">Download the app</button>
+                  <button class="outline-btn">View features</button>
+                </div>
+                <div class="slide-badges">
+                  <span class="slide-badge">Customized Flask Ordering</span>
+                  <span class="slide-badge">Real-Time Order Tracking</span>
+                  <span class="slide-badge">Go Paperless. Go Green.</span>
+                </div>
+              </div>
+              <div class="hero-art">
+                <div class="phone-mock">
+                  <div class="phone-screen">
+                    <div style="display:flex;justify-content:space-between;align-items:center;font-weight:800;">Mobilitea <span>☕</span></div>
+                    <div class="mock-card"><strong style="display:block;color:#1f1f1f;">Morning order</strong>Tea flask · 10 cups · arriving in 12 min</div>
+                    <div class="mock-card"><strong style="display:block;color:#1f1f1f;">Live tracking</strong>Driver assigned · office route active</div>
+                    <div class="mock-card"><strong style="display:block;color:#1f1f1f;">Subscription</strong>Morning & evening plan active</div>
+                    <div class="mock-card"><strong style="display:block;color:#1f1f1f;">Billing</strong>Paperless invoice generated</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="hero-slide">
+            <div class="event-bg"></div>
+            <div class="hero-overlay" style="background:linear-gradient(90deg, rgba(17,24,18,.32) 0%, rgba(17,24,18,.08) 42%, rgba(17,24,18,.04) 100%);"></div>
+            <div class="hero-slide-content">
+              <div class="hero-copy">
+                <span class="eyebrow">Cover page 3</span>
+                <h1>Seamless Refreshment for Every Occasion.</h1>
+                <p>MOBILITEA undertakes bulk, corporate, and event orders, delivering tea, coffee, beverages, and snacks with consistency and care—no matter the scale.</p>
+                <p style="margin-top:14px;">Building a complete refreshment solution ecosystem for workplaces, meetings, and events.</p>
+                <div class="hero-ctas">
+                  <button class="primary-btn">Get your quote</button>
+                  <button class="outline-btn">Plan an event</button>
+                </div>
+              </div>
+              <div class="hero-art">
+                <div class="event-panel">
+                  <h3>Perfect Tea for Your Special Events</h3>
+                  <p>Bulk, corporate, and event refreshment with premium service and consistent delivery.</p>
+                  <div class="hero-ctas" style="margin-top:0;">
+                    <button class="outline-btn" style="background:#ffcf38;color:#23180f;border-color:transparent;">Plan your event</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <div class="slide-indicators">
+            <button class="slide-dot active" aria-label="slide 1"></button>
+            <button class="slide-dot" aria-label="slide 2"></button>
+            <button class="slide-dot" aria-label="slide 3"></button>
+          </div>
+        </div>
+        <div class="ticker-wrap">
+          <div class="ticker">
+            <span class="ticker-item">☕ <b>Tech in every step</b> · taste in every sip</span>
+            <span class="ticker-item">📍 Real-time delivery tracking</span>
+            <span class="ticker-item">🧊 Temperature lock in insulated flasks</span>
+            <span class="ticker-item">🏢 Built for offices, events, and institutions</span>
+            <span class="ticker-item">☕ <b>Tech in every step</b> · taste in every sip</span>
+            <span class="ticker-item">📍 Real-time delivery tracking</span>
+            <span class="ticker-item">🧊 Temperature lock in insulated flasks</span>
+            <span class="ticker-item">🏢 Built for offices, events, and institutions</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section fade-up" id="categories">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Categories</span>
+            <h2>Choose from every kind of workplace refreshment.</h2>
+          </div>
+          <p>Hot beverages, coolers, milkshakes, fresh juices, snacks, sandwiches, and desserts — all presented without changing the premium visual direction you already had.</p>
+        </div>
+        <div class="category-grid">
+          <article class="card category-card"><div class="category-media"><div class="kettle"></div></div><div class="category-body"><h3>Hot Beverages</h3><p>Tea, coffee, and flask service for daily office breaks.</p></div></article>
+          <article class="card category-card"><div class="category-media cooler"><div class="glass"></div></div><div class="category-body"><h3>Coolers</h3><p>Refreshing chilled beverages for warm afternoon moments.</p></div></article>
+          <article class="card category-card"><div class="category-media milkshake"><div class="glass" style="left:84px;"></div></div><div class="category-body"><h3>Milkshakes</h3><p>Creamy menu additions for a richer refreshment lineup.</p></div></article>
+          <article class="card category-card"><div class="category-media juice"><div class="glass" style="left:84px;"></div></div><div class="category-body"><h3>Fresh Juices</h3><p>Fruit-forward drinks for healthier workplace choices.</p></div></article>
+          <article class="card category-card"><div class="category-media snack"><div class="biscuit-stack"><div class="cookie one"></div><div class="cookie two"></div><div class="cookie three"></div></div></div><div class="category-body"><h3>Snacks</h3><p>Tea-time favorites that pair naturally with hot drinks.</p></div></article>
+          <article class="card category-card"><div class="category-media sandwich"><div class="cake-loaf" style="background:linear-gradient(180deg,#f4d7a4,#cc955a);border-radius:24px;"></div></div><div class="category-body"><h3>Sandwiches</h3><p>Filling savory bites for meetings and long workdays.</p></div></article>
+          <article class="card category-card"><div class="category-media dessert"><div class="cake-loaf"></div></div><div class="category-body"><h3>Desserts</h3><p>Sweet comfort picks to round out your menu selection.</p></div></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section fade-up" id="why">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Why Mobilitea</span>
+            <h2>Built for quality, freshness, and reliability.</h2>
+          </div>
+          <p>A short homepage version of your key value story, with a simple call to view more when you expand to the inner page later.</p>
+        </div>
+        <div class="feature-grid">
+          <article class="card feature-card"><div class="icon">🌿</div><h3>Quality You Can Taste</h3><p>Made with high-quality ingredients and hygienically prepared for pure taste you can trust.</p></article>
+          <article class="card feature-card"><div class="icon">🛡️</div><h3>Strict Hygiene Standards</h3><p>Prepared, handled, and packed with utmost hygiene because safety matters every day.</p></article>
+          <article class="card feature-card"><div class="icon">🔥</div><h3>Freshness First</h3><p>Freshly brewed beverages delivered hot every time with no reheating and no compromise.</p></article>
+          <article class="card feature-card"><div class="icon">📱</div><h3>Smart Subscription Control</h3><p>Ordering, tracking, pause, resume, and preference control are built to feel effortless.</p></article>
+          <article class="card feature-card"><div class="icon">⏱️</div><h3>Right on Time</h3><p>Morning and evening deliveries you can count on so teams never miss a tea break.</p></article>
+        </div>
+        <div class="cta-row"><button class="outline-btn">View more</button></div>
+      </div>
+    </section>
+
+    <section class="section fade-up" id="ritual">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">How we make the perfect cuppa ☕</span>
+            <h2>The Mobilitea way, kept simple and consistent.</h2>
+          </div>
+          <p>A cleaner homepage summary of your tea-making story, kept short so the page stays elegant and easy to scan.</p>
+        </div>
+        <div class="steps">
+          <article class="card step"><div class="step-num">01</div><h3>Start with Pure Water</h3><p>Great tea begins with fresh, clean purified water to preserve the true flavor of the leaves.</p></article>
+          <article class="card step"><div class="step-num">02</div><h3>Add Premium Tea Leaves</h3><p>Carefully measured high-quality leaves are chosen for aroma, color, and balanced strength.</p></article>
+          <article class="card step"><div class="step-num">03</div><h3>Brew with Patience</h3><p>The tea is allowed to brew slowly so the leaves release full character and natural aroma.</p></article>
+          <article class="card step"><div class="step-num">04</div><h3>Serve Hot in Flask</h3><p>Immediately poured into thermosteel flasks to lock in heat, freshness, and flavor.</p></article>
+        </div>
+        <div class="cta-row"><button class="outline-btn">View more</button></div>
+      </div>
+    </section>
+
+    <section class="section fade-up" id="corporate">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Who we serve</span>
+            <h2>Built for workplaces, institutions, and events.</h2>
+          </div>
+          <p>Point-based coverage only, just like you asked, so the section stays simple and strong.</p>
+        </div>
+        <div class="serve-grid">
+          <article class="card serve-card"><div class="icon">🏢</div><h3>Corporate Offices & IT Parks</h3><p>Daily tea, coffee, and refreshment solutions for teams of all sizes.</p></article>
+          <article class="card serve-card"><div class="icon">🏬</div><h3>Retail, Showrooms & Shops</h3><p>Consistent beverage service to keep staff refreshed throughout the day.</p></article>
+          <article class="card serve-card"><div class="icon">🏥</div><h3>Hospitals & Institutions</h3><p>Reliable hygienic beverage supply for healthcare and educational spaces.</p></article>
+          <article class="card serve-card"><div class="icon">🏭</div><h3>Factories & Industrial Units</h3><p>Large-volume, on-time refreshment service for shift-based teams.</p></article>
+          <article class="card serve-card"><div class="icon">🧑‍💼</div><h3>Co-working Spaces</h3><p>Flexible plans tailored to dynamic workplaces and shared business centers.</p></article>
+          <article class="card serve-card"><div class="icon">🎉</div><h3>Meetings, Events & Gatherings</h3><p>Tea, coffee, juices, and snacks for conferences, launches, and celebrations.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section fade-up">
+      <div class="container">
+        <div class="cta-band">
+          <span class="eyebrow">Upgrade your workplace breaks</span>
+          <h2>A refreshment system that feels premium, dependable, and easy to manage.</h2>
+          <p>Daily subscriptions, event support, app-based ordering, paperless billing, and customized flask delivery — all built into one stronger homepage story.</p>
+          <div class="hero-ctas" style="margin-top:0;position:relative;z-index:1;">
+            <button class="outline-btn" style="background:#fff;color:#173020;border-color:transparent;">Subscribe now</button>
+            <button class="outline-btn">Get corporate quote</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="container fade-up">
+    <div class="footer-grid">
+      <article class="card footer-card">
+        <div class="brand" style="margin-bottom:12px;">
+          <span class="brand-mark"></span>
+          <span>
+            <span class="serif" style="font-size:22px;line-height:1;">Mobilitea</span>
+            <small>Sip. Energize. Repeat.</small>
+          </span>
+        </div>
+        <p style="margin:0;color:var(--muted);line-height:1.75;">Premium refreshment for workplaces, events, and institutions — designed to feel reliable, polished, and easy to scale.</p>
+      </article>
+      <article class="card footer-card"><h3>Menu</h3><ul><li>Hot beverages</li><li>Coolers</li><li>Snacks</li><li>Desserts</li></ul></article>
+      <article class="card footer-card"><h3>Company</h3><ul><li>Why Mobilitea</li><li>Our process</li><li>Who we serve</li><li>Corporate quotes</li></ul></article>
+      <article class="card footer-card"><h3>Fonts used</h3><ul><li>Cormorant Garamond</li><li>Manrope</li></ul></article>
+    </div>
+    <div class="footer-bottom">© 2026 Mobilitea homepage.</div>
+  </footer>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll('.hero-slide'));
+    const dots = Array.from(document.querySelectorAll('.slide-dot'));
+    let activeIndex = 0;
+    let timer;
+
+    function showSlide(index) {
+      activeIndex = index;
+      slides.forEach((slide, i) => slide.classList.toggle('active', i === index));
+      dots.forEach((dot, i) => dot.classList.toggle('active', i === index));
+    }
+
+    function startSlider() {
+      clearInterval(timer);
+      timer = setInterval(() => showSlide((activeIndex + 1) % slides.length), 4200);
+    }
+
+    dots.forEach((dot, index) => {
+      dot.addEventListener('click', () => {
+        showSlide(index);
+        startSlider();
+      });
+    });
+
+    showSlide(0);
+    startSlider();
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) entry.target.classList.add('in-view');
+      });
+    }, { threshold: 0.12 });
+
+    document.querySelectorAll('.fade-up').forEach((el) => observer.observe(el));
+  </script>
+</body>
+</html>

@@ -1,6 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { ShellCard } from '@tea-time/ui';
+
+import { HomePage } from './HomePage';
+import './styles.css';
 
 const rootElement = document.getElementById('root');
 
@@ -10,11 +12,6 @@ if (!rootElement) {
 
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    <ShellCard
-      eyebrow="Customer App"
-      title="Tea Time"
-      description="Customer storefront workspace app."
-    />
+    <HomePage />
   </React.StrictMode>,
 );
-

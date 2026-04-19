@@ -1,3 +1,5 @@
+use std::fmt;
+
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -5,6 +7,7 @@ use axum::{
 use deadpool_postgres::PoolError;
 use tokio_postgres::error::SqlState;
 
+#[derive(Debug)]
 pub enum AppError {
     Config(String),
     BadRequest(String),
@@ -29,6 +32,19 @@ impl IntoResponse for AppError {
                 format!("database error: {error}"),
             )
                 .into_response(),
+        }
+    }
+}
+
+impl fmt::Display for AppError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AppError::Config(message)
+            | AppError::BadRequest(message)
+            | AppError::Unauthorized(message)
+            | AppError::Conflict(message)
+            | AppError::NotFound(message) => f.write_str(message),
+            AppError::Database(error) => write!(f, "database error: {error}"),
         }
     }
 }

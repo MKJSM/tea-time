@@ -19,7 +19,15 @@ async fn initialize_database(config: &Config) -> Pool {
 
     migrate(&db)
         .await
-        .unwrap_or_else(|error| panic!("failed to run migrations: {error}"));
+        .unwrap_or_else(|error| panic!("failed to run migrations: {error:?}"));
+
+    backend_admin::ensure_default_admin(
+        &db,
+        &config.default_admin_email,
+        &config.default_admin_password,
+    )
+    .await
+    .unwrap_or_else(|error| panic!("failed to seed default admin: {error}"));
 
     db
 }

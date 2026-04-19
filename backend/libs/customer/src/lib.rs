@@ -117,7 +117,7 @@ pub async fn register(
     let insert_user = transaction
         .execute(
             "INSERT INTO \"user\" (id, user_name, first_name, last_name, phone, email)
-             VALUES ($1::uuid, $2, $3, $4, $5, $6)",
+             VALUES ($1::text::uuid, $2, $3, $4, $5, $6)",
             &[
                 &user_id.to_string(),
                 &user_name,
@@ -142,7 +142,7 @@ pub async fn register(
     transaction
         .execute(
             "INSERT INTO user_hash (id, user_id, auth_type, hash_value)
-             VALUES ($1::uuid, $2::uuid, 'password', $3)",
+             VALUES ($1::text::uuid, $2::text::uuid, 'password', $3)",
             &[
                 &user_hash_id.to_string(),
                 &user_id.to_string(),
@@ -227,7 +227,7 @@ pub async fn me(pool: &Pool, user_id: Uuid) -> Result<AuthResponse, AppError> {
         .query_opt(
             "SELECT id::text, user_name, first_name, last_name, phone, email
              FROM \"user\"
-             WHERE id = $1::uuid",
+             WHERE id = $1::text::uuid",
             &[&user_id.to_string()],
         )
         .await?;

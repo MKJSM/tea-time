@@ -22,9 +22,14 @@ Workspace scaffold with separate backend and frontend package boundaries.
 
 ```bash
 just frontend-install
+just build-frontend
 just frontend-build
+just copy-frontend
 just sync-frontend
+just setup
 just migrate
+just reset
+just run-backend
 just build-backend
 just backend-run
 just run
@@ -40,17 +45,22 @@ Copy `backend/.env.example` to `backend/.env` or export equivalent variables bef
 Example:
 
 ```env
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/tea_time
+DATABASE_URL=postgres://mobiletea:mobiletea@localhost:5432/mobiletea
 DATABASE_POOL_SIZE=5
 PORT=3001
 ```
 
 ## Recommended backend flow
 
-1. Start PostgreSQL and create the target database.
+1. Start PostgreSQL and run `just setup`.
 2. Create `backend/.env` with `DATABASE_URL` and optional `DATABASE_POOL_SIZE`.
 3. Run `just migrate` to apply SQL files from `backend/db/migration`.
-4. Run `just backend-run` to start only the backend.
+4. Run `just run-backend` to start only the backend.
+
+`just setup` drops and recreates the local `mobiletea` database and `mobiletea` role with password `mobiletea`.
+It connects to the local PostgreSQL admin database as `postgres` on `localhost:5432`.
+
+To fully recreate the configured database from scratch, run `just reset`.
 
 ## Frontend build and serving
 
@@ -59,6 +69,7 @@ PORT=3001
 - `just sync-frontend` copies:
   - customer build to `backend/server/public/`
   - admin build to `backend/server/public/admin/`
+- `just copy-frontend` is an alias for `just sync-frontend`
 - backend serves:
   - customer app at `/`
   - admin app at `/admin`
@@ -69,4 +80,4 @@ PORT=3001
   Builds both frontend apps, copies them into `backend/server/public`, then starts the backend server.
 
 - `just all`
-  Same as `just run`: builds both frontend apps, syncs them into the backend public directory, and starts the backend server.
+  Builds both frontend apps, copies the customer app into `backend/server/public/`, copies the admin app into `backend/server/public/admin/`, then starts the backend server.

@@ -1,6 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { ShellCard } from '@tea-time/ui';
+
+import { AdminApp } from './AdminApp';
+import './styles.css';
 
 const rootElement = document.getElementById('root');
 
@@ -10,11 +12,6 @@ if (!rootElement) {
 
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    <ShellCard
-      eyebrow="Admin App"
-      title="Tea Time Admin"
-      description="Admin workspace app served under /admin."
-    />
+    <AdminApp />
   </React.StrictMode>,
 );
-

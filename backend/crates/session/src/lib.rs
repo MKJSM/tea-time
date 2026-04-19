@@ -47,7 +47,7 @@ pub async fn create_session(
     client
         .execute(
             "INSERT INTO app_session (id, scope, subject_id, session_token, expires_on)
-             VALUES ($1::uuid, $2, $3::uuid, $4, $5::timestamptz)",
+             VALUES ($1::text::uuid, $2, $3::text::uuid, $4, $5::text::timestamptz)",
             &[
                 &session_id.to_string(),
                 &scope.as_db_value(),
@@ -86,4 +86,22 @@ pub async fn lookup_subject_id(
             .map_err(|error| AppError::Config(format!("invalid session subject id: {error}")))
     })
     .transpose()
+}
+
+pub async fn delete_session(
+    pool: &Pool,
+    scope: SessionScope,
+    session_token: &str,
+) -> Result<(), AppError> {
+    let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
+    client
+        .execute(
+            "DELETE FROM app_session
+             WHERE scope = $1
+               AND session_token = $2",
+            &[&scope.as_db_value(), &session_token],
+        )
+        .await?;
+
+    Ok(())
 }
