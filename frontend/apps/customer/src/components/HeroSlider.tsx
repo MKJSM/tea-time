@@ -50,10 +50,7 @@ export function HeroSlider({ activeSlide, onSlideChange }: Props) {
               </div>
             </div>
             <div className="hero-art">
-              <div className="tea-field" />
-              <div className="v2-wood" />
-              <div className="v2-cup" />
-              <div className="v2-steam" />
+              <img src="/hero_main.png" alt="Fresh workplace tea" className="hero-img" />
               <div className="hero-card">
                 <h4>SIP. ENERGIZE. REPEAT.</h4>
                 <p>Reliable workplace refreshment, built around daily comfort and clean delivery.</p>
@@ -104,36 +101,7 @@ export function HeroSlider({ activeSlide, onSlideChange }: Props) {
               </div>
             </div>
             <div className="hero-art">
-              <div className="phone-mock">
-                <div className="phone-screen">
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      fontWeight: 800,
-                    }}
-                  >
-                    Mobilitea <span>☕</span>
-                  </div>
-                  <div className="mock-card">
-                    <strong style={{ display: 'block', color: '#1f1f1f' }}>Morning order</strong>
-                    Tea flask · 10 cups · arriving in 12 min
-                  </div>
-                  <div className="mock-card">
-                    <strong style={{ display: 'block', color: '#1f1f1f' }}>Live tracking</strong>
-                    Driver assigned · office route active
-                  </div>
-                  <div className="mock-card">
-                    <strong style={{ display: 'block', color: '#1f1f1f' }}>Subscription</strong>
-                    Morning &amp; evening plan active
-                  </div>
-                  <div className="mock-card">
-                    <strong style={{ display: 'block', color: '#1f1f1f' }}>Billing</strong>
-                    Paperless invoice generated
-                  </div>
-                </div>
-              </div>
+              <img src="/hero_app.png" alt="Mobilitea App" className="hero-img" />
             </div>
           </div>
         </article>
@@ -175,20 +143,10 @@ export function HeroSlider({ activeSlide, onSlideChange }: Props) {
               </div>
             </div>
             <div className="hero-art">
+              <img src="/hero_events.png" alt="Corporate Events" className="hero-img" />
               <div className="event-panel">
                 <h3>Perfect Tea for Your Special Events</h3>
-                <p>
-                  Bulk, corporate, and event refreshment with premium service and consistent
-                  delivery.
-                </p>
-                <div className="hero-actions-row" style={{ marginTop: 0 }}>
-                  <button
-                    className="solid-button"
-                    style={{ background: '#ffcf38', color: '#23180f' }}
-                  >
-                    Plan your event
-                  </button>
-                </div>
+                <p>Bulk, corporate, and event refreshment with premium service.</p>
               </div>
             </div>
           </div>

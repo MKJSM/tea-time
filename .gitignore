@@ -7,3 +7,4 @@
 /.DS_Store
 backend/server/public
 sample
+backend/server/public/*
