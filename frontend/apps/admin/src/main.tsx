@@ -1,6 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 
+import { ErrorBoundary } from '@tea-time/ui';
+
 import { AdminApp } from './AdminApp';
 import './styles.css';
 
@@ -12,6 +14,8 @@ if (!rootElement) {
 
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    <AdminApp />
+    <ErrorBoundary>
+      <AdminApp />
+    </ErrorBoundary>
   </React.StrictMode>,
 );

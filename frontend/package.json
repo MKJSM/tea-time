@@ -8,9 +8,29 @@
   ],
   "scripts": {
     "install:all": "npm install --workspaces",
+    "dev:customer": "npm run dev --workspace @tea-time/customer-app",
+    "dev:admin": "npm run dev --workspace @tea-time/admin-app",
     "build:customer": "npm run build --workspace @tea-time/customer-app",
     "build:admin": "npm run build --workspace @tea-time/admin-app",
-    "build": "npm run build:customer && npm run build:admin"
+    "build": "npm run build:customer && npm run build:admin",
+    "preview:customer": "npm run preview --workspace @tea-time/customer-app",
+    "preview:admin": "npm run preview --workspace @tea-time/admin-app",
+    "type-check": "npm run type-check --workspaces --if-present",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "eslint-plugin-react": "^7.37.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "prettier": "^3.4.0",
+    "typescript": "^5.8.0"
   }
 }
 

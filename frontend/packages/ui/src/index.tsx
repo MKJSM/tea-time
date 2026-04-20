@@ -1,3 +1,4 @@
+export { ErrorBoundary } from './ErrorBoundary';
 import type { CSSProperties } from 'react';
 
 import type { AppCardData } from '@tea-time/types';

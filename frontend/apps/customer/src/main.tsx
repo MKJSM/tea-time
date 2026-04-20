@@ -1,6 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 
+import { ErrorBoundary } from '@tea-time/ui';
+
 import { HomePage } from './HomePage';
 import './styles.css';
 
@@ -12,6 +14,8 @@ if (!rootElement) {
 
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    <HomePage />
+    <ErrorBoundary>
+      <HomePage />
+    </ErrorBoundary>
   </React.StrictMode>,
 );
