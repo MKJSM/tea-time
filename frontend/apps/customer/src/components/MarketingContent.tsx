@@ -63,9 +63,9 @@ export function WhySection() {
         <div className="section-head">
           <div>
             <span className="eyebrow" style={{ color: 'var(--accent)' }}>The MOBILITEA Difference</span>
-            <h2 className="serif" style={{ color: 'var(--fg-inv)' }}>Why Choose Us?</h2>
+            <h2 className="serif">Why Choose Us?</h2>
           </div>
-          <p style={{ color: 'rgba(240, 236, 228, 0.6)', maxWidth: 480 }}>
+          <p style={{ color: 'var(--muted)', maxWidth: 480 }}>
             Ten reasons thousands of workplaces trust MOBILITEA for daily refreshment.
           </p>
         </div>
@@ -84,8 +84,8 @@ export function WhySection() {
           ].map(({ n, title, desc }) => (
             <article key={title} className="dark-card">
               <div className="mono" style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 700, marginBottom: 8, letterSpacing: '.12em' }}>{n}</div>
-              <h3 className="serif" style={{ color: 'var(--fg-inv)', fontSize: 16, marginBottom: 7 }}>{title}</h3>
-              <p style={{ fontSize: 12, color: 'rgba(240, 236, 228, 0.55)', lineHeight: 1.6 }}>{desc}</p>
+              <h3 className="serif" style={{ fontSize: 16, marginBottom: 7 }}>{title}</h3>
+              <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>{desc}</p>
             </article>
           ))}
         </div>

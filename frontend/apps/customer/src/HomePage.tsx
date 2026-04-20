@@ -136,6 +136,22 @@ function normalizeAddressForm(address?: Address): AddressInput {
 }
 
 export function HomePage() {
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('mt-theme') || 'light';
+    }
+    return 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('mt-theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
+
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [_banners, setBanners] = useState<Banner[]>(fallbackBanners);
   const [categories, setCategories] = useState<CategoryListItem[]>([]);
@@ -568,6 +584,14 @@ export function HomePage() {
             <a href="#blog">Blog</a>
           </nav>
           <div className="header-actions">
+            <button
+              className="theme-toggle"
+              onClick={toggleTheme}
+              aria-label="Toggle theme"
+              title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+            >
+              {theme === 'light' ? '🌙' : '☀️'}
+            </button>
             <a className="solid-button btn-cta-pulse" href="#menu">
               Subscribe
             </a>

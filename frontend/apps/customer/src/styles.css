@@ -1,26 +1,49 @@
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600;1,700&family=Nunito:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=DM+Mono:wght@400;500&display=swap');
 
 /* ─── Design Tokens ──────────────────────────────────────── */
-:root {
+:root,
+:root[data-theme='light'] {
   --bg: #f7f4ef;
   --surface: #ffffff;
   --surface-soft: #f3eee6;
   --text: #26241f;
   --muted: #6e685f;
   --line: rgba(50, 43, 35, 0.08);
+  --border: rgba(50, 43, 35, 0.1);
+  --bg-inv: #1a1e1b;
+  --fg-inv: #edf7f0;
+  --shadow: 0 18px 55px rgba(33, 31, 25, 0.10);
+  --shadow-sm: 0 8px 24px rgba(33, 31, 25, 0.08);
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg: #1a1e1b;
+  --surface: #242925;
+  --surface-soft: #2d332e;
+  --text: #edf7f0;
+  --muted: #8ba091;
+  --line: rgba(255, 255, 255, 0.08);
+  --border: rgba(255, 255, 255, 0.1);
+  --bg-inv: #f7f4ef;
+  --fg-inv: #26241f;
+  --shadow: 0 18px 55px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 8px 24px rgba(0, 0, 0, 0.3);
+  color-scheme: dark;
+}
+
+:root {
   --primary: #2f5d3a;
   --primary-2: #3b7449;
   --accent: #c7a35f;
   --danger: #bb4f4f;
-  --shadow: 0 18px 55px rgba(33, 31, 25, 0.10);
-  --shadow-sm: 0 8px 24px rgba(33, 31, 25, 0.08);
   --radius: 28px;
   --max: 1200px;
   --font-display: 'Cormorant Garamond', Georgia, serif;
   --font-body: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'DM Mono', 'Courier New', monospace;
-  color-scheme: light;
   font-family: var(--font-body);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* ─── Reset ──────────────────────────────────────────────── */
@@ -77,22 +100,22 @@ h1, h2, h3, h4, .serif {
 
 /* ── Marketing Sections ── */
 .dark-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
   border-radius: 12px;
   padding: 24px;
   transition: all 0.3s ease;
 }
 
 .dark-card:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface);
   border-color: var(--accent);
   transform: translateY(-4px);
 }
 
 .section-dark {
-  background: var(--bg-inv);
-  color: var(--fg-inv);
+  background: var(--surface-soft);
+  color: var(--text);
   padding: 80px 0;
 }
 
@@ -152,7 +175,7 @@ h1, h2, h3, h4, .serif {
   padding: 8px 14px;
   border-radius: 999px;
   border: 1px solid var(--line);
-  background: rgba(255,255,255,.72);
+  background: var(--surface-soft);
   color: var(--primary);
   font-size: 12px;
   font-weight: 800;
@@ -166,7 +189,8 @@ h1, h2, h3, h4, .serif {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(247,244,239,.86);
+  background: var(--bg);
+  opacity: 0.94;
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--line);
 }
@@ -197,7 +221,28 @@ h1, h2, h3, h4, .serif {
   transform: scale(1.05);
 }
 .site-nav { display: flex; gap: 26px; color: var(--muted); font-size: 14px; font-weight: 700; }
-.header-actions { display: flex; align-items: center; gap: 10px; }
+.header-actions { display: flex; align-items: center; gap: 16px; }
+
+.theme-toggle {
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  color: var(--text);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+  transition: all 0.2s ease;
+}
+
+.theme-toggle:hover {
+  background: var(--surface);
+  border-color: var(--accent);
+  transform: rotate(12deg) scale(1.1);
+}
 
 /* ─── Buttons ────────────────────────────────────────────── */
 .solid-button, .outline-button, .ghost-button, .icon-btn {
@@ -461,10 +506,11 @@ h1, h2, h3, h4, .serif {
 /* ─── Ticker ─────────────────────────────────────────────── */
 /* ── Footer V2 (Sample-inspired) ── */
 .site-footer {
-  background: var(--bg-inv);
+  background: var(--surface-soft);
   padding: 80px 0 0;
   margin-top: 80px;
-  color: var(--fg-inv);
+  color: var(--text);
+  border-top: 1px solid var(--line);
 }
 
 .footer-cta-strip {
@@ -483,7 +529,7 @@ h1, h2, h3, h4, .serif {
 .footer-cta-strip h2 {
   font-size: clamp(20px, 3vw, 28px);
   margin: 0 0 8px;
-  color: var(--fg-inv);
+  color: var(--text);
 }
 
 .footer-cta-strip p {
@@ -505,16 +551,24 @@ h1, h2, h3, h4, .serif {
 
 .brand-col .logo {
   height: 28px;
-  filter: brightness(0) invert(1);
   margin-bottom: 20px;
+}
+
+:root[data-theme='light'] .brand-col .logo {
+  filter: none;
+}
+
+:root[data-theme='dark'] .brand-col .logo {
+  filter: brightness(0) invert(1);
 }
 
 .brand-desc {
   font-size: 13px;
-  color: rgba(237, 247, 240, 0.48);
+  color: var(--muted);
   line-height: 1.75;
   max-width: 240px;
   margin-bottom: 16px;
+  opacity: 0.8;
 }
 
 .footer-col h3, 
@@ -524,8 +578,9 @@ h1, h2, h3, h4, .serif {
   font-weight: 700;
   letter-spacing: .14em;
   text-transform: uppercase;
-  color: rgba(237, 247, 240, 0.28);
+  color: var(--accent);
   margin-bottom: 20px;
+  opacity: 0.9;
 }
 
 .footer-col ul {
@@ -537,7 +592,7 @@ h1, h2, h3, h4, .serif {
 .footer-col li {
   margin-bottom: 10px;
   font-size: 13px;
-  color: rgba(237, 247, 240, 0.52);
+  color: var(--muted);
   cursor: pointer;
   transition: color .2s;
 }
@@ -562,7 +617,8 @@ h1, h2, h3, h4, .serif {
 .copyright,
 .bottom-links span {
   font-size: 12px;
-  color: rgba(237, 247, 240, 0.28);
+  color: var(--muted);
+  opacity: 0.7;
 }
 
 .bottom-links {
@@ -652,7 +708,7 @@ h1, h2, h3, h4, .serif {
 
 .category-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 18px; }
 .card {
-  background: rgba(255,255,255,.82);
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
@@ -827,7 +883,7 @@ h1, h2, h3, h4, .serif {
 .auth-panel .dual-form-grid { grid-template-columns: 1fr 1fr; }
 .auth-card {
   padding: 28px; border-radius: 28px;
-  background: rgba(255,255,255,.92);
+  background: var(--surface);
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
 }
@@ -851,9 +907,9 @@ h1, h2, h3, h4, .serif {
 }
 .auth-input-wrap input {
   width: 100%; min-height: 50px;
-  border: 1px solid rgba(43,37,28,.12);
+  border: 1px solid var(--line);
   border-radius: 18px;
-  background: #f9f7f4;
+  background: var(--surface-soft);
   padding: 0 14px 0 42px;
   color: var(--text);
   transition: border-color .2s;
@@ -878,9 +934,9 @@ h1, h2, h3, h4, .serif {
 form label { display: grid; gap: 8px; color: var(--text); font-weight: 700; margin-top: 12px; }
 input {
   min-height: 46px;
-  border: 1px solid rgba(43,37,28,.14);
+  border: 1px solid var(--line);
   border-radius: 14px;
-  background: rgba(255,255,255,.9);
+  background: var(--surface);
   padding: 0 14px;
   color: var(--text);
 }
