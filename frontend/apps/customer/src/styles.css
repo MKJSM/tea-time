@@ -75,6 +75,73 @@ h1, h2, h3, h4, .serif {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ── Marketing Sections ── */
+.dark-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 24px;
+  transition: all 0.3s ease;
+}
+
+.dark-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--accent);
+  transform: translateY(-4px);
+}
+
+.section-dark {
+  background: var(--bg-inv);
+  color: var(--fg-inv);
+  padding: 80px 0;
+}
+
+.feature-grid-v2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.step-card-v2 {
+  background: var(--bg-s);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px;
+  transition: all 0.3s ease;
+}
+
+.step-card-v2:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-lg);
+}
+
+.v2-stats-panel {
+  background: var(--bg-s2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 40px;
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 24px;
+  text-align: center;
+}
+
+.stat-num {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+
 .fade-up { opacity: 0; transform: translateY(24px); transition: opacity .7s ease, transform .7s ease; }
 .fade-up.in-view { opacity: 1; transform: translateY(0); }
 

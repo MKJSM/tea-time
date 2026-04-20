@@ -568,20 +568,9 @@ export function HomePage() {
             <a href="#blog">Blog</a>
           </nav>
           <div className="header-actions">
-            <span className="status-pill">{health?.ok ? '🟢 API online' : '⏳ Loading'}</span>
-            {session ? (
-              <button
-                className="outline-button"
-                type="button"
-                onClick={() => void handleLogout()}
-              >
-                Logout
-              </button>
-            ) : (
-              <a className="solid-button" href="#account">
-                Sign in
-              </a>
-            )}
+            <a className="solid-button btn-cta-pulse" href="#menu">
+              Subscribe
+            </a>
           </div>
         </div>
       </header>

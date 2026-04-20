@@ -58,19 +58,18 @@ export function CategoriesSection() {
 /** ── Why Mobilitea ── */
 export function WhySection() {
   return (
-    <section className="section fade-up" id="why">
+    <section className="section-dark fade-up" id="why">
       <div className="container">
         <div className="section-head">
           <div>
-            <span className="eyebrow">Why Mobilitea</span>
-            <h2>Built for quality, freshness, and reliability.</h2>
+            <span className="eyebrow" style={{ color: 'var(--accent)' }}>The MOBILITEA Difference</span>
+            <h2 className="serif" style={{ color: 'var(--fg-inv)' }}>Why Choose Us?</h2>
           </div>
-          <p>
-            Our key value story — quality ingredients, strict hygiene, smart technology, and
-            on-time delivery.
+          <p style={{ color: 'rgba(240, 236, 228, 0.6)', maxWidth: 480 }}>
+            Ten reasons thousands of workplaces trust MOBILITEA for daily refreshment.
           </p>
         </div>
-        <div className="feature-grid">
+        <div className="feature-grid-v2">
           {[
             { n: '01', title: 'Quality You Can Taste', desc: 'Made with high-quality ingredients. Hygienically prepared. Pure taste you can trust.' },
             { n: '02', title: 'Strict Hygiene Standards', desc: 'Prepared, handled & packed with utmost hygiene. Because safety matters.' },
@@ -83,12 +82,17 @@ export function WhySection() {
             { n: '09', title: 'Order in Seconds', desc: 'App-based ordering & real-time tracking. Refreshments made effortless.' },
             { n: '10', title: 'Built for Business', desc: 'Daily subscriptions, bulk & corporate orders. We scale as you grow.' },
           ].map(({ n, title, desc }) => (
-            <article key={title} className="card feature-card">
-              <div className="v2-icon" style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 800 }}>{n}</div>
-              <h3>{title}</h3>
-              <p>{desc}</p>
+            <article key={title} className="dark-card">
+              <div className="mono" style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 700, marginBottom: 8, letterSpacing: '.12em' }}>{n}</div>
+              <h3 className="serif" style={{ color: 'var(--fg-inv)', fontSize: 16, marginBottom: 7 }}>{title}</h3>
+              <p style={{ fontSize: 12, color: 'rgba(240, 236, 228, 0.55)', lineHeight: 1.6 }}>{desc}</p>
             </article>
           ))}
+        </div>
+        <div className="cta-row" style={{ textAlign: 'center', marginTop: 52 }}>
+          <a className="solid-button" href="#menu" style={{ padding: '16px 36px' }}>
+            Upgrade Your Workplace Breaks Today →
+          </a>
         </div>
       </div>
     </section>
