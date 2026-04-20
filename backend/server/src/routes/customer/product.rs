@@ -10,7 +10,7 @@ struct ProductListQuery {
 }
 
 pub fn router() -> Router<AppState> {
-    Router::new().route("/", get(list)).route("/:id", get(get_one))
+    Router::new().route("/", get(list)).route("/{id}", get(get_one))
 }
 
 async fn list(

@@ -6,7 +6,7 @@ use crate::state::AppState;
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(list))
-        .route("/:id", get(detail))
+        .route("/{id}", get(detail))
 }
 
 async fn list(State(state): State<AppState>) -> Result<Json<serde_json::Value>, AppError> {

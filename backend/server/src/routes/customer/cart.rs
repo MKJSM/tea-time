@@ -15,7 +15,7 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(get_cart))
         .route("/items", post(add_item))
-        .route("/items/:id", patch(update_item).delete(delete_item))
+        .route("/items/{id}", patch(update_item).delete(delete_item))
 }
 
 async fn get_cart(State(state): State<AppState>, jar: CookieJar) -> Result<Json<backend_order::CartResponse>, AppError> {

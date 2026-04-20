@@ -7,7 +7,7 @@ use crate::state::AppState;
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(list).post(create))
-        .route("/:id", get(get_one).patch(update).delete(remove))
+        .route("/{id}", get(get_one).patch(update).delete(remove))
 }
 
 async fn list(State(state): State<AppState>) -> Result<Json<serde_json::Value>, AppError> {

@@ -9,7 +9,7 @@ use crate::state::AppState;
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(list).post(create))
-        .route("/:id", patch(update).delete(remove))
+        .route("/{id}", patch(update).delete(remove))
 }
 
 async fn list(State(state): State<AppState>, jar: CookieJar) -> Result<Json<serde_json::Value>, AppError> {

@@ -11,8 +11,8 @@ struct StatusInput {
 pub fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(list))
-        .route("/:id", get(detail))
-        .route("/:id/status", patch(update_status))
+        .route("/{id}", get(detail))
+        .route("/{id}/status", patch(update_status))
 }
 
 async fn list(State(state): State<AppState>) -> Result<Json<serde_json::Value>, AppError> {

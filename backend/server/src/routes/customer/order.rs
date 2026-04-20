@@ -10,7 +10,7 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/", get(list))
         .route("/checkout", post(checkout))
-        .route("/:id", get(detail))
+        .route("/{id}", get(detail))
 }
 
 async fn list(State(state): State<AppState>, jar: CookieJar) -> Result<Json<serde_json::Value>, AppError> {
