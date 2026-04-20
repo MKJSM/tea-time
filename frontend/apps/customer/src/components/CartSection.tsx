@@ -40,54 +40,50 @@ export function CartSection({
             <h2>Review the cart before checkout.</h2>
           </div>
         </div>
-        {session ? (
-          cart && cart.items.length ? (
-            <div className="list-stack">
-              {cart.items.map((item) => (
-                <article key={item.id} className="list-card">
-                  <div className="cart-line">
-                    <div className="thumb-wrap">
-                      {item.images[0] ? (
-                        <img src={item.images[0]} alt={item.product_name} />
-                      ) : null}
-                    </div>
-                    <div>
-                      <strong>{item.product_name}</strong>
-                      <p>
-                        {formatMoney(item.unit_price)} each · {formatMoney(item.line_total)}
-                      </p>
-                    </div>
+        {cart && cart.items.length ? (
+          <div className="list-stack">
+            {cart.items.map((item) => (
+              <article key={item.id} className="list-card">
+                <div className="cart-line">
+                  <div className="thumb-wrap">
+                    {item.images[0] ? (
+                      <img src={item.images[0]} alt={item.product_name} />
+                    ) : null}
                   </div>
-                  <div className="cart-actions">
-                    <button
-                      type="button"
-                      onClick={() => onCartQuantity(item.id, item.quantity - 1)}
-                    >
-                      −
-                    </button>
-                    <span>{item.quantity}</span>
-                    <button
-                      type="button"
-                      onClick={() => onCartQuantity(item.id, item.quantity + 1)}
-                    >
-                      +
-                    </button>
-                    <button
-                      className="ghost-inline danger"
-                      type="button"
-                      onClick={() => onCartDelete(item.id)}
-                    >
-                      Remove
-                    </button>
+                  <div>
+                    <strong>{item.product_name}</strong>
+                    <p>
+                      {formatMoney(item.unit_price)} each · {formatMoney(item.line_total)}
+                    </p>
                   </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <p className="helper-copy">Your cart is empty. Add products from the menu first.</p>
-          )
+                </div>
+                <div className="cart-actions">
+                  <button
+                    type="button"
+                    onClick={() => onCartQuantity(item.id, item.quantity - 1)}
+                  >
+                    −
+                  </button>
+                  <span>{item.quantity}</span>
+                  <button
+                    type="button"
+                    onClick={() => onCartQuantity(item.id, item.quantity + 1)}
+                  >
+                    +
+                  </button>
+                  <button
+                    className="ghost-inline danger"
+                    type="button"
+                    onClick={() => onCartDelete(item.id)}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
         ) : (
-          <p className="helper-copy">Login to keep a cart and move into checkout.</p>
+          <p className="helper-copy">Your cart is empty. Add products from the menu first.</p>
         )}
       </section>
 
@@ -103,10 +99,6 @@ export function CartSection({
           <div>
             <span>Cart total</span>
             <strong>{formatMoney(cart?.total_amount ?? 0)}</strong>
-          </div>
-          <div>
-            <span>Default address</span>
-            <strong>{defaultAddress?.city ?? 'Not selected'}</strong>
           </div>
           <div>
             <span>Latest order</span>

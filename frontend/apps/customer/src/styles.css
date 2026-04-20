@@ -392,6 +392,121 @@ h1, h2, h3, h4, .serif {
 .summary-grid strong { font-size: 1.05rem; }
 
 /* ─── Ticker ─────────────────────────────────────────────── */
+/* ── Footer V2 (Sample-inspired) ── */
+.site-footer {
+  background: var(--bg-inv);
+  padding: 80px 0 0;
+  margin-top: 80px;
+  color: var(--fg-inv);
+}
+
+.footer-cta-strip {
+  background: linear-gradient(135deg, rgba(212, 130, 10, 0.15), rgba(30, 84, 41, 0.2));
+  border: 1px solid rgba(212, 130, 10, 0.2);
+  border-radius: 16px;
+  padding: clamp(24px, 4vw, 36px);
+  margin-bottom: 64px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.footer-cta-strip h2 {
+  font-size: clamp(20px, 3vw, 28px);
+  margin: 0 0 8px;
+  color: var(--fg-inv);
+}
+
+.footer-cta-strip p {
+  font-size: 14px;
+  color: rgba(240, 236, 228, 0.6);
+  margin: 0;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 48px;
+  margin-bottom: 64px;
+}
+
+.brand-col {
+  grid-column: span 1;
+}
+
+.brand-col .logo {
+  height: 28px;
+  filter: brightness(0) invert(1);
+  margin-bottom: 20px;
+}
+
+.brand-desc {
+  font-size: 13px;
+  color: rgba(237, 247, 240, 0.48);
+  line-height: 1.75;
+  max-width: 240px;
+  margin-bottom: 16px;
+}
+
+.footer-col h3, 
+.footer-col .col-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: rgba(237, 247, 240, 0.28);
+  margin-bottom: 20px;
+}
+
+.footer-col ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-col li {
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: rgba(237, 247, 240, 0.52);
+  cursor: pointer;
+  transition: color .2s;
+}
+
+.footer-col li:hover {
+  color: var(--accent);
+}
+
+.footer-bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 24px 0;
+}
+
+.bottom-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.copyright,
+.bottom-links span {
+  font-size: 12px;
+  color: rgba(237, 247, 240, 0.28);
+}
+
+.bottom-links {
+  display: flex;
+  gap: 20px;
+}
+
+.bottom-links span:hover {
+  color: var(--accent);
+  cursor: pointer;
+}
 .ticker-wrap {
   overflow: hidden;
   margin-top: 18px;

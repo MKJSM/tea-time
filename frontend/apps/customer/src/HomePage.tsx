@@ -45,7 +45,14 @@ import { AccountSection } from './components/AccountSection';
 import { CartSection } from './components/CartSection';
 import { CatalogSection } from './components/CatalogSection';
 import { HeroSlider } from './components/HeroSlider';
-import { MarketingContent } from './components/MarketingContent';
+import {
+  CategoriesSection,
+  WhySection,
+  HowWeBrew,
+  WhoWeServe,
+  AboutSection,
+  CTABand,
+} from './components/MarketingContent';
 import { OrdersSection } from './components/OrdersSection';
 import { ensureRazorpayScript } from './lib/razorpay';
 
@@ -548,20 +555,17 @@ export function HomePage() {
       {/* Header */}
       <header className="site-header">
         <div className="container header-row">
-          <a className="brand" href="#home">
+          <a className="brand" href="#home" style={{ textDecoration: 'none' }}>
             <img src="/assets/logo.webp" alt="Mobilitea Logo" className="logo" />
-            <span>
-              <span className="serif" style={{ fontSize: 22, lineHeight: 1 }}>
-                Mobilitea
-              </span>
-              <small>Sip. Energize. Repeat.</small>
-            </span>
           </a>
           <nav className="site-nav">
+            <a href="#home">Home</a>
+            <a href="#about">About</a>
             <a href="#categories">Menu</a>
-            <a href="#why">Why us</a>
-            <a href="#ritual">Our process</a>
-            <a href="#corporate">Who we serve</a>
+            <a href="#shop">Shop</a>
+            <a href="#contact">Contact</a>
+            <a href="#events">Events</a>
+            <a href="#blog">Blog</a>
           </nav>
           <div className="header-actions">
             <span className="status-pill">{health?.ok ? '🟢 API online' : '⏳ Loading'}</span>
@@ -584,36 +588,7 @@ export function HomePage() {
 
       <HeroSlider activeSlide={activeSlide} onSlideChange={setActiveSlide} />
 
-      <MarketingContent />
-
-      {/* Customer journey rail */}
-      <section className="container flow-rail" aria-label="Customer journey">
-        {customerFlowAnchors.map((item, index) => {
-          const isComplete =
-            (index === 0 && products.length > 0) ||
-            (index === 1 && Boolean(session)) ||
-            (index === 2 && Boolean(cart?.items.length)) ||
-            (index === 3 && Boolean(orderFulfilled));
-          return (
-            <a
-              key={item.id}
-              className={`flow-step${isComplete ? ' is-complete' : ''}`}
-              href={`#${item.id}`}
-            >
-              <span>0{index + 1}</span>
-              <strong>{item.label}</strong>
-            </a>
-          );
-        })}
-        <div className={`flow-status${checkoutReady ? ' is-ready' : ''}`}>
-          <strong>{checkoutReady ? 'Checkout ready' : 'Action needed'}</strong>
-          <span>
-            {checkoutReady
-              ? 'You can create the order now.'
-              : 'Sign in, choose items, and save an address.'}
-          </span>
-        </div>
-      </section>
+      <CategoriesSection />
 
       <CatalogSection
         categories={categories}
@@ -626,112 +601,83 @@ export function HomePage() {
         onAddToCart={(id) => void handleAddToCart(id)}
       />
 
-      <AccountSection
-        session={session}
-        authState={authState}
-        authMessage={authMessage}
-        registerForm={registerForm}
-        loginForm={loginForm}
-        profileForm={profileForm}
-        addresses={addresses}
-        addressForm={addressForm}
-        editingAddressId={editingAddressId}
-        addressState={addressState}
-        addressMessage={addressMessage}
-        cartItemCount={cart?.items.length ?? 0}
-        orderCount={orders.length}
-        onRegisterFormChange={(patch) => setRegisterForm((c) => ({ ...c, ...patch }))}
-        onLoginFormChange={(patch) => setLoginForm((c) => ({ ...c, ...patch }))}
-        onProfileFormChange={(patch) => setProfileForm((c) => ({ ...c, ...patch }))}
-        onAddressFormChange={(patch) => setAddressForm((c) => ({ ...c, ...patch }))}
-        onRegister={(e) => void handleRegister(e)}
-        onLogin={(e) => void handleLogin(e)}
-        onLogout={() => void handleLogout()}
-        onProfileSave={(e) => void handleProfileSave(e)}
-        onAvatarUpload={(e) => void handleAvatarUpload(e)}
-        onAddressSubmit={(e) => void handleAddressSubmit(e)}
-        onAddressDelete={(id) => void handleAddressDelete(id)}
-        onAddressEdit={startAddressEdit}
-        onAddressEditCancel={() => {
-          setEditingAddressId(null);
-          setAddressForm(emptyAddressForm);
-        }}
-      />
+      <WhySection />
+      <HowWeBrew />
+      <WhoWeServe />
+      <AboutSection />
+      <CTABand />
 
-      <CartSection
-        session={Boolean(session)}
-        cart={cart}
-        addresses={addresses}
-        checkoutResult={checkoutResult}
-        selectedOrder={selectedOrder}
-        orderMessage={orderMessage}
-        paymentMessage={paymentMessage}
-        onCartQuantity={(id, qty) => void handleCartQuantity(id, qty)}
-        onCartDelete={(id) => void handleCartDelete(id)}
-        onCheckout={() => void handleCheckout()}
-        onPaymentLaunch={() => void handlePaymentLaunch()}
-      />
-
-      <OrdersSection
-        orders={orders}
-        selectedOrder={selectedOrder}
-        onOrderOpen={(id) => void handleOrderOpen(id)}
-      />
 
       {/* Footer */}
-      <footer className="container fade-up">
-        <div className="footer-grid">
-          <article className="card footer-card">
-            <div className="brand" style={{ marginBottom: 12 }}>
-              <img src="/assets/logo.webp" alt="Mobilitea Logo" className="logo" />
-              <span>
-                <span className="serif" style={{ fontSize: 22, lineHeight: 1 }}>
-                  Mobilitea
-                </span>
-                <small>Sip. Energize. Repeat.</small>
-              </span>
+      <footer className="site-footer fade-up">
+        <div className="container">
+          {/* CTA Strip */}
+          <div className="footer-cta-strip">
+            <div className="cta-text">
+              <h2 className="serif">Ready to Energize Your Workplace?</h2>
+              <p>Start your subscription today. Free 3-day trial.</p>
             </div>
-            <p style={{ margin: 0, color: 'var(--muted)', lineHeight: 1.75 }}>
-              Premium refreshment for workplaces, events, and institutions — designed to feel
-              reliable, polished, and easy to scale.
-            </p>
-          </article>
-          <article className="card footer-card">
-            <h3>Menu</h3>
-            <ul>
-              <li>Hot beverages</li>
-              <li>Coolers</li>
-              <li>Snacks</li>
-              <li>Desserts</li>
-            </ul>
-          </article>
-          <article className="card footer-card">
-            <h3>Company</h3>
-            <ul>
-              <li>Why Mobilitea</li>
-              <li>Our process</li>
-              <li>Who we serve</li>
-              <li>Corporate quotes</li>
-            </ul>
-          </article>
-          <article className="card footer-card">
-            <h3>Account</h3>
-            <ul>
-              <li>
-                <a href="#account">
-                  {session ? `Signed in as ${session.user.first_name}` : 'Sign in'}
-                </a>
-              </li>
-              <li>
-                <a href="#cart">Cart ({cart?.items.length ?? 0})</a>
-              </li>
-              <li>
-                <a href="#orders">Orders ({orders.length})</a>
-              </li>
-            </ul>
-          </article>
+            <a className="solid-button" href="#menu">
+              Get Started Free →
+            </a>
+          </div>
+
+          <div className="footer-grid">
+            <article className="footer-col brand-col">
+              <img src="/assets/logo.webp" alt="Mobilitea Logo" className="logo" />
+              <p className="brand-desc">
+                India's complete workplace refreshment ecosystem. Freshly brewed. Always on time.
+              </p>
+              <div className="tagline-text">SIP. ENERGIZE. REPEAT.</div>
+            </article>
+
+            <article className="footer-col">
+              <span className="col-label">Company</span>
+              <ul>
+                <li>About Us</li>
+                <li>Careers</li>
+                <li>Blog</li>
+                <li>Events</li>
+                <li>Press</li>
+                <li>Testimonials</li>
+              </ul>
+            </article>
+
+            <article className="footer-col">
+              <span className="col-label">Services</span>
+              <ul>
+                <li>Daily Subscription</li>
+                <li>Bulk Orders</li>
+                <li>Corporate Plans</li>
+                <li>Event Catering</li>
+                <li>App Download</li>
+                <li>Flask Fleet</li>
+              </ul>
+            </article>
+
+            <article className="footer-col">
+              <span className="col-label">Support</span>
+              <ul>
+                <li>Help & Support</li>
+                <li>Privacy Policy</li>
+                <li>Terms & Conditions</li>
+                <li>Feedback</li>
+                <li>Contact Us</li>
+              </ul>
+            </article>
+          </div>
+
+          <div className="footer-bottom">
+            <div className="container bottom-inner">
+              <span className="copyright">© 2024 MOBILITEA. All rights reserved.</span>
+              <div className="bottom-links">
+                <span>Privacy</span>
+                <span>Terms</span>
+                <span>Cookies</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="footer-bottom">© 2026 Mobilitea. All rights reserved.</div>
       </footer>
     </main>
   );
