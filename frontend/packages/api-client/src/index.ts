@@ -30,9 +30,12 @@ import type {
   VerifyPaymentInput,
 } from '@tea-time/types';
 
+const API_BASE = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE) || '';
+
 export function apiBase(scope: 'customer' | 'admin'): string {
-  return scope === 'admin' ? '/api/admin' : '/api';
+  return scope === 'admin' ? `${API_BASE}/api/admin` : `${API_BASE}/api`;
 }
+
 
 type RequestBody = any;
 

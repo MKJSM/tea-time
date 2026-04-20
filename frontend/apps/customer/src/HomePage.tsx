@@ -260,27 +260,57 @@ export function HomePage() {
   const [busyProductId, setBusyProductId] = useState<string | null>(null);
   const [activeSlide, setActiveSlide] = useState(0);
 
-  const currentBanner = banners[activeSlide] ?? fallbackBanners[0];
   const defaultAddress = addresses.find((address) => address.is_default) ?? null;
   const checkoutReady = Boolean(session && defaultAddress && cart?.items.length);
   const orderFulfilled = selectedOrder?.payment_status === 'paid';
+
+  // Bug #12 fix: filter by category_ids array OR fall back to category name match
   const filteredProducts =
     selectedCategoryId === 'all'
       ? products
-      : products.filter((product) => product.category_ids.includes(selectedCategoryId));
+      : products.filter(
+        (product) =>
+          product.category_ids.includes(selectedCategoryId) ||
+          product.categories.some(
+            (c) => c.toLowerCase() === selectedCategoryId.toLowerCase(),
+          ),
+      );
 
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setActiveSlide((current) => (current + 1) % Math.max(banners.length, 1));
-    }, 5000);
-
-    return () => window.clearInterval(timer);
-  }, [banners.length]);
-
+  // Bug #8 fix: single mount effect — no double invocation
   useEffect(() => {
     void loadPublicData();
     void restoreSession();
   }, []);
+
+  // Auto-advance hero slider
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setActiveSlide((current) => (current + 1) % 3);
+    }, 4200);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  // Bug #9 fix: defer observer so DOM is painted before observing
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) entry.target.classList.add('in-view');
+          });
+        },
+        { threshold: 0.08 },
+      );
+      document.querySelectorAll('.fade-up').forEach((el) => observer.observe(el));
+      // store reference so cleanup works
+      (window as any).__fadeObserver = observer;
+    }, 0);
+    return () => {
+      window.clearTimeout(id);
+      (window as any).__fadeObserver?.disconnect();
+    };
+  }, []);
+
 
   async function loadPublicData(categoryId?: string) {
     setCatalogState('loading');
@@ -496,7 +526,9 @@ export function HomePage() {
 
   async function handleAddToCart(productId: string) {
     if (!session) {
-      setOrderMessage('Login before adding products to the cart.');
+      // Bug #14 fix: guide guest to sign in
+      setOrderMessage('Please sign in before adding products to the cart.');
+      window.location.hash = '#account';
       return;
     }
 
@@ -536,13 +568,18 @@ export function HomePage() {
   }
 
   async function handleCheckout() {
+    // Bug #6 fix: guard against empty cart
+    if (!cart?.items.length) {
+      setOrderMessage('Your cart is empty. Add products before checking out.');
+      return;
+    }
     if (!addresses.length) {
-      setOrderMessage('Create at least one address before checkout.');
+      setOrderMessage('Create at least one delivery address before checkout.');
       return;
     }
 
     try {
-      const selectedAddress = addresses.find((address) => address.is_default) ?? addresses[0];
+      const selectedAddress = addresses.find((address) => address.is_default) ?? addresses[0]!;
       const result = await checkout({ address_id: selectedAddress.id });
       setCheckoutResult(result);
       setOrderMessage(`Order ${result.order_number} created. Continue to payment.`);
@@ -566,6 +603,11 @@ export function HomePage() {
   async function handlePaymentLaunch() {
     if (!checkoutResult) {
       setPaymentMessage('Create an order before starting payment.');
+      return;
+    }
+    // Bug #7 fix: guard against double payment
+    if (selectedOrder?.payment_status === 'paid') {
+      setPaymentMessage('This order has already been paid.');
       return;
     }
 
@@ -600,10 +642,10 @@ export function HomePage() {
         },
         prefill: session
           ? {
-              name: `${session.user.first_name} ${session.user.last_name}`,
-              email: session.user.email,
-              contact: session.user.phone ?? undefined,
-            }
+            name: `${session.user.first_name} ${session.user.last_name}`,
+            email: session.user.email,
+            contact: session.user.phone ?? undefined,
+          }
           : undefined,
         theme: {
           color: '#315f40',
@@ -617,158 +659,294 @@ export function HomePage() {
   }
 
   return (
-    <main className="landing-page">
+    <main className="landing-page" id="home">
+      {/* ── Header ── */}
       <header className="site-header">
-        <div className="page-shell header-row">
+        <div className="container header-row">
           <a className="brand" href="#home">
             <span className="brand-mark" aria-hidden="true" />
             <span>
-              Tea Time
-              <small>Customer Flow</small>
+              <span className="serif" style={{ fontSize: 22, lineHeight: 1 }}>Mobilitea</span>
+              <small>Sip. Energize. Repeat.</small>
             </span>
           </a>
-
           <nav className="site-nav">
-            <a href="#catalog">Menu</a>
-            <a href="#account">Account</a>
-            <a href="#cart">Cart</a>
-            <a href="#orders">Orders</a>
+            <a href="#categories">Menu</a>
+            <a href="#why">Why us</a>
+            <a href="#ritual">Our process</a>
+            <a href="#corporate">Who we serve</a>
           </nav>
-
           <div className="header-actions">
-            <span className="status-pill">{health?.ok ? 'API online' : 'Loading'}</span>
+            <span className="status-pill">{health?.ok ? '🟢 API online' : '⏳ Loading'}</span>
             {session ? (
-              <button className="outline-button" type="button" onClick={handleLogout}>
-                Logout
-              </button>
+              <button className="outline-button" type="button" onClick={handleLogout}>Logout</button>
             ) : (
-              <a className="solid-button" href="#account">
-                Sign in
-              </a>
+              <a className="solid-button" href="#account">Sign in</a>
             )}
           </div>
         </div>
       </header>
 
-      <section className="hero-section" id="home">
-        <div className="hero-slider">
-          {banners.map((banner, index) => {
-            const isActive = index === activeSlide;
-            const textColor = banner.text_color ?? '#ffffff';
-            const isImageBanner = banner.background_type === 'image' && banner.media_url;
-            const isVideoBanner = banner.background_type === 'video' && banner.media_url;
-
-            return (
-              <article
-                key={banner.id}
-                className={`hero-slide${isActive ? ' is-active' : ''}`}
-                aria-hidden={!isActive}
-              >
-                <div className="hero-slide-background" style={bannerStyle(banner)}>
-                  {isVideoBanner ? (
-                    <video
-                      className="hero-media"
-                      src={banner.media_url ?? undefined}
-                      autoPlay
-                      muted
-                      loop
-                      playsInline
-                    />
-                  ) : null}
-                  {isImageBanner ? (
-                    <div
-                      className="hero-media hero-media-image"
-                      style={{ backgroundImage: `url(${banner.media_url})` }}
-                    />
-                  ) : null}
+      {/* ── Hero Slider ── */}
+      <section className="hero-section">
+        <div className="container">
+          <div className="hero-slider">
+            {/* Slide 1 — Tea delivery */}
+            <article className={`hero-slide${activeSlide === 0 ? ' is-active' : ''}`} aria-hidden={activeSlide !== 0}>
+              <div className="hero-slide-background" style={{ background: 'linear-gradient(180deg,rgba(0,0,0,.10),rgba(0,0,0,.26)),linear-gradient(135deg,#3d5a36,#7e8f45 44%,#2e4626)' }} />
+              <div className="hero-overlay" style={{ background: 'linear-gradient(90deg,rgba(18,24,18,.62) 0%,rgba(18,24,18,.28) 38%,rgba(18,24,18,.08) 100%)' }} />
+              <div className="hero-slide-content">
+                <div className="hero-copy">
+                  <span className="eyebrow">Daily Workplace Refreshment</span>
+                  <h1>Refreshment That Moves with Your Workday.</h1>
+                  <p>Daily delivery of hot &amp; cold beverages—tea, coffee, fresh juices—plus snacks, served at your workplace morning and evening, through a hassle-free subscription.</p>
+                  <p>Because energized teams build better businesses.</p>
+                  <div className="hero-actions-row">
+                    <a className="solid-button" href="#account">Subscribe now</a>
+                    <a className="ghost-button" href="#categories">Explore menu</a>
+                  </div>
+                  <div className="slide-badges">
+                    <span className="slide-badge">Delivered in hygienic thermosteel flasks</span>
+                    <span className="slide-badge">Freshly brewed using high-quality ingredients</span>
+                    <span className="slide-badge">Crafted with love &amp; care</span>
+                  </div>
                 </div>
-                <div
-                  className="hero-overlay"
-                  style={{ background: banner.overlay_color ?? 'rgba(16, 22, 16, 0.28)' }}
-                />
-                <div className="hero-slide-content">
-                  <div className="hero-copy" style={{ color: textColor }}>
-                    {banner.subtitle ? <span className="eyebrow">{banner.subtitle}</span> : null}
-                    <h1>{banner.title}</h1>
-                    {banner.description ? <p className="hero-body">{banner.description}</p> : null}
-                    <div className="hero-actions-row">
-                      {banner.primary_button_label ? (
-                        <a
-                          className="solid-button"
-                          href={banner.primary_button_href ?? '#catalog'}
-                        >
-                          {banner.primary_button_label}
-                        </a>
-                      ) : null}
-                      {banner.secondary_button_label ? (
-                        <a
-                          className="ghost-button"
-                          href={banner.secondary_button_href ?? '#account'}
-                        >
-                          {banner.secondary_button_label}
-                        </a>
-                      ) : null}
-                    </div>
-                    <div className="hero-tags">
-                      <span className="hero-tag">Scrollable banners</span>
-                      <span className="hero-tag">Category-linked products</span>
-                      <span className="hero-tag">Checkout and payment flow</span>
+                <div className="hero-art">
+                  <div className="tea-field" />
+                  <div className="v2-wood" />
+                  <div className="v2-cup" />
+                  <div className="v2-steam" />
+                  <div className="hero-card">
+                    <h4>SIP. ENERGIZE. REPEAT.</h4>
+                    <p>Reliable workplace refreshment, built around daily comfort and clean delivery.</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            {/* Slide 2 — App */}
+            <article className={`hero-slide${activeSlide === 1 ? ' is-active' : ''}`} aria-hidden={activeSlide !== 1}>
+              <div className="hero-slide-background" style={{ background: 'radial-gradient(circle at 22% 14%,rgba(255,255,255,.14),transparent 18%),linear-gradient(135deg,#efe7df 0%,#dedfd8 36%,#cfdbc8 100%)' }} />
+              <div className="hero-overlay" style={{ background: 'linear-gradient(90deg,rgba(18,24,18,.38) 0%,rgba(18,24,18,.12) 42%,rgba(18,24,18,.02) 100%)' }} />
+              <div className="hero-slide-content">
+                <div className="hero-copy">
+                  <span className="eyebrow">Smart Ordering App</span>
+                  <h1>One App. Endless Refreshment.</h1>
+                  <p>With the MOBILITEA app, ordering your daily beverages and snacks is just a tap away—simple, reliable, and made for busy workdays.</p>
+                  <div className="hero-actions-row">
+                    <a className="solid-button" href="#account">Download the app</a>
+                    <a className="ghost-button" href="#why">View features</a>
+                  </div>
+                  <div className="slide-badges">
+                    <span className="slide-badge">Customized Flask Ordering</span>
+                    <span className="slide-badge">Real-Time Order Tracking</span>
+                    <span className="slide-badge">Go Paperless. Go Green.</span>
+                  </div>
+                </div>
+                <div className="hero-art">
+                  <div className="phone-mock">
+                    <div className="phone-screen">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 800 }}>Mobilitea <span>☕</span></div>
+                      <div className="mock-card"><strong style={{ display: 'block', color: '#1f1f1f' }}>Morning order</strong>Tea flask · 10 cups · arriving in 12 min</div>
+                      <div className="mock-card"><strong style={{ display: 'block', color: '#1f1f1f' }}>Live tracking</strong>Driver assigned · office route active</div>
+                      <div className="mock-card"><strong style={{ display: 'block', color: '#1f1f1f' }}>Subscription</strong>Morning &amp; evening plan active</div>
+                      <div className="mock-card"><strong style={{ display: 'block', color: '#1f1f1f' }}>Billing</strong>Paperless invoice generated</div>
                     </div>
                   </div>
+                </div>
+              </div>
+            </article>
 
-                  <aside className="hero-summary-card">
-                    <p className="summary-kicker">Live storefront</p>
-                    <strong className="hero-summary-label">{currentBanner.subtitle ?? 'Featured banner'}</strong>
-                    <h2>{formatMoney(cart?.total_amount ?? 0)}</h2>
-                    <div className="summary-grid">
-                      <div>
-                        <strong>{categories.length}</strong>
-                        <span>Categories</span>
-                      </div>
-                      <div>
-                        <strong>{products.length}</strong>
-                        <span>Products</span>
-                      </div>
-                      <div>
-                        <strong>{cart?.items.length ?? 0}</strong>
-                        <span>Cart items</span>
-                      </div>
-                      <div>
-                        <strong>{orders.length}</strong>
-                        <span>Orders</span>
-                      </div>
+            {/* Slide 3 — Events */}
+            <article className={`hero-slide${activeSlide === 2 ? ' is-active' : ''}`} aria-hidden={activeSlide !== 2}>
+              <div className="hero-slide-background" style={{ background: 'radial-gradient(circle at 20% 20%,rgba(255,255,255,.20),transparent 16%),linear-gradient(135deg,#6f295e 0%,#b055ac 40%,#dd8dbd 100%)' }} />
+              <div className="hero-overlay" style={{ background: 'linear-gradient(90deg,rgba(17,24,18,.32) 0%,rgba(17,24,18,.08) 42%,rgba(17,24,18,.04) 100%)' }} />
+              <div className="hero-slide-content">
+                <div className="hero-copy">
+                  <span className="eyebrow">Bulk &amp; Event Orders</span>
+                  <h1>Seamless Refreshment for Every Occasion.</h1>
+                  <p>MOBILITEA undertakes bulk, corporate, and event orders, delivering tea, coffee, beverages, and snacks with consistency and care—no matter the scale.</p>
+                  <div className="hero-actions-row">
+                    <a className="solid-button" href="#account">Get your quote</a>
+                    <a className="ghost-button" href="#corporate">Plan an event</a>
+                  </div>
+                </div>
+                <div className="hero-art">
+                  <div className="event-panel">
+                    <h3>Perfect Tea for Your Special Events</h3>
+                    <p>Bulk, corporate, and event refreshment with premium service and consistent delivery.</p>
+                    <div className="hero-actions-row" style={{ marginTop: 0 }}>
+                      <button className="solid-button" style={{ background: '#ffcf38', color: '#23180f' }}>Plan your event</button>
                     </div>
-                    <p className="helper-copy">
-                      Banner visuals are now driven from backend records instead of hardcoded slides.
-                    </p>
-                  </aside>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            {/* Slide indicators */}
+            <div className="slide-indicators">
+              {[0, 1, 2].map((i) => (
+                <button key={i} type="button" className={`hero-indicator${activeSlide === i ? ' is-active' : ''}`} onClick={() => setActiveSlide(i)} aria-label={`Slide ${i + 1}`} />
+              ))}
+            </div>
+          </div>
+
+          {/* Ticker */}
+          <div className="ticker-wrap">
+            <div className="ticker">
+              <span className="ticker-item">☕ <b>Tech in every step</b> · taste in every sip</span>
+              <span className="ticker-item">📍 Real-time delivery tracking</span>
+              <span className="ticker-item">🧊 Temperature lock in insulated flasks</span>
+              <span className="ticker-item">🏢 Built for offices, events, and institutions</span>
+              <span className="ticker-item">☕ <b>Tech in every step</b> · taste in every sip</span>
+              <span className="ticker-item">📍 Real-time delivery tracking</span>
+              <span className="ticker-item">🧊 Temperature lock in insulated flasks</span>
+              <span className="ticker-item">🏢 Built for offices, events, and institutions</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Categories ── */}
+      <section className="section fade-up" id="categories">
+        <div className="container">
+          <div className="section-head">
+            <div>
+              <span className="eyebrow">Categories</span>
+              <h2>Choose from every kind of workplace refreshment.</h2>
+            </div>
+            <p>Hot beverages, coolers, milkshakes, fresh juices, snacks, sandwiches, and desserts — delivered fresh every day.</p>
+          </div>
+          <div className="category-grid">
+            {[
+              { label: 'Hot Beverages', cls: '', art: <div className="v2-kettle" /> },
+              { label: 'Coolers', cls: 'cooler', art: <div className="v2-glass" /> },
+              { label: 'Milkshakes', cls: 'milkshake', art: <div className="v2-glass" style={{ left: 84 }} /> },
+              { label: 'Fresh Juices', cls: 'juice', art: <div className="v2-glass juice" style={{ left: 84 }} /> },
+              { label: 'Snacks', cls: 'snack', art: <div className="v2-biscuit-stack"><div className="v2-cookie one" /><div className="v2-cookie two" /><div className="v2-cookie three" /></div> },
+              { label: 'Sandwiches', cls: 'sandwich', art: <div className="v2-cake-loaf sandwich" /> },
+              { label: 'Desserts', cls: 'dessert', art: <div className="v2-cake-loaf" /> },
+            ].map(({ label, cls, art }) => (
+              <article key={label} className="card category-card">
+                <div className={`category-media${cls ? ' ' + cls : ''}`}>{art}</div>
+                <div className="category-body">
+                  <h3>{label}</h3>
+                  <p>Freshly prepared and ready for repeat ordering.</p>
                 </div>
               </article>
-            );
-          })}
-
-          <div className="hero-indicators">
-            {banners.map((banner, index) => (
-              <button
-                key={banner.id}
-                type="button"
-                className={`hero-indicator${index === activeSlide ? ' is-active' : ''}`}
-                onClick={() => setActiveSlide(index)}
-                aria-label={`View banner ${index + 1}`}
-              />
             ))}
           </div>
         </div>
       </section>
 
-      <section className="page-shell flow-rail" aria-label="Customer journey">
+      {/* ── Why Mobilitea ── */}
+      <section className="section fade-up" id="why">
+        <div className="container">
+          <div className="section-head">
+            <div>
+              <span className="eyebrow">Why Mobilitea</span>
+              <h2>Built for quality, freshness, and reliability.</h2>
+            </div>
+            <p>Our key value story — quality ingredients, strict hygiene, smart technology, and on-time delivery.</p>
+          </div>
+          <div className="feature-grid">
+            {[
+              { icon: '🌿', title: 'Quality You Can Taste', desc: 'Made with high-quality ingredients and hygienically prepared for pure taste you can trust.' },
+              { icon: '🛡️', title: 'Strict Hygiene Standards', desc: 'Prepared, handled, and packed with utmost hygiene because safety matters every day.' },
+              { icon: '🔥', title: 'Freshness First', desc: 'Freshly brewed beverages delivered hot every time with no reheating and no compromise.' },
+              { icon: '📱', title: 'Smart Subscription Control', desc: 'Ordering, tracking, pause, resume, and preference control built to feel effortless.' },
+              { icon: '⏱️', title: 'Right on Time', desc: 'Morning and evening deliveries you can count on so teams never miss a tea break.' },
+            ].map(({ icon, title, desc }) => (
+              <article key={title} className="card feature-card">
+                <div className="v2-icon">{icon}</div>
+                <h3>{title}</h3>
+                <p>{desc}</p>
+              </article>
+            ))}
+          </div>
+          <div className="cta-row"><a className="outline-button" href="#account">Subscribe now</a></div>
+        </div>
+      </section>
+
+      {/* ── Process ── */}
+      <section className="section fade-up" id="ritual">
+        <div className="container">
+          <div className="section-head">
+            <div>
+              <span className="eyebrow">How we make the perfect cuppa ☕</span>
+              <h2>The Mobilitea way, kept simple and consistent.</h2>
+            </div>
+            <p>A clean summary of our tea-making ritual, kept short so the page stays elegant and easy to scan.</p>
+          </div>
+          <div className="steps-grid">
+            {[
+              { n: '01', title: 'Start with Pure Water', desc: 'Great tea begins with fresh, clean purified water to preserve the true flavor of the leaves.' },
+              { n: '02', title: 'Add Premium Tea Leaves', desc: 'Carefully measured high-quality leaves chosen for aroma, color, and balanced strength.' },
+              { n: '03', title: 'Brew with Patience', desc: 'The tea is allowed to brew slowly so the leaves release full character and natural aroma.' },
+              { n: '04', title: 'Serve Hot in Flask', desc: 'Immediately poured into thermosteel flasks to lock in heat, freshness, and flavor.' },
+            ].map(({ n, title, desc }) => (
+              <article key={n} className="card v2-step">
+                <div className="step-num">{n}</div>
+                <h3>{title}</h3>
+                <p>{desc}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Who we serve ── */}
+      <section className="section fade-up" id="corporate">
+        <div className="container">
+          <div className="section-head">
+            <div>
+              <span className="eyebrow">Who we serve</span>
+              <h2>Built for workplaces, institutions, and events.</h2>
+            </div>
+            <p>From busy IT parks to celebratory occasions — we keep everyone refreshed.</p>
+          </div>
+          <div className="serve-grid">
+            {[
+              { icon: '🏢', title: 'Corporate Offices & IT Parks', desc: 'Daily tea, coffee, and refreshment solutions for teams of all sizes.' },
+              { icon: '🏬', title: 'Retail, Showrooms & Shops', desc: 'Consistent beverage service to keep staff refreshed throughout the day.' },
+              { icon: '🏥', title: 'Hospitals & Institutions', desc: 'Reliable hygienic beverage supply for healthcare and educational spaces.' },
+              { icon: '🏭', title: 'Factories & Industrial Units', desc: 'Large-volume, on-time refreshment service for shift-based teams.' },
+              { icon: '🧑‍💼', title: 'Co-working Spaces', desc: 'Flexible plans tailored to dynamic workplaces and shared business centers.' },
+              { icon: '🎉', title: 'Meetings, Events & Gatherings', desc: 'Tea, coffee, juices, and snacks for conferences, launches, and celebrations.' },
+            ].map(({ icon, title, desc }) => (
+              <article key={title} className="card serve-card">
+                <div className="v2-icon">{icon}</div>
+                <h3>{title}</h3>
+                <p>{desc}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA Band ── */}
+      <section className="section fade-up">
+        <div className="container">
+          <div className="cta-band">
+            <span className="eyebrow">Upgrade your workplace breaks</span>
+            <h2>A refreshment system that feels premium, dependable, and easy to manage.</h2>
+            <p>Daily subscriptions, event support, app-based ordering, paperless billing, and customized flask delivery — all in one.</p>
+            <div className="cta-band-actions">
+              <a className="solid-button" href="#account">Subscribe now</a>
+              <button className="outline-button" type="button">Get corporate quote</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Customer journey rail ── */}
+      <section className="container flow-rail" aria-label="Customer journey">
         {customerFlowAnchors.map((item, index) => {
           const isComplete =
             (index === 0 && products.length > 0) ||
             (index === 1 && Boolean(session)) ||
             (index === 2 && Boolean(cart?.items.length)) ||
             (index === 3 && Boolean(orderFulfilled));
-
           return (
             <a key={item.id} className={`flow-step${isComplete ? ' is-complete' : ''}`} href={`#${item.id}`}>
               <span>0{index + 1}</span>
@@ -782,50 +960,28 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="page-shell stacked-section" id="catalog">
+      {/* ── Catalog ── */}
+      <section className="container stacked-section" id="catalog">
         <div className="section-head">
           <div>
             <span className="eyebrow">Catalog</span>
-            <h2>Products stay linked to categories and filter instantly.</h2>
+            <h2>Browse products and add to cart.</h2>
           </div>
-          <p>
-            The landing page reads the active banners, categories, and products from the live backend.
-            Customers can filter by category and add items straight to the cart.
-          </p>
+          <p>Filter by category, add items to the cart, and move directly into checkout.</p>
         </div>
-
         <div className="category-chips">
-          <button
-            type="button"
-            className={`chip-button${selectedCategoryId === 'all' ? ' is-active' : ''}`}
-            onClick={() => void handleCategorySelect('all')}
-          >
-            All products
-          </button>
-          {categories.map((category) => (
-            <button
-              key={category.id}
-              type="button"
-              className={`chip-button${selectedCategoryId === category.id ? ' is-active' : ''}`}
-              onClick={() => void handleCategorySelect(category.id)}
-            >
-              {category.name}
-            </button>
+          <button type="button" className={`chip-button${selectedCategoryId === 'all' ? ' is-active' : ''}`} onClick={() => void handleCategorySelect('all')}>All products</button>
+          {categories.map((cat) => (
+            <button key={cat.id} type="button" className={`chip-button${selectedCategoryId === cat.id ? ' is-active' : ''}`} onClick={() => void handleCategorySelect(cat.id)}>{cat.name}</button>
           ))}
         </div>
-
-        {catalogState === 'loading' ? <p className="helper-copy">Loading banners, categories, and products...</p> : null}
+        {catalogState === 'loading' ? <p className="helper-copy">Loading products…</p> : null}
         {catalogState === 'error' ? <p className="form-message error">{catalogMessage}</p> : null}
-
         <div className="catalog-grid">
           {filteredProducts.map((product) => (
             <article key={product.id} className="product-card">
               <div className="product-media">
-                {product.images[0] ? (
-                  <img src={product.images[0]} alt={product.name} />
-                ) : (
-                  <div className="product-placeholder">{product.name.slice(0, 1)}</div>
-                )}
+                {product.images[0] ? <img src={product.images[0]} alt={product.name} /> : <div className="product-placeholder">{product.name.slice(0, 1)}</div>}
               </div>
               <div className="product-content">
                 <div className="product-title-row">
@@ -834,21 +990,12 @@ export function HomePage() {
                 </div>
                 <p>{product.description ?? 'Freshly prepared and ready for repeat ordering.'}</p>
                 <div className="product-tags">
-                  {product.categories.map((category) => (
-                    <span key={`${product.id}-${category}`} className="product-tag">
-                      {category}
-                    </span>
-                  ))}
+                  {product.categories.map((c) => <span key={`${product.id}-${c}`} className="product-tag">{c}</span>)}
                 </div>
               </div>
               <div className="product-footer">
-                <button
-                  className="solid-button"
-                  type="button"
-                  onClick={() => void handleAddToCart(product.id)}
-                  disabled={busyProductId === product.id}
-                >
-                  {busyProductId === product.id ? 'Adding...' : 'Add to cart'}
+                <button className="solid-button" type="button" onClick={() => void handleAddToCart(product.id)} disabled={busyProductId === product.id}>
+                  {busyProductId === product.id ? 'Adding…' : 'Add to cart'}
                 </button>
               </div>
             </article>
@@ -856,458 +1003,212 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="page-shell customer-grid" id="account">
+      {/* ── Account / Auth ── */}
+      <section className="container customer-grid" id="account">
         <section className="panel auth-panel">
           <div className="section-head compact">
             <div>
               <span className="eyebrow">Account</span>
-              <h2>{session ? 'Customer profile and address setup.' : 'Login or create an account.'}</h2>
+              <h2>{session ? 'Your profile & addresses.' : 'Sign in or create account.'}</h2>
             </div>
           </div>
 
           {!session ? (
             <div className="dual-form-grid">
-              <form className="form-card" onSubmit={handleRegister}>
-                <h3>Create account</h3>
-                <label>
-                  Username
-                  <input
-                    value={registerForm.user_name}
-                    onChange={(event) =>
-                      setRegisterForm((current) => ({ ...current, user_name: event.target.value }))
-                    }
-                  />
-                </label>
-                <label>
-                  First name
-                  <input
-                    value={registerForm.first_name}
-                    onChange={(event) =>
-                      setRegisterForm((current) => ({ ...current, first_name: event.target.value }))
-                    }
-                  />
-                </label>
-                <label>
-                  Last name
-                  <input
-                    value={registerForm.last_name}
-                    onChange={(event) =>
-                      setRegisterForm((current) => ({ ...current, last_name: event.target.value }))
-                    }
-                  />
-                </label>
-                <label>
-                  Phone
-                  <input
-                    value={registerForm.phone ?? ''}
-                    onChange={(event) =>
-                      setRegisterForm((current) => ({ ...current, phone: event.target.value }))
-                    }
-                  />
-                </label>
-                <label>
-                  Email
-                  <input
-                    type="email"
-                    value={registerForm.email}
-                    onChange={(event) =>
-                      setRegisterForm((current) => ({ ...current, email: event.target.value }))
-                    }
-                  />
-                </label>
-                <label>
-                  Password
-                  <input
-                    type="password"
-                    value={registerForm.password}
-                    onChange={(event) =>
-                      setRegisterForm((current) => ({ ...current, password: event.target.value }))
-                    }
-                  />
-                </label>
-                <button className="solid-button" type="submit">
-                  {authState === 'loading' ? 'Creating...' : 'Create account'}
-                </button>
+              {/* Register */}
+              <form className="auth-card" onSubmit={handleRegister}>
+                <div className="auth-card-badge">✦ Create Account</div>
+                <h3 className="serif">Join Us</h3>
+                <p className="auth-sub">Create an account to save your favorites and track your orders.</p>
+                {[
+                  { field: 'user_name', label: 'Username', type: 'text', icon: '👤' },
+                  { field: 'first_name', label: 'First Name', type: 'text', icon: '👤' },
+                  { field: 'last_name', label: 'Last Name', type: 'text', icon: '👤' },
+                  { field: 'phone', label: 'Phone', type: 'tel', icon: '📞' },
+                  { field: 'email', label: 'Email', type: 'email', icon: '✉️' },
+                  { field: 'password', label: 'Password', type: 'password', icon: '🔒' },
+                ].map(({ field, label, type, icon }) => (
+                  <div key={field} className="auth-input-wrap">
+                    <span className="auth-icon">{icon}</span>
+                    <input
+                      type={type}
+                      placeholder={label}
+                      value={(registerForm as unknown as Record<string, string>)[field] ?? ''}
+                      onChange={(e) => setRegisterForm((cur) => ({ ...cur, [field]: e.target.value }))}
+                    />
+                  </div>
+                ))}
+                <button className="solid-button auth-cta" type="submit">{authState === 'loading' ? 'Creating…' : 'Create Account →'}</button>
               </form>
 
-              <form className="form-card" onSubmit={handleLogin}>
-                <h3>Login</h3>
-                <label>
-                  Email
-                  <input
-                    type="email"
-                    value={loginForm.email}
-                    onChange={(event) =>
-                      setLoginForm((current) => ({ ...current, email: event.target.value }))
-                    }
-                  />
-                </label>
-                <label>
-                  Password
-                  <input
-                    type="password"
-                    value={loginForm.password}
-                    onChange={(event) =>
-                      setLoginForm((current) => ({ ...current, password: event.target.value }))
-                    }
-                  />
-                </label>
-                <button className="outline-button" type="submit">
-                  Sign in
-                </button>
+              {/* Login */}
+              <form className="auth-card" onSubmit={handleLogin}>
+                <div className="auth-card-badge">✦ Login</div>
+                <h3 className="serif">Welcome Back</h3>
+                <p className="auth-sub">Sign in to your account to view your orders and favorites.</p>
+                <div className="auth-input-wrap">
+                  <span className="auth-icon">✉️</span>
+                  <input type="email" placeholder="Email Address" value={loginForm.email} onChange={(e) => setLoginForm((c) => ({ ...c, email: e.target.value }))} />
+                </div>
+                <div className="auth-input-wrap">
+                  <span className="auth-icon">🔒</span>
+                  <input type="password" placeholder="Password" value={loginForm.password} onChange={(e) => setLoginForm((c) => ({ ...c, password: e.target.value }))} />
+                </div>
+                <button className="solid-button auth-cta" type="submit">{authState === 'loading' ? 'Signing in…' : 'Sign In →'}</button>
               </form>
             </div>
           ) : (
-            <div className="account-stack">
+            <div>
               <div className="account-chip-row">
                 <span className="status-pill">{session.user.email}</span>
                 <span className="status-pill">{orders.length} orders</span>
                 <span className="status-pill">{cart?.items.length ?? 0} cart items</span>
               </div>
-
-              <form className="form-card" onSubmit={handleProfileSave}>
+              <form className="form-card" onSubmit={handleProfileSave} style={{ marginTop: 16 }}>
                 <h3>Profile</h3>
                 <div className="profile-grid">
                   <div className="avatar-block">
-                    {profileForm.avatar_url ? (
-                      <img className="avatar-preview" src={profileForm.avatar_url} alt="Avatar preview" />
-                    ) : (
-                      <div className="avatar-preview avatar-fallback">
-                        {session.user.first_name.slice(0, 1)}
-                      </div>
-                    )}
-                    <input type="file" accept="image/*" onChange={(event) => void handleAvatarUpload(event)} />
+                    {profileForm.avatar_url
+                      ? <img className="avatar-preview" src={profileForm.avatar_url} alt="Avatar" />
+                      : <div className="avatar-preview avatar-fallback">{session.user.first_name.slice(0, 1)}</div>}
+                    <input type="file" accept="image/*" onChange={(e) => void handleAvatarUpload(e)} />
                   </div>
-
                   <div className="profile-fields">
-                    <label>
-                      First name
-                      <input
-                        value={profileForm.first_name}
-                        onChange={(event) =>
-                          setProfileForm((current) => ({ ...current, first_name: event.target.value }))
-                        }
-                      />
-                    </label>
-                    <label>
-                      Last name
-                      <input
-                        value={profileForm.last_name}
-                        onChange={(event) =>
-                          setProfileForm((current) => ({ ...current, last_name: event.target.value }))
-                        }
-                      />
-                    </label>
-                    <label>
-                      Phone
-                      <input
-                        value={profileForm.phone}
-                        onChange={(event) =>
-                          setProfileForm((current) => ({ ...current, phone: event.target.value }))
-                        }
-                      />
-                    </label>
-                    <label>
-                      Avatar URL
-                      <input
-                        value={profileForm.avatar_url}
-                        onChange={(event) =>
-                          setProfileForm((current) => ({ ...current, avatar_url: event.target.value }))
-                        }
-                      />
-                    </label>
+                    {[
+                      { key: 'first_name', label: 'First name' },
+                      { key: 'last_name', label: 'Last name' },
+                      { key: 'phone', label: 'Phone' },
+                      { key: 'avatar_url', label: 'Avatar URL' },
+                    ].map(({ key, label }) => (
+                      <label key={key}>{label}
+                        <input value={(profileForm as unknown as Record<string, string>)[key] ?? ''} onChange={(e) => setProfileForm((c) => ({ ...c, [key]: e.target.value }))} />
+                      </label>
+                    ))}
                   </div>
                 </div>
-                <button className="solid-button" type="submit">
-                  Save profile
-                </button>
+                <button className="solid-button" type="submit" style={{ marginTop: 14 }}>Save profile</button>
               </form>
             </div>
           )}
-
-          {authMessage ? (
-            <p className={`form-message${authState === 'error' ? ' error' : ''}`}>{authMessage}</p>
-          ) : null}
+          {authMessage ? <p className={`form-message${authState === 'error' ? ' error' : ''}`}>{authMessage}</p> : null}
         </section>
 
-        <section className="panel address-panel">
+        {/* Addresses */}
+        <section className="panel">
           <div className="section-head compact">
             <div>
               <span className="eyebrow">Addresses</span>
               <h2>Save and edit delivery addresses.</h2>
             </div>
           </div>
-
           {session ? (
             <>
               <form className="form-card" onSubmit={handleAddressSubmit}>
                 <h3>{editingAddressId ? 'Edit address' : 'Add address'}</h3>
                 <div className="form-grid two-up">
-                  <label>
-                    Full name
-                    <input
-                      value={addressForm.full_name}
-                      onChange={(event) =>
-                        setAddressForm((current) => ({ ...current, full_name: event.target.value }))
-                      }
-                    />
-                  </label>
-                  <label>
-                    Phone
-                    <input
-                      value={addressForm.phone}
-                      onChange={(event) =>
-                        setAddressForm((current) => ({ ...current, phone: event.target.value }))
-                      }
-                    />
-                  </label>
-                  <label className="span-2">
-                    Address line 1
-                    <input
-                      value={addressForm.line_1}
-                      onChange={(event) =>
-                        setAddressForm((current) => ({ ...current, line_1: event.target.value }))
-                      }
-                    />
-                  </label>
-                  <label className="span-2">
-                    Address line 2
-                    <input
-                      value={addressForm.line_2 ?? ''}
-                      onChange={(event) =>
-                        setAddressForm((current) => ({ ...current, line_2: event.target.value }))
-                      }
-                    />
-                  </label>
-                  <label>
-                    City
-                    <input
-                      value={addressForm.city}
-                      onChange={(event) =>
-                        setAddressForm((current) => ({ ...current, city: event.target.value }))
-                      }
-                    />
-                  </label>
-                  <label>
-                    State
-                    <input
-                      value={addressForm.state}
-                      onChange={(event) =>
-                        setAddressForm((current) => ({ ...current, state: event.target.value }))
-                      }
-                    />
-                  </label>
-                  <label>
-                    Postal code
-                    <input
-                      value={addressForm.postal_code}
-                      onChange={(event) =>
-                        setAddressForm((current) => ({ ...current, postal_code: event.target.value }))
-                      }
-                    />
-                  </label>
-                  <label>
-                    Country
-                    <input
-                      value={addressForm.country ?? ''}
-                      onChange={(event) =>
-                        setAddressForm((current) => ({ ...current, country: event.target.value }))
-                      }
-                    />
-                  </label>
-                  <label className="span-2">
-                    Landmark
-                    <input
-                      value={addressForm.landmark ?? ''}
-                      onChange={(event) =>
-                        setAddressForm((current) => ({ ...current, landmark: event.target.value }))
-                      }
-                    />
-                  </label>
+                  {[
+                    { key: 'full_name', label: 'Full name', span: false },
+                    { key: 'phone', label: 'Phone', span: false },
+                    { key: 'line_1', label: 'Address line 1', span: true },
+                    { key: 'line_2', label: 'Address line 2', span: true },
+                    { key: 'city', label: 'City', span: false },
+                    { key: 'state', label: 'State', span: false },
+                    { key: 'postal_code', label: 'Postal code', span: false },
+                    { key: 'country', label: 'Country', span: false },
+                    { key: 'landmark', label: 'Landmark', span: true },
+                  ].map(({ key, label, span }) => (
+                    <label key={key} className={span ? 'span-2' : ''}>{label}
+                      <input value={(addressForm as unknown as Record<string, string>)[key] ?? ''} onChange={(e) => setAddressForm((c) => ({ ...c, [key]: e.target.value }))} />
+                    </label>
+                  ))}
                 </div>
-
                 <label className="checkbox-row">
-                  <input
-                    type="checkbox"
-                    checked={addressForm.is_default}
-                    onChange={(event) =>
-                      setAddressForm((current) => ({ ...current, is_default: event.target.checked }))
-                    }
-                  />
+                  <input type="checkbox" checked={addressForm.is_default} onChange={(e) => setAddressForm((c) => ({ ...c, is_default: e.target.checked }))} />
                   Set as default address
                 </label>
-
                 <div className="inline-actions">
-                  <button className="solid-button" type="submit">
-                    {addressState === 'loading'
-                      ? 'Saving...'
-                      : editingAddressId
-                        ? 'Update address'
-                        : 'Save address'}
-                  </button>
-                  {editingAddressId ? (
-                    <button
-                      className="outline-button"
-                      type="button"
-                      onClick={() => {
-                        setEditingAddressId(null);
-                        setAddressForm(emptyAddressForm);
-                      }}
-                    >
-                      Cancel edit
-                    </button>
-                  ) : null}
+                  <button className="solid-button" type="submit">{addressState === 'loading' ? 'Saving…' : editingAddressId ? 'Update address' : 'Save address'}</button>
+                  {editingAddressId ? <button className="outline-button" type="button" onClick={() => { setEditingAddressId(null); setAddressForm(emptyAddressForm); }}>Cancel</button> : null}
                 </div>
               </form>
-
-              <div className="list-stack">
-                {addresses.map((address) => (
-                  <article key={address.id} className="list-card">
-                    <div>
-                      <div className="list-title-row">
-                        <strong>{address.full_name}</strong>
-                        {address.is_default ? <span className="status-pill">Default</span> : null}
-                      </div>
-                      <p>
-                        {address.line_1}
-                        {address.line_2 ? `, ${address.line_2}` : ''}
-                        {`, ${address.city}, ${address.state} ${address.postal_code}`}
-                      </p>
-                      <p>
-                        {address.phone} · {address.country}
-                      </p>
+              <div className="list-stack" style={{ marginTop: 16 }}>
+                {addresses.map((addr) => (
+                  <article key={addr.id} className="list-card">
+                    <div className="list-title-row">
+                      <strong>{addr.full_name}</strong>
+                      {addr.is_default ? <span className="status-pill">Default</span> : null}
                     </div>
+                    <p>{addr.line_1}{addr.line_2 ? `, ${addr.line_2}` : ''}, {addr.city}, {addr.state} {addr.postal_code}</p>
+                    <p>{addr.phone} · {addr.country}</p>
                     <div className="inline-actions">
-                      <button className="outline-button" type="button" onClick={() => startAddressEdit(address)}>
-                        Edit
-                      </button>
-                      <button
-                        className="ghost-inline danger"
-                        type="button"
-                        onClick={() => void handleAddressDelete(address.id)}
-                      >
-                        Delete
-                      </button>
+                      <button className="outline-button" type="button" onClick={() => startAddressEdit(addr)}>Edit</button>
+                      <button className="ghost-inline danger" type="button" onClick={() => void handleAddressDelete(addr.id)}>Delete</button>
                     </div>
                   </article>
                 ))}
               </div>
             </>
           ) : (
-            <p className="helper-copy">Login to manage customer addresses and default delivery info.</p>
+            <p className="helper-copy">Login to manage delivery addresses.</p>
           )}
-
-          {addressMessage ? (
-            <p className={`form-message${addressState === 'error' ? ' error' : ''}`}>{addressMessage}</p>
-          ) : null}
+          {addressMessage ? <p className={`form-message${addressState === 'error' ? ' error' : ''}`}>{addressMessage}</p> : null}
         </section>
       </section>
 
-      <section className="page-shell customer-grid wide" id="cart">
+      {/* ── Cart & Checkout ── */}
+      <section className="container customer-grid wide" id="cart">
         <section className="panel">
           <div className="section-head compact">
-            <div>
-              <span className="eyebrow">Cart</span>
-              <h2>Review the cart before creating the order.</h2>
-            </div>
+            <div><span className="eyebrow">Cart</span><h2>Review the cart before checkout.</h2></div>
           </div>
-
-          {session ? (
-            cart && cart.items.length ? (
-              <div className="list-stack">
+          {session
+            ? cart && cart.items.length
+              ? <div className="list-stack">
                 {cart.items.map((item) => (
                   <article key={item.id} className="list-card">
                     <div className="cart-line">
-                      <div className="thumb-wrap">
-                        {item.images[0] ? <img src={item.images[0]} alt={item.product_name} /> : null}
-                      </div>
+                      <div className="thumb-wrap">{item.images[0] ? <img src={item.images[0]} alt={item.product_name} /> : null}</div>
                       <div>
                         <strong>{item.product_name}</strong>
-                        <p>
-                          {formatMoney(item.unit_price)} each · {formatMoney(item.line_total)}
-                        </p>
+                        <p>{formatMoney(item.unit_price)} each · {formatMoney(item.line_total)}</p>
                       </div>
                     </div>
                     <div className="cart-actions">
-                      <button type="button" onClick={() => void handleCartQuantity(item.id, item.quantity - 1)}>
-                        -
-                      </button>
+                      <button type="button" onClick={() => void handleCartQuantity(item.id, item.quantity - 1)}>−</button>
                       <span>{item.quantity}</span>
-                      <button type="button" onClick={() => void handleCartQuantity(item.id, item.quantity + 1)}>
-                        +
-                      </button>
-                      <button className="ghost-inline danger" type="button" onClick={() => void handleCartDelete(item.id)}>
-                        Remove
-                      </button>
+                      <button type="button" onClick={() => void handleCartQuantity(item.id, item.quantity + 1)}>+</button>
+                      <button className="ghost-inline danger" type="button" onClick={() => void handleCartDelete(item.id)}>Remove</button>
                     </div>
                   </article>
                 ))}
               </div>
-            ) : (
-              <p className="helper-copy">Your cart is empty. Add products from the menu first.</p>
-            )
-          ) : (
-            <p className="helper-copy">Login to keep a cart and move into checkout.</p>
-          )}
+              : <p className="helper-copy">Your cart is empty. Add products from the menu first.</p>
+            : <p className="helper-copy">Login to keep a cart and move into checkout.</p>}
         </section>
 
-        <section className="panel checkout-panel">
+        <section className="panel">
           <div className="section-head compact">
-            <div>
-              <span className="eyebrow">Checkout</span>
-              <h2>Create order, then launch payment.</h2>
-            </div>
+            <div><span className="eyebrow">Checkout</span><h2>Create order, then launch payment.</h2></div>
           </div>
-
           <div className="summary-card">
-            <div>
-              <span>Cart total</span>
-              <strong>{formatMoney(cart?.total_amount ?? 0)}</strong>
-            </div>
-            <div>
-              <span>Default address</span>
-              <strong>{defaultAddress?.city ?? 'Not selected'}</strong>
-            </div>
-            <div>
-              <span>Latest order</span>
-              <strong>{checkoutResult?.order_number ?? 'Not created yet'}</strong>
-            </div>
+            <div><span>Cart total</span><strong>{formatMoney(cart?.total_amount ?? 0)}</strong></div>
+            <div><span>Default address</span><strong>{defaultAddress?.city ?? 'Not selected'}</strong></div>
+            <div><span>Latest order</span><strong>{checkoutResult?.order_number ?? 'Not created yet'}</strong></div>
           </div>
-
           <div className="stack-actions">
-            <button className="solid-button" type="button" onClick={() => void handleCheckout()}>
-              Create order
-            </button>
-            <button className="outline-button" type="button" onClick={() => void handlePaymentLaunch()}>
-              Pay with Razorpay
-            </button>
-            {checkoutResult ? (
-              <a className="ghost-button" href="#orders">
-                Review latest order
-              </a>
-            ) : null}
+            <button className="solid-button" type="button" onClick={() => void handleCheckout()}>Create order</button>
+            <button className="outline-button" type="button" onClick={() => void handlePaymentLaunch()}>Pay with Razorpay</button>
+            {checkoutResult ? <a className="ghost-button" href="#orders">Review latest order</a> : null}
           </div>
-
           {orderMessage ? <p className="form-message">{orderMessage}</p> : null}
           {paymentMessage ? <p className="form-message">{paymentMessage}</p> : null}
-
           {selectedOrder ? (
             <article className="detail-card">
-              <div className="list-title-row">
-                <strong>{selectedOrder.order_number}</strong>
-                <span className="status-pill">{selectedOrder.payment_status}</span>
-              </div>
-              <p>
-                {selectedOrder.status} · {formatMoney(selectedOrder.total_amount, selectedOrder.currency)}
-              </p>
+              <div className="list-title-row"><strong>{selectedOrder.order_number}</strong><span className="status-pill">{selectedOrder.payment_status}</span></div>
+              <p>{selectedOrder.status} · {formatMoney(selectedOrder.total_amount, selectedOrder.currency)}</p>
               <div className="mini-list">
                 {selectedOrder.items.map((item) => (
-                  <div key={item.id} className="mini-row">
-                    <span>
-                      {item.product_name} x {item.quantity}
-                    </span>
-                    <strong>{formatMoney(item.line_total, selectedOrder.currency)}</strong>
-                  </div>
+                  <div key={item.id} className="mini-row"><span>{item.product_name} x {item.quantity}</span><strong>{formatMoney(item.line_total, selectedOrder.currency)}</strong></div>
                 ))}
               </div>
             </article>
@@ -1315,79 +1216,75 @@ export function HomePage() {
         </section>
       </section>
 
-      <section className="page-shell stacked-section" id="orders">
+      {/* ── Orders ── */}
+      <section className="container stacked-section" id="orders">
         <div className="section-head">
-          <div>
-            <span className="eyebrow">Orders</span>
-            <h2>Placed orders and payment status remain visible.</h2>
-          </div>
-          <p>
-            Customers can reopen any order to inspect the delivery address, item snapshot, and payment state.
-          </p>
+          <div><span className="eyebrow">Orders</span><h2>Placed orders and payment status.</h2></div>
+          <p>Reopen any order to inspect the delivery address, item snapshot, and payment state.</p>
         </div>
-
         <div className="order-grid">
           <div className="list-stack">
-            {orders.length ? (
-              orders.map((order) => (
+            {orders.length
+              ? orders.map((order) => (
                 <article key={order.id} className="list-card">
-                  <div>
-                    <div className="list-title-row">
-                      <strong>{order.order_number}</strong>
-                      <span className="status-pill">{order.payment_status}</span>
-                    </div>
-                    <p>
-                      {formatMoney(order.total_amount, order.currency)} · {order.status}
-                    </p>
-                    <p>{formatDate(order.placed_on)}</p>
-                  </div>
-                  <button className="outline-button" type="button" onClick={() => void handleOrderOpen(order.id)}>
-                    View details
-                  </button>
+                  <div className="list-title-row"><strong>{order.order_number}</strong><span className="status-pill">{order.payment_status}</span></div>
+                  <p>{formatMoney(order.total_amount, order.currency)} · {order.status}</p>
+                  <p>{formatDate(order.placed_on)}</p>
+                  <button className="outline-button" type="button" onClick={() => void handleOrderOpen(order.id)}>View details</button>
                 </article>
               ))
-            ) : (
-              <p className="helper-copy">No orders yet.</p>
-            )}
+              : <p className="helper-copy">No orders yet.</p>}
           </div>
-
-          <div className="panel detail-panel">
+          <div className="panel">
             {selectedOrder ? (
               <>
-                <div className="list-title-row">
-                  <strong>{selectedOrder.order_number}</strong>
-                  <span className="status-pill">{selectedOrder.status}</span>
-                </div>
-                <p className="helper-copy">
-                  {selectedOrder.payment_status === 'paid'
-                    ? 'Payment complete.'
-                    : 'Payment pending or awaiting verification.'}
-                </p>
-                <p>
-                  {selectedOrder.address.full_name} · {selectedOrder.address.phone}
-                </p>
-                <p>
-                  {selectedOrder.address.line_1}
-                  {selectedOrder.address.line_2 ? `, ${selectedOrder.address.line_2}` : ''}
-                  {`, ${selectedOrder.address.city}, ${selectedOrder.address.state}`}
-                </p>
+                <div className="list-title-row"><strong>{selectedOrder.order_number}</strong><span className="status-pill">{selectedOrder.status}</span></div>
+                <p className="helper-copy">{selectedOrder.payment_status === 'paid' ? 'Payment complete.' : 'Payment pending.'}</p>
+                <p>{selectedOrder.address.full_name} · {selectedOrder.address.phone}</p>
+                <p>{selectedOrder.address.line_1}{selectedOrder.address.line_2 ? `, ${selectedOrder.address.line_2}` : ''}, {selectedOrder.address.city}, {selectedOrder.address.state}</p>
                 <div className="mini-list">
                   {selectedOrder.items.map((item) => (
-                    <div key={item.id} className="mini-row">
-                      <span>
-                        {item.product_name} x {item.quantity}
-                      </span>
-                      <strong>{formatMoney(item.line_total, selectedOrder.currency)}</strong>
-                    </div>
+                    <div key={item.id} className="mini-row"><span>{item.product_name} x {item.quantity}</span><strong>{formatMoney(item.line_total, selectedOrder.currency)}</strong></div>
                   ))}
                 </div>
               </>
-            ) : (
-              <p className="helper-copy">Select an order to inspect its address and item details.</p>
-            )}
+            ) : <p className="helper-copy">Select an order to inspect its details.</p>}
           </div>
         </div>
       </section>
+
+      {/* ── Footer ── */}
+      <footer className="container fade-up">
+        <div className="footer-grid">
+          <article className="card footer-card">
+            <div className="brand" style={{ marginBottom: 12 }}>
+              <span className="brand-mark" aria-hidden="true" />
+              <span>
+                <span className="serif" style={{ fontSize: 22, lineHeight: 1 }}>Mobilitea</span>
+                <small>Sip. Energize. Repeat.</small>
+              </span>
+            </div>
+            <p style={{ margin: 0, color: 'var(--muted)', lineHeight: 1.75 }}>Premium refreshment for workplaces, events, and institutions — designed to feel reliable, polished, and easy to scale.</p>
+          </article>
+          <article className="card footer-card">
+            <h3>Menu</h3>
+            <ul><li>Hot beverages</li><li>Coolers</li><li>Snacks</li><li>Desserts</li></ul>
+          </article>
+          <article className="card footer-card">
+            <h3>Company</h3>
+            <ul><li>Why Mobilitea</li><li>Our process</li><li>Who we serve</li><li>Corporate quotes</li></ul>
+          </article>
+          <article className="card footer-card">
+            <h3>Account</h3>
+            <ul>
+              <li><a href="#account">{session ? `Signed in as ${session.user.first_name}` : 'Sign in'}</a></li>
+              <li><a href="#cart">Cart ({cart?.items.length ?? 0})</a></li>
+              <li><a href="#orders">Orders ({orders.length})</a></li>
+            </ul>
+          </article>
+        </div>
+        <div className="footer-bottom">© 2026 Mobilitea. All rights reserved.</div>
+      </footer>
     </main>
   );
 }
