@@ -549,7 +549,7 @@ export function HomePage() {
       <header className="site-header">
         <div className="container header-row">
           <a className="brand" href="#home">
-            <span className="brand-mark" aria-hidden="true" />
+            <img src="/assets/logo.webp" alt="Mobilitea Logo" className="logo" />
             <span>
               <span className="serif" style={{ fontSize: 22, lineHeight: 1 }}>
                 Mobilitea
@@ -683,7 +683,7 @@ export function HomePage() {
         <div className="footer-grid">
           <article className="card footer-card">
             <div className="brand" style={{ marginBottom: 12 }}>
-              <span className="brand-mark" aria-hidden="true" />
+              <img src="/assets/logo.webp" alt="Mobilitea Logo" className="logo" />
               <span>
                 <span className="serif" style={{ fontSize: 22, lineHeight: 1 }}>
                   Mobilitea

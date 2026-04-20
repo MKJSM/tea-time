@@ -50,7 +50,7 @@ export function HeroSlider({ activeSlide, onSlideChange }: Props) {
               </div>
             </div>
             <div className="hero-art">
-              <img src="/hero_main.png" alt="Fresh workplace tea" className="hero-img" />
+              <img src="/assets/hero_main.png" alt="Fresh workplace tea" className="hero-img" />
               <div className="hero-card">
                 <h4>SIP. ENERGIZE. REPEAT.</h4>
                 <p>Reliable workplace refreshment, built around daily comfort and clean delivery.</p>
@@ -101,7 +101,7 @@ export function HeroSlider({ activeSlide, onSlideChange }: Props) {
               </div>
             </div>
             <div className="hero-art">
-              <img src="/hero_app.png" alt="Mobilitea App" className="hero-img" />
+              <img src="/assets/hero_app.png" alt="Mobilitea App" className="hero-img" />
             </div>
           </div>
         </article>
@@ -143,7 +143,7 @@ export function HeroSlider({ activeSlide, onSlideChange }: Props) {
               </div>
             </div>
             <div className="hero-art">
-              <img src="/hero_events.png" alt="Corporate Events" className="hero-img" />
+              <img src="/assets/hero_events.png" alt="Corporate Events" className="hero-img" />
               <div className="event-panel">
                 <h3>Perfect Tea for Your Special Events</h3>
                 <p>Bulk, corporate, and event refreshment with premium service.</p>
