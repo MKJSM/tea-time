@@ -7,8 +7,6 @@ pub struct Config {
     pub server_port: u16,
     pub bind_addr: String,
     pub cors_origin: Option<String>,
-    pub default_admin_email: String,
-    pub default_admin_password: String,
     pub razorpay_key_id: String,
     pub razorpay_key_secret: String,
     pub razorpay_webhook_secret: String,
@@ -35,20 +33,6 @@ impl Config {
             .unwrap_or(3001);
         let bind_addr = env::var("BIND_ADDR").unwrap_or_else(|_| "127.0.0.1".to_string());
         let cors_origin = env::var("CORS_ORIGIN").ok();
-
-        // Admin credentials — require explicit env vars in production.
-        let default_admin_email =
-            env::var("DEFAULT_ADMIN_EMAIL").unwrap_or_else(|_| "admin@tea-time.local".to_string());
-        let default_admin_password = match env::var("DEFAULT_ADMIN_PASSWORD") {
-            Ok(pw) => pw,
-            Err(_) => {
-                tracing::warn!(
-                    "DEFAULT_ADMIN_PASSWORD not set — using insecure default. \
-                     Set this env var before deploying to production."
-                );
-                "TeaTimeAdmin123!".to_string()
-            }
-        };
 
         // Razorpay — warn when using placeholders.
         let razorpay_key_id = env::var("RAZORPAY_KEY_ID").unwrap_or_else(|_| {
@@ -84,8 +68,6 @@ impl Config {
             server_port,
             bind_addr,
             cors_origin,
-            default_admin_email,
-            default_admin_password,
             razorpay_key_id,
             razorpay_key_secret,
             razorpay_webhook_secret,

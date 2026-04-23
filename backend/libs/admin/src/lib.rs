@@ -7,6 +7,10 @@ use backend_auth::{hash_password, verify_password};
 use backend_session::{create_session, SessionScope, SessionToken, ADMIN_SESSION_COOKIE};
 use backend_shared::{map_pool_error_to_app_error, AppError};
 
+pub const DEFAULT_ADMIN_EMAIL: &str = "admin@tea-time.local";
+pub const DEFAULT_ADMIN_PASSWORD: &str = "admin@2026";
+pub const DEFAULT_ADMIN_USER_NAME: &str = "admin";
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AdminUser {
     pub id: Uuid,
@@ -80,28 +84,46 @@ pub async fn ensure_default_admin(
         )
         .await?;
 
-    if existing.is_some() {
-        return Ok(());
-    }
-
     let password_hash = hash_password(password.trim())
         .map_err(|error| AppError::Config(format!("failed to hash default admin password: {error}")))?;
 
-    client
-        .execute(
-            "INSERT INTO admin_user (id, user_name, first_name, last_name, phone, email, password_hash)
-             VALUES ($1::text::uuid, $2, $3, $4, $5, $6, $7)",
-            &[
-                &Uuid::new_v4().to_string(),
-                &"admin".to_string(),
-                &"Tea".to_string(),
-                &"Admin".to_string(),
-                &Option::<String>::None,
-                &normalized_email,
-                &password_hash,
-            ],
-        )
-        .await?;
+    if existing.is_some() {
+        client
+            .execute(
+                "UPDATE admin_user
+                 SET user_name = $1,
+                     first_name = $2,
+                     last_name = $3,
+                     phone = $4,
+                     password_hash = $5
+                 WHERE email = $6",
+                &[
+                    &DEFAULT_ADMIN_USER_NAME.to_string(),
+                    &"Tea".to_string(),
+                    &"Admin".to_string(),
+                    &Option::<String>::None,
+                    &password_hash,
+                    &normalized_email,
+                ],
+            )
+            .await?;
+    } else {
+        client
+            .execute(
+                "INSERT INTO admin_user (id, user_name, first_name, last_name, phone, email, password_hash)
+                 VALUES ($1::text::uuid, $2, $3, $4, $5, $6, $7)",
+                &[
+                    &Uuid::new_v4().to_string(),
+                    &DEFAULT_ADMIN_USER_NAME.to_string(),
+                    &"Tea".to_string(),
+                    &"Admin".to_string(),
+                    &Option::<String>::None,
+                    &normalized_email,
+                    &password_hash,
+                ],
+            )
+            .await?;
+    }
 
     Ok(())
 }

@@ -19,7 +19,6 @@ import {
   getProducts,
   getUser,
   getUsers,
-  loginAdmin,
   logoutAdmin,
   updateBanner,
   updateCategory,
@@ -37,7 +36,6 @@ import type {
   CustomerDetailResponse,
   DashboardSummary,
   HealthResponse,
-  LoginInput,
   OrderDetail,
   OrderSummary,
   PaymentDetailResponse,
@@ -47,17 +45,42 @@ import type {
   CustomerListItem,
 } from '@tea-time/types';
 
+import { LoginPage } from './components/LoginPage';
 import { BannersSection, CustomersSection } from './components/BannersSection';
-import { CatalogSection } from './components/CatalogSection';
-import type { CategoryFormState, ProductFormState } from './components/CatalogSection';
+import {
+  CategoriesSection,
+  ProductsSection,
+  type CategoryFormState,
+  type ProductFormState,
+} from './components/CatalogSection';
 import { OrdersSection, PaymentsSection } from './components/OrdersSection';
 import { OverviewSection } from './components/OverviewSection';
 import { imageFieldToString, parseImageField } from './lib/format';
 
-const defaultLogin: LoginInput = {
-  email: 'admin@tea-time.local',
-  password: 'TeaTimeAdmin123!',
-};
+type DashboardSectionKey =
+  | 'overview'
+  | 'categories'
+  | 'products'
+  | 'banners'
+  | 'customers'
+  | 'orders'
+  | 'payments';
+
+interface DashboardSection {
+  key: DashboardSectionKey;
+  id: string;
+  label: string;
+}
+
+const dashboardSections: DashboardSection[] = [
+  { key: 'overview', id: 'admin-overview', label: 'Overview' },
+  { key: 'categories', id: 'admin-categories', label: 'Categories' },
+  { key: 'products', id: 'admin-products', label: 'Products' },
+  { key: 'banners', id: 'admin-banners', label: 'Banners' },
+  { key: 'customers', id: 'admin-customers', label: 'Customers' },
+  { key: 'orders', id: 'admin-orders', label: 'Orders' },
+  { key: 'payments', id: 'admin-payments', label: 'Payments' },
+];
 
 const emptyCategory: CategoryFormState = { id: '', name: '', imagesText: '' };
 
@@ -75,9 +98,9 @@ const emptyBanner: BannerInput = {
   subtitle: '',
   description: '',
   primary_button_label: '',
-  primary_button_href: '#catalog',
+  primary_button_href: '#categories',
   secondary_button_label: '',
-  secondary_button_href: '#account',
+  secondary_button_href: '#customers',
   media_url: '',
   media_kind: 'image',
   background_type: 'image',
@@ -97,21 +120,70 @@ const emptyUser: CreateCustomerInput = {
   password: '',
 };
 
-const adminSectionAnchors = [
-  { id: 'admin-overview', label: 'Overview' },
-  { id: 'admin-catalog', label: 'Catalog' },
-  { id: 'admin-banners', label: 'Banners' },
-  { id: 'admin-customers', label: 'Customers' },
-  { id: 'admin-orders', label: 'Orders' },
-  { id: 'admin-payments', label: 'Payments' },
-] as const;
+function sectionFromHash(hash: string): DashboardSectionKey {
+  const normalized = hash.replace(/^#/, '');
+  const match = dashboardSections.find((section) => section.id === normalized);
+  return match?.key ?? 'overview';
+}
+
+function sectionId(section: DashboardSectionKey): string {
+  return dashboardSections.find((item) => item.key === section)?.id ?? 'admin-overview';
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
+}
+
+function isSessionError(message: string): boolean {
+  return /admin session/i.test(message);
+}
+
+function createResetState(setters: {
+  setHealth: (value: HealthResponse | null) => void;
+  setSummary: (value: DashboardSummary | null) => void;
+  setCategories: (value: CategoryListItem[]) => void;
+  setProducts: (value: ProductListItem[]) => void;
+  setBanners: (value: Banner[]) => void;
+  setUsers: (value: CustomerListItem[]) => void;
+  setOrders: (value: OrderSummary[]) => void;
+  setPayments: (value: PaymentRecord[]) => void;
+  setSelectedUser: (value: CustomerDetailResponse | null) => void;
+  setSelectedOrder: (value: OrderDetail | null) => void;
+  setSelectedPayment: (value: PaymentDetailResponse | null) => void;
+  setCategoryForm: (value: CategoryFormState) => void;
+  setProductForm: (value: ProductFormState) => void;
+  setBannerForm: (value: BannerInput) => void;
+  setBannerEditingId: (value: string) => void;
+  setUserForm: (value: CreateCustomerInput) => void;
+  setMessage: (value: string) => void;
+}) {
+  setters.setHealth(null);
+  setters.setSummary(null);
+  setters.setCategories([]);
+  setters.setProducts([]);
+  setters.setBanners([]);
+  setters.setUsers([]);
+  setters.setOrders([]);
+  setters.setPayments([]);
+  setters.setSelectedUser(null);
+  setters.setSelectedOrder(null);
+  setters.setSelectedPayment(null);
+  setters.setCategoryForm(emptyCategory);
+  setters.setProductForm(emptyProduct);
+  setters.setBannerForm(emptyBanner);
+  setters.setBannerEditingId('');
+  setters.setUserForm(emptyUser);
+  setters.setMessage('');
+}
 
 export function AdminApp() {
+  const [session, setSession] = useState<AdminAuthResponse | null>(null);
+  const [bootstrapping, setBootstrapping] = useState(true);
+  const [activeSection, setActiveSection] = useState<DashboardSectionKey>('overview');
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [session, setSession] = useState<AdminAuthResponse | null>(null);
-  const [loginForm, setLoginForm] = useState<LoginInput>(defaultLogin);
-  const [message, setMessage] = useState<string>('');
+  const [message, setMessage] = useState('');
 
   const [categories, setCategories] = useState<CategoryListItem[]>([]);
   const [products, setProducts] = useState<ProductListItem[]>([]);
@@ -127,101 +199,221 @@ export function AdminApp() {
   const [categoryForm, setCategoryForm] = useState<CategoryFormState>(emptyCategory);
   const [productForm, setProductForm] = useState<ProductFormState>(emptyProduct);
   const [bannerForm, setBannerForm] = useState<BannerInput>(emptyBanner);
-  const [bannerEditingId, setBannerEditingId] = useState<string>('');
+  const [bannerEditingId, setBannerEditingId] = useState('');
   const [userForm, setUserForm] = useState<CreateCustomerInput>(emptyUser);
 
+  const resetDashboard = () =>
+    createResetState({
+      setHealth,
+      setSummary,
+      setCategories,
+      setProducts,
+      setBanners,
+      setUsers,
+      setOrders,
+      setPayments,
+      setSelectedUser,
+      setSelectedOrder,
+      setSelectedPayment,
+      setCategoryForm,
+      setProductForm,
+      setBannerForm,
+      setBannerEditingId,
+      setUserForm,
+      setMessage,
+    });
+
+  async function loadDashboardData() {
+    const results = await Promise.allSettled([
+      getAdminHealth(),
+      getCategories('admin'),
+      getProducts('admin'),
+      getBanners('admin'),
+      getUsers(),
+      getOrders('admin'),
+      getPayments(),
+    ]);
+
+    const [healthResult, categoriesResult, productsResult, bannersResult, usersResult, ordersResult, paymentsResult] =
+      results;
+
+    const errors: string[] = [];
+    let authExpired = false;
+
+    function applyError(result: PromiseSettledResult<unknown>) {
+      if (result.status === 'fulfilled') return;
+      const errorMessage = getErrorMessage(result.reason);
+      errors.push(errorMessage);
+      if (isSessionError(errorMessage)) authExpired = true;
+    }
+
+    if (healthResult.status === 'fulfilled') {
+      setHealth(healthResult.value);
+      setSummary(healthResult.value.summary ?? null);
+    } else {
+      applyError(healthResult);
+      setHealth(null);
+      setSummary(null);
+    }
+
+    if (categoriesResult.status === 'fulfilled') {
+      setCategories(categoriesResult.value.items);
+    } else {
+      applyError(categoriesResult);
+      setCategories([]);
+    }
+
+    if (productsResult.status === 'fulfilled') {
+      setProducts(productsResult.value.items);
+    } else {
+      applyError(productsResult);
+      setProducts([]);
+    }
+
+    if (bannersResult.status === 'fulfilled') {
+      setBanners(bannersResult.value.items);
+    } else {
+      applyError(bannersResult);
+      setBanners([]);
+    }
+
+    if (usersResult.status === 'fulfilled') {
+      setUsers(usersResult.value.items);
+    } else {
+      applyError(usersResult);
+      setUsers([]);
+    }
+
+    if (ordersResult.status === 'fulfilled') {
+      setOrders(ordersResult.value.items);
+    } else {
+      applyError(ordersResult);
+      setOrders([]);
+    }
+
+    if (paymentsResult.status === 'fulfilled') {
+      setPayments(paymentsResult.value.items);
+    } else {
+      applyError(paymentsResult);
+      setPayments([]);
+    }
+
+    if (authExpired) {
+      resetDashboard();
+      setSession(null);
+      if (typeof window !== 'undefined') {
+        window.location.hash = '';
+      }
+      return;
+    }
+
+    if (errors.length > 0) {
+      setMessage(errors[0]);
+    }
+  }
+
+  async function bootstrap() {
+    try {
+      const current = await getCurrentAdmin();
+      setSession(current);
+      if (typeof window !== 'undefined' && !window.location.hash) {
+        window.location.hash = `#${sectionId('overview')}`;
+      }
+      await loadDashboardData();
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      setSession(null);
+      resetDashboard();
+      if (!isSessionError(errorMessage)) {
+        setMessage(errorMessage);
+      }
+    } finally {
+      setBootstrapping(false);
+    }
+  }
+
   useEffect(() => {
-    void loadPublicAdmin();
-    void restoreSession();
+    void bootstrap();
   }, []);
 
-  async function loadPublicAdmin() {
-    try {
-      const response = await getAdminHealth();
-      setHealth(response);
-      setSummary(response.summary ?? null);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to load admin status');
-    }
-  }
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
 
-  async function loadAdminData() {
-    try {
-      const [catRes, prodRes, bannerRes, userRes, orderRes, paymentRes] = await Promise.all([
-        getCategories('admin'),
-        getProducts('admin'),
-        getBanners('admin'),
-        getUsers(),
-        getOrders('admin'),
-        getPayments(),
-      ]);
-      setCategories(catRes.items);
-      setProducts(prodRes.items);
-      setBanners(bannerRes.items);
-      setUsers(userRes.items);
-      setOrders(orderRes.items);
-      setPayments(paymentRes.items);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to load admin data');
-    }
-  }
+    const syncSection = () => {
+      if (!session) return;
+      setActiveSection(sectionFromHash(window.location.hash));
+    };
 
-  async function restoreSession() {
-    try {
-      const response = await getCurrentAdmin();
-      setSession(response);
-      await loadAdminData();
-    } catch {
-      setSession(null);
-    }
-  }
+    syncSection();
+    window.addEventListener('hashchange', syncSection);
+    return () => window.removeEventListener('hashchange', syncSection);
+  }, [session]);
 
-  async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    try {
-      const response = await loginAdmin(loginForm);
-      setSession(response);
-      setMessage(`Logged in as ${response.admin.email}`);
-      await loadAdminData();
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Admin login failed');
+  useEffect(() => {
+    if (!session || typeof window === 'undefined') return;
+    if (!window.location.hash || sectionFromHash(window.location.hash) === 'overview' && window.location.hash !== `#${sectionId('overview')}`) {
+      window.location.hash = `#${sectionId('overview')}`;
     }
+  }, [session]);
+
+  async function handleLoginSuccess(nextSession: AdminAuthResponse) {
+    setSession(nextSession);
+    setMessage('');
+    if (typeof window !== 'undefined' && !window.location.hash) {
+      window.location.hash = `#${sectionId('overview')}`;
+    }
+    await loadDashboardData();
+    setBootstrapping(false);
   }
 
   async function handleLogout() {
     try {
       await logoutAdmin();
-      setSession(null);
-      setMessage('Admin session closed.');
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Admin logout failed');
+      const errorMessage = getErrorMessage(error);
+      if (!isSessionError(errorMessage)) {
+        setMessage(errorMessage);
+      }
+    } finally {
+      setSession(null);
+      setActiveSection('overview');
+      resetDashboard();
+      if (typeof window !== 'undefined') {
+        window.location.hash = '';
+      }
+      setBootstrapping(false);
     }
   }
 
   async function handleFileAppend(
     event: React.ChangeEvent<HTMLInputElement>,
-    target: 'category' | 'product' | 'banner',
+    target: 'category' | 'product' | 'banner' | 'banner-background',
   ) {
     const file = event.target.files?.[0];
     if (!file) return;
+
     try {
       const response = await uploadFile(file);
       if (target === 'category') {
-        setCategoryForm((c) => ({
-          ...c,
-          imagesText: c.imagesText ? `${c.imagesText}\n${response.file_url}` : response.file_url,
+        setCategoryForm((current: CategoryFormState) => ({
+          ...current,
+          imagesText: current.imagesText ? `${current.imagesText}\n${response.file_url}` : response.file_url,
         }));
       } else if (target === 'product') {
-        setProductForm((c) => ({
-          ...c,
-          imagesText: c.imagesText ? `${c.imagesText}\n${response.file_url}` : response.file_url,
+        setProductForm((current: ProductFormState) => ({
+          ...current,
+          imagesText: current.imagesText ? `${current.imagesText}\n${response.file_url}` : response.file_url,
         }));
+      } else if (target === 'banner-background') {
+        setBannerForm((current: BannerInput) => ({ ...current, background_value: response.file_url }));
       } else {
-        setBannerForm((c) => ({ ...c, media_url: response.file_url }));
+        setBannerForm((current: BannerInput) => ({ ...current, media_url: response.file_url }));
       }
-      setMessage('File uploaded to S3.');
+      setMessage('File uploaded.');
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Upload failed');
+      setMessage(getErrorMessage(error));
+    } finally {
+      event.target.value = '';
     }
   }
 
@@ -240,9 +432,14 @@ export function AdminApp() {
         setMessage('Category created.');
       }
       setCategoryForm(emptyCategory);
-      await loadAdminData();
+      await loadDashboardData();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Category save failed');
+      const errorMessage = getErrorMessage(error);
+      if (isSessionError(errorMessage)) {
+        await handleLogout();
+        return;
+      }
+      setMessage(errorMessage);
     }
   }
 
@@ -264,9 +461,14 @@ export function AdminApp() {
         setMessage('Product created.');
       }
       setProductForm(emptyProduct);
-      await loadAdminData();
+      await loadDashboardData();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Product save failed');
+      const errorMessage = getErrorMessage(error);
+      if (isSessionError(errorMessage)) {
+        await handleLogout();
+        return;
+      }
+      setMessage(errorMessage);
     }
   }
 
@@ -282,9 +484,14 @@ export function AdminApp() {
       }
       setBannerEditingId('');
       setBannerForm(emptyBanner);
-      await loadAdminData();
+      await loadDashboardData();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Banner save failed');
+      const errorMessage = getErrorMessage(error);
+      if (isSessionError(errorMessage)) {
+        await handleLogout();
+        return;
+      }
+      setMessage(errorMessage);
     }
   }
 
@@ -293,10 +500,15 @@ export function AdminApp() {
     try {
       await createUser({ ...userForm, phone: userForm.phone || null });
       setUserForm(emptyUser);
-      setMessage('Customer account created from admin.');
-      await loadAdminData();
+      setMessage('Customer account created.');
+      await loadDashboardData();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Customer creation failed');
+      const errorMessage = getErrorMessage(error);
+      if (isSessionError(errorMessage)) {
+        await handleLogout();
+        return;
+      }
+      setMessage(errorMessage);
     }
   }
 
@@ -304,7 +516,12 @@ export function AdminApp() {
     try {
       setSelectedUser(await getUser(id));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to load customer');
+      const errorMessage = getErrorMessage(error);
+      if (isSessionError(errorMessage)) {
+        await handleLogout();
+        return;
+      }
+      setMessage(errorMessage);
     }
   }
 
@@ -312,7 +529,12 @@ export function AdminApp() {
     try {
       setSelectedOrder(await getOrder(id, 'admin'));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to load order');
+      const errorMessage = getErrorMessage(error);
+      if (isSessionError(errorMessage)) {
+        await handleLogout();
+        return;
+      }
+      setMessage(errorMessage);
     }
   }
 
@@ -320,10 +542,17 @@ export function AdminApp() {
     try {
       await updateOrderStatus(id, status);
       setMessage(`Order status updated to ${status}.`);
-      await loadAdminData();
-      if (selectedOrder?.id === id) await openOrder(id);
+      await loadDashboardData();
+      if (selectedOrder?.id === id) {
+        await openOrder(id);
+      }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to update order status');
+      const errorMessage = getErrorMessage(error);
+      if (isSessionError(errorMessage)) {
+        await handleLogout();
+        return;
+      }
+      setMessage(errorMessage);
     }
   }
 
@@ -331,7 +560,12 @@ export function AdminApp() {
     try {
       setSelectedPayment(await getPayment(id));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to load payment');
+      const errorMessage = getErrorMessage(error);
+      if (isSessionError(errorMessage)) {
+        await handleLogout();
+        return;
+      }
+      setMessage(errorMessage);
     }
   }
 
@@ -383,117 +617,174 @@ export function AdminApp() {
   async function removeCategory(id: string) {
     try {
       await deleteCategory(id);
-      await loadAdminData();
+      await loadDashboardData();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to delete category');
+      const errorMessage = getErrorMessage(error);
+      if (isSessionError(errorMessage)) {
+        await handleLogout();
+        return;
+      }
+      setMessage(errorMessage);
     }
   }
 
   async function removeProduct(id: string) {
     try {
       await deleteProduct(id);
-      await loadAdminData();
+      await loadDashboardData();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to delete product');
+      const errorMessage = getErrorMessage(error);
+      if (isSessionError(errorMessage)) {
+        await handleLogout();
+        return;
+      }
+      setMessage(errorMessage);
     }
   }
 
   async function removeBanner(id: string) {
     try {
       await deleteBanner(id);
-      await loadAdminData();
+      await loadDashboardData();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to delete banner');
+      const errorMessage = getErrorMessage(error);
+      if (isSessionError(errorMessage)) {
+        await handleLogout();
+        return;
+      }
+      setMessage(errorMessage);
+    }
+  }
+
+  if (!session) {
+    return <LoginPage onLoginSuccess={handleLoginSuccess} checkingSession={bootstrapping} />;
+  }
+
+  const currentSession = session;
+  const activeSectionLabel = dashboardSections.find((item) => item.key === activeSection)?.label ?? 'Overview';
+
+  function renderSection() {
+    switch (activeSection) {
+      case 'categories':
+        return (
+          <CategoriesSection
+            categories={categories}
+            categoryForm={categoryForm}
+            onCategoryFormChange={(patch) =>
+              setCategoryForm((current: CategoryFormState) => ({ ...current, ...patch }))
+            }
+            onSubmitCategory={(event) => void submitCategory(event)}
+            onEditCategory={editCategory}
+            onDeleteCategory={(id) => void removeCategory(id)}
+            onFileAppend={(event) => void handleFileAppend(event, 'category')}
+          />
+        );
+      case 'products':
+        return (
+          <ProductsSection
+            categories={categories}
+            products={products}
+            productForm={productForm}
+            onProductFormChange={(patch) =>
+              setProductForm((current: ProductFormState) => ({ ...current, ...patch }))
+            }
+            onSubmitProduct={(event) => void submitProduct(event)}
+            onEditProduct={editProduct}
+            onDeleteProduct={(id) => void removeProduct(id)}
+            onFileAppend={(event) => void handleFileAppend(event, 'product')}
+          />
+        );
+      case 'banners':
+        return (
+          <BannersSection
+            banners={banners}
+            bannerForm={bannerForm}
+            bannerEditingId={bannerEditingId}
+            onBannerFormChange={(patch) =>
+              setBannerForm((current: BannerInput) => ({ ...current, ...patch }))
+            }
+            onSubmitBanner={(event) => void submitBanner(event)}
+            onEditBanner={editBanner}
+            onDeleteBanner={(id) => void removeBanner(id)}
+            onFileAppend={(event, target) => void handleFileAppend(event, target)}
+          />
+        );
+      case 'customers':
+        return (
+          <CustomersSection
+            users={users}
+            userForm={userForm}
+            selectedUser={selectedUser}
+            onUserFormChange={(patch) => setUserForm((current) => ({ ...current, ...patch }))}
+            onSubmitUser={(event) => void submitUser(event)}
+            onOpenUser={(id) => void openUser(id)}
+          />
+        );
+      case 'orders':
+        return (
+          <OrdersSection
+            orders={orders}
+            selectedOrder={selectedOrder}
+            onChangeOrderStatus={(id, status) => void changeOrderStatus(id, status)}
+            onOpenOrder={(id) => void openOrder(id)}
+          />
+        );
+      case 'payments':
+        return (
+          <PaymentsSection
+            payments={payments}
+            selectedPayment={selectedPayment}
+            onOpenPayment={(id) => void openPayment(id)}
+          />
+        );
+      case 'overview':
+      default:
+        return <OverviewSection health={health} summary={summary} session={currentSession} />;
     }
   }
 
   return (
-    <main className="admin-shell">
-      <header className="admin-topbar">
-        <div>
+    <div className="admin-layout">
+      <aside className="admin-sidebar">
+        <div className="admin-sidebar-brand">
           <p className="admin-eyebrow">Tea Time Admin</p>
-          <h1>
-            Manage banners, catalog, customers, orders, and payments from one control surface.
-          </h1>
+          <h1>Dashboard</h1>
+          <p className="admin-sidebar-copy">{session.admin.email}</p>
         </div>
-        <div className="admin-topbar-actions">
+
+        <nav className="admin-sidebar-nav" aria-label="Admin sections">
+          {dashboardSections.map((item) => (
+            <a
+              key={item.id}
+              className={`admin-sidebar-link${activeSection === item.key ? ' is-active' : ''}`}
+              href={`#${item.id}`}
+            >
+              {item.label}
+            </a>
+          ))}
+        </nav>
+
+        <div className="admin-sidebar-footer">
           <span className="admin-badge">
             {health?.database ? 'Database ready' : 'Checking backend'}
           </span>
+          <button type="button" className="admin-logout" onClick={() => void handleLogout()}>
+            Logout
+          </button>
         </div>
-      </header>
+      </aside>
 
-      <nav className="admin-nav" aria-label="Admin sections">
-        {adminSectionAnchors.map((item) => (
-          <a key={item.id} href={`#${item.id}`}>
-            {item.label}
-          </a>
-        ))}
-      </nav>
+      <main className="admin-content">
+        <header className="admin-content-header">
+          <div>
+            <p className="admin-eyebrow">Active section</p>
+            <h2>{activeSectionLabel}</h2>
+          </div>
+          {message ? <p className="admin-banner-message">{message}</p> : null}
+        </header>
 
-      <OverviewSection
-        health={health}
-        summary={summary}
-        session={session}
-        loginForm={loginForm}
-        message={message}
-        onLoginFormChange={(patch) => setLoginForm((c) => ({ ...c, ...patch }))}
-        onLogin={(e) => void handleLogin(e)}
-        onLogout={() => void handleLogout()}
-      />
-
-      <CatalogSection
-        categories={categories}
-        products={products}
-        categoryForm={categoryForm}
-        productForm={productForm}
-        onCategoryFormChange={(patch) => setCategoryForm((c) => ({ ...c, ...patch }))}
-        onProductFormChange={(patch) => setProductForm((c) => ({ ...c, ...patch }))}
-        onSubmitCategory={(e) => void submitCategory(e)}
-        onSubmitProduct={(e) => void submitProduct(e)}
-        onEditCategory={editCategory}
-        onEditProduct={editProduct}
-        onDeleteCategory={(id) => void removeCategory(id)}
-        onDeleteProduct={(id) => void removeProduct(id)}
-        onFileAppend={(e, target) => void handleFileAppend(e, target)}
-      />
-
-      <section className="admin-grid" id="admin-banners">
-        <BannersSection
-          banners={banners}
-          bannerForm={bannerForm}
-          bannerEditingId={bannerEditingId}
-          onBannerFormChange={(patch) => setBannerForm((c) => ({ ...c, ...patch }))}
-          onSubmitBanner={(e) => void submitBanner(e)}
-          onEditBanner={editBanner}
-          onDeleteBanner={(id) => void removeBanner(id)}
-          onFileAppend={(e, target) => void handleFileAppend(e, target)}
-        />
-
-        <CustomersSection
-          users={users}
-          userForm={userForm}
-          selectedUser={selectedUser}
-          onUserFormChange={(patch) => setUserForm((c) => ({ ...c, ...patch }))}
-          onSubmitUser={(e) => void submitUser(e)}
-          onOpenUser={(id) => void openUser(id)}
-        />
-      </section>
-
-      <section className="admin-grid" id="admin-orders">
-        <OrdersSection
-          orders={orders}
-          selectedOrder={selectedOrder}
-          onChangeOrderStatus={(id, status) => void changeOrderStatus(id, status)}
-          onOpenOrder={(id) => void openOrder(id)}
-        />
-
-        <PaymentsSection
-          payments={payments}
-          selectedPayment={selectedPayment}
-          onOpenPayment={(id) => void openPayment(id)}
-        />
-      </section>
-    </main>
+        <div className="admin-content-body">{renderSection()}</div>
+      </main>
+    </div>
   );
 }

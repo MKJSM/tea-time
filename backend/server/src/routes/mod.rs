@@ -34,7 +34,7 @@ async fn app_fallback(request: Request) -> Response {
 pub fn build_router(state: AppState) -> Router {
     Router::new()
         .merge(customer::router())
-        .nest("/api/admin", admin::router())
+        .nest("/api/admin", admin::router(state.clone()))
         .nest_service(
             "/admin",
             ServeDir::new("backend/server/public/admin")

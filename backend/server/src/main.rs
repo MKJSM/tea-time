@@ -26,8 +26,8 @@ async fn initialize_database(config: &Config) -> Pool {
 
     backend_admin::ensure_default_admin(
         &db,
-        &config.default_admin_email,
-        &config.default_admin_password,
+        backend_admin::DEFAULT_ADMIN_EMAIL,
+        backend_admin::DEFAULT_ADMIN_PASSWORD,
     )
     .await
     .unwrap_or_else(|error| panic!("failed to seed default admin: {error}"));
