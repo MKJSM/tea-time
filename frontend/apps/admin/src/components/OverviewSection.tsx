@@ -19,9 +19,6 @@ export function OverviewSection({ health, summary, session }: Props) {
               and payments.
             </p>
           </div>
-          <span className="admin-badge">
-            {health?.database ? 'Database ready' : 'Checking backend'}
-          </span>
         </div>
 
         <div className="overview-grid">

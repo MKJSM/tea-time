@@ -137,8 +137,9 @@ code {
 }
 
 .admin-sidebar-brand h1 {
-  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
   line-height: 0.95;
+  margin-top: 10px;
 }
 
 .admin-sidebar-copy {
@@ -155,13 +156,20 @@ code {
 .admin-sidebar-link {
   display: flex;
   align-items: center;
-  min-height: 44px;
-  padding: 0 14px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(237, 247, 240, 0.9);
-  font-weight: 800;
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(237, 247, 240, 0.8);
+  font-weight: 700;
   border: 1px solid transparent;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.admin-sidebar-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
 }
 
 .admin-sidebar-link.is-active {
@@ -202,13 +210,16 @@ code {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 24px;
+  gap: 24px;
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .admin-content-header h2 {
-  font-size: clamp(2rem, 5vw, 3.4rem);
-  line-height: 0.96;
+  margin: 4px 0 0;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  line-height: 1.1;
 }
 
 .admin-banner-message {
@@ -247,10 +258,11 @@ code {
 }
 
 .section-copy {
-  margin: 8px 0 0;
+  margin: 12px 0 0;
   color: #566659;
-  line-height: 1.7;
+  line-height: 1.6;
   max-width: 62ch;
+  font-size: 0.94rem;
 }
 
 .overview-card {
@@ -322,19 +334,25 @@ code {
   grid-template-columns: minmax(0, 1.1fr) minmax(90px, 100px) minmax(110px, 140px) minmax(140px, auto);
   padding: 0 14px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+  text-align: left;
+}
+
+.admin-table-head span {
+  text-align: left;
 }
 
 .admin-table-row {
   grid-template-columns: minmax(0, 1.1fr) minmax(90px, 100px) minmax(110px, 140px) minmax(140px, auto);
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: var(--shadow-sm);
+  padding: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  text-align: left;
 }
 
 .banner-row {
@@ -443,7 +461,10 @@ code {
 }
 
 .banner-preview-head {
-  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
 }
 
 .banner-preview-canvas {
@@ -594,6 +615,7 @@ code {
 }
 
 @media (max-width: 760px) {
+
   .login-card,
   .admin-card {
     padding: 20px;
@@ -622,8 +644,8 @@ code {
     grid-template-columns: 1fr;
   }
 
-  .admin-table-row > .row-actions,
-  .banner-row > .row-actions {
+  .admin-table-row>.row-actions,
+  .banner-row>.row-actions {
     justify-content: flex-start;
   }
 
@@ -650,6 +672,10 @@ code {
   gap: 18px;
 }
 
+.admin-form {
+  max-width: 680px;
+}
+
 .admin-topbar {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
@@ -657,12 +683,13 @@ code {
 }
 
 .admin-eyebrow {
-  margin: 0 0 10px;
+  margin: 0 0 12px;
   color: #2e6340;
-  font-size: 0.74rem;
+  font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
+  display: block;
 }
 
 .admin-topbar h1,

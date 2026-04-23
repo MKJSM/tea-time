@@ -135,12 +135,12 @@ function backgroundThumbStyle(
   const source = banner.background_value || banner.media_url;
   return source
     ? {
-        backgroundColor: '#1d2b20',
-        backgroundImage: `url(${source})`,
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        backgroundSize: 'cover',
-      }
+      backgroundColor: '#1d2b20',
+      backgroundImage: `url(${source})`,
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      backgroundSize: 'cover',
+    }
     : { background: '#315f40' };
 }
 
@@ -453,11 +453,8 @@ export function BannersSection({
         </form>
 
         <aside className="admin-card banner-preview" aria-label="Live preview">
-          <div className="section-card-head banner-preview-head">
-            <div>
-              <p className="section-kicker">Live preview</p>
-              <h2>{bannerForm.title || 'Preview banner'}</h2>
-            </div>
+          <div className="banner-preview-head">
+            <p className="section-kicker">Live preview</p>
             <span className="type-chip">{bannerForm.background_type}</span>
           </div>
 
