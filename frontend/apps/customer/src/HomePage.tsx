@@ -9,12 +9,9 @@ import {
   getAddresses,
   getBanners,
   getCart,
-  getCategories,
   getCurrentCustomer,
-  getCustomerHealth,
   getOrder,
   getOrders,
-  getProducts,
   initiateRazorpayOrder,
   loginCustomer,
   logoutCustomer,
@@ -30,29 +27,18 @@ import type {
   AddressInput,
   Banner,
   CartResponse,
-  CategoryListItem,
   CheckoutResult,
   CustomerAuthResponse,
   CustomerRegisterInput,
-  HealthResponse,
   LoginInput,
   OrderDetail,
   OrderSummary,
-  ProductListItem,
 } from '@tea-time/types';
 
 import { AccountSection } from './components/AccountSection';
 import { CartSection } from './components/CartSection';
-import { CatalogSection } from './components/CatalogSection';
 import { HeroSlider } from './components/HeroSlider';
-import {
-  CategoriesSection,
-  WhySection,
-  HowWeBrew,
-  WhoWeServe,
-  AboutSection,
-  CTABand,
-} from './components/MarketingContent';
+import { CategoriesSection, HowWeBrew } from './components/MarketingContent';
 import { OrdersSection } from './components/OrdersSection';
 import { ensureRazorpayScript } from './lib/razorpay';
 
@@ -93,14 +79,14 @@ const emptyAddressForm: AddressInput = {
 const fallbackBanners: Banner[] = [
   {
     id: 'fallback-1',
-    title: 'Tea service designed for daily rhythm.',
+    title: 'Tea service designed for the workday rhythm.',
     subtitle: 'Landing banner',
     description:
-      'Full-width banner storytelling, category-led shopping, and a cleaner path from browse to order.',
+      'Freshly brewed workplace refreshment, simple ordering, and reliable delivery for teams.',
     primary_button_label: 'Explore menu',
-    primary_button_href: '#catalog',
-    secondary_button_label: 'View cart',
-    secondary_button_href: '#cart',
+    primary_button_href: '#categories',
+    secondary_button_label: 'Contact us',
+    secondary_button_href: '#contact',
     media_url: null,
     media_kind: 'image',
     background_type: 'gradient',
@@ -111,13 +97,6 @@ const fallbackBanners: Banner[] = [
     is_active: true,
   },
 ];
-
-const customerFlowAnchors = [
-  { id: 'catalog', label: 'Browse menu' },
-  { id: 'account', label: 'Sign in or register' },
-  { id: 'cart', label: 'Review cart' },
-  { id: 'orders', label: 'Track orders' },
-] as const;
 
 function normalizeAddressForm(address?: Address): AddressInput {
   if (!address) return emptyAddressForm;
@@ -152,13 +131,7 @@ export function HomePage() {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   };
 
-  const [health, setHealth] = useState<HealthResponse | null>(null);
-  const [_banners, setBanners] = useState<Banner[]>(fallbackBanners);
-  const [categories, setCategories] = useState<CategoryListItem[]>([]);
-  const [products, setProducts] = useState<ProductListItem[]>([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
-  const [catalogState, setCatalogState] = useState<AsyncState>('loading');
-  const [catalogMessage, setCatalogMessage] = useState<string>('');
+  const [banners, setBanners] = useState<Banner[]>(fallbackBanners);
 
   const [session, setSession] = useState<CustomerAuthResponse | null>(null);
   const [authState, setAuthState] = useState<AsyncState>('idle');
@@ -187,21 +160,6 @@ export function HomePage() {
   const [busyProductId, setBusyProductId] = useState<string | null>(null);
   const [activeSlide, setActiveSlide] = useState(0);
 
-  const orderFulfilled = selectedOrder?.payment_status === 'paid';
-  const checkoutReady = Boolean(
-    session && addresses.find((a) => a.is_default) && cart?.items.length,
-  );
-
-  // Filter by category_ids or fall back to name match
-  const filteredProducts =
-    selectedCategoryId === 'all'
-      ? products
-      : products.filter(
-          (p) =>
-            p.category_ids.includes(selectedCategoryId) ||
-            p.categories.some((c) => c.toLowerCase() === selectedCategoryId.toLowerCase()),
-        );
-
   useEffect(() => {
     void loadPublicData();
     void restoreSession();
@@ -209,11 +167,14 @@ export function HomePage() {
 
   // Auto-advance hero slider
   useEffect(() => {
+    if (banners.length < 2) {
+      return undefined;
+    }
     const timer = window.setInterval(() => {
-      setActiveSlide((c) => (c + 1) % 3);
+      setActiveSlide((c) => (c + 1) % banners.length);
     }, 4200);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [banners.length]);
 
   // Intersection observer for fade-up animations
   useEffect(() => {
@@ -239,24 +200,13 @@ export function HomePage() {
     };
   }, []);
 
-  async function loadPublicData(categoryId?: string) {
-    setCatalogState('loading');
-    setCatalogMessage('');
+  async function loadPublicData() {
     try {
-      const [healthRes, bannerRes, catRes, prodRes] = await Promise.all([
-        getCustomerHealth(),
-        getBanners(),
-        getCategories(),
-        getProducts('customer', categoryId),
-      ]);
-      setHealth(healthRes);
+      const bannerRes = await getBanners();
       setBanners(bannerRes.items.length ? bannerRes.items : fallbackBanners);
-      setCategories(catRes.items);
-      setProducts(prodRes.items);
-      setCatalogState('ready');
     } catch (error) {
-      setCatalogState('error');
-      setCatalogMessage(error instanceof Error ? error.message : 'Failed to load landing page');
+      setBanners(fallbackBanners);
+      console.error(error);
     }
   }
 
@@ -288,19 +238,6 @@ export function HomePage() {
       await loadPrivateData();
     } catch {
       setSession(null);
-    }
-  }
-
-  async function handleCategorySelect(categoryId: string) {
-    setSelectedCategoryId(categoryId);
-    try {
-      const response = await getProducts(
-        'customer',
-        categoryId === 'all' ? undefined : categoryId,
-      );
-      setProducts(response.items);
-    } catch (error) {
-      setCatalogMessage(error instanceof Error ? error.message : 'Failed to filter products');
     }
   }
 
@@ -576,12 +513,9 @@ export function HomePage() {
           </a>
           <nav className="site-nav">
             <a href="#home">Home</a>
-            <a href="#about">About</a>
             <a href="#categories">Menu</a>
-            <a href="#shop">Shop</a>
+            <a href="#ritual">Process</a>
             <a href="#contact">Contact</a>
-            <a href="#events">Events</a>
-            <a href="#blog">Blog</a>
           </nav>
           <div className="header-actions">
             <button
@@ -592,37 +526,20 @@ export function HomePage() {
             >
               {theme === 'light' ? '🌙' : '☀️'}
             </button>
-            <a className="solid-button btn-cta-pulse" href="#menu">
+            <a className="solid-button btn-cta-pulse" href="#categories">
               Subscribe
             </a>
           </div>
         </div>
       </header>
 
-      <HeroSlider activeSlide={activeSlide} onSlideChange={setActiveSlide} />
+      <HeroSlider banners={banners} activeSlide={activeSlide} onSlideChange={setActiveSlide} />
 
       <CategoriesSection />
-
-      <CatalogSection
-        categories={categories}
-        products={filteredProducts}
-        selectedCategoryId={selectedCategoryId}
-        catalogState={catalogState}
-        catalogMessage={catalogMessage}
-        busyProductId={busyProductId}
-        onCategorySelect={(id) => void handleCategorySelect(id)}
-        onAddToCart={(id) => void handleAddToCart(id)}
-      />
-
-      <WhySection />
       <HowWeBrew />
-      <WhoWeServe />
-      <AboutSection />
-      <CTABand />
-
 
       {/* Footer */}
-      <footer className="site-footer fade-up">
+      <footer className="site-footer fade-up" id="contact">
         <div className="container">
           {/* CTA Strip */}
           <div className="footer-cta-strip">
@@ -630,7 +547,7 @@ export function HomePage() {
               <h2 className="serif">Ready to Energize Your Workplace?</h2>
               <p>Start your subscription today. Free 3-day trial.</p>
             </div>
-            <a className="solid-button" href="#menu">
+            <a className="solid-button" href="#categories">
               Get Started Free →
             </a>
           </div>

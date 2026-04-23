@@ -1,188 +1,133 @@
+import type { CSSProperties } from 'react';
+
+import type { Banner } from '@tea-time/types';
+
 interface Props {
+  banners: Banner[];
   activeSlide: number;
   onSlideChange: (index: number) => void;
 }
 
-export function HeroSlider({ activeSlide, onSlideChange }: Props) {
+function slideBackgroundStyle(banner: Banner): CSSProperties {
+  if (banner.background_type === 'solid' || banner.background_type === 'gradient') {
+    return {
+      background:
+        banner.background_value ??
+        'linear-gradient(135deg, #375c36 0%, #7d8f49 42%, #283b24 100%)',
+    };
+  }
+
+  const source = banner.background_value || banner.media_url;
+  if (!source) {
+    return {
+      background: 'linear-gradient(135deg, #375c36 0%, #7d8f49 42%, #283b24 100%)',
+    };
+  }
+
+  return {
+    backgroundColor: '#1d2b20',
+    backgroundImage: `linear-gradient(180deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.28)), url(${source})`,
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    backgroundSize: 'cover',
+  };
+}
+
+export function HeroSlider({ banners, activeSlide, onSlideChange }: Props) {
+  const slides = banners.length ? banners : [];
+  const currentSlide = slides.length ? activeSlide % slides.length : 0;
+
   return (
     <section className="hero-section">
       <div className="hero-slider">
-        {/* Slide 1 — Tea delivery */}
-        <article
-          className={`hero-slide${activeSlide === 0 ? ' is-active' : ''}`}
-          aria-hidden={activeSlide !== 0}
-        >
-          <div
-            className="hero-slide-background"
-            style={{
-              background:
-                'linear-gradient(180deg,rgba(0,0,0,.10),rgba(0,0,0,.26)),linear-gradient(135deg,#3d5a36,#7e8f45 44%,#2e4626)',
-            }}
-          />
-          <div
-            className="hero-overlay"
-            style={{
-              background:
-                'linear-gradient(90deg,rgba(18,24,18,.62) 0%,rgba(18,24,18,.28) 38%,rgba(18,24,18,.08) 100%)',
-            }}
-          />
-          <div className="hero-slide-content container">
-            <div className="hero-copy">
-              <span className="eyebrow">Daily Workplace Refreshment</span>
-              <h1>Refreshment That Moves with Your Workday.</h1>
-              <p>
-                Daily delivery of hot &amp; cold beverages—tea, coffee, fresh juices—plus snacks,
-                served at your workplace morning and evening, through a hassle-free subscription.
-              </p>
-              <p>Because energized teams build better businesses.</p>
-              <div className="hero-actions-row">
-                <a className="solid-button" href="#account">
-                  Subscribe now
-                </a>
-                <a className="ghost-button" href="#categories">
-                  Explore menu
-                </a>
-              </div>
-              <div className="slide-badges">
-                <span className="slide-badge">Delivered in hygienic thermosteel flasks</span>
-                <span className="slide-badge">Freshly brewed using high-quality ingredients</span>
-                <span className="slide-badge">Crafted with love &amp; care</span>
-              </div>
-            </div>
-            <div className="hero-art">
-              <img src="/assets/hero_main.png" alt="Fresh workplace tea" className="hero-img" />
-              <div className="hero-card">
-                <h4>SIP. ENERGIZE. REPEAT.</h4>
-                <p>Reliable workplace refreshment, built around daily comfort and clean delivery.</p>
-              </div>
-            </div>
-          </div>
-        </article>
+        {slides.map((banner, index) => {
+          const isActive = currentSlide === index;
+          const textColor = banner.text_color ?? '#ffffff';
+          const hasMedia = Boolean(banner.media_url);
 
-        {/* Slide 2 — App */}
-        <article
-          className={`hero-slide${activeSlide === 1 ? ' is-active' : ''}`}
-          aria-hidden={activeSlide !== 1}
-        >
-          <div
-            className="hero-slide-background"
-            style={{
-              background:
-                'radial-gradient(circle at 22% 14%,rgba(255,255,255,.14),transparent 18%),linear-gradient(135deg,#efe7df 0%,#dedfd8 36%,#cfdbc8 100%)',
-            }}
-          />
-          <div
-            className="hero-overlay"
-            style={{
-              background:
-                'linear-gradient(90deg,rgba(18,24,18,.38) 0%,rgba(18,24,18,.12) 42%,rgba(18,24,18,.02) 100%)',
-            }}
-          />
-          <div className="hero-slide-content container">
-            <div className="hero-copy">
-              <span className="eyebrow">Smart Ordering App</span>
-              <h1>One App. Endless Refreshment.</h1>
-              <p>
-                With the MOBILITEA app, ordering your daily beverages and snacks is just a tap
-                away—simple, reliable, and made for busy workdays.
-              </p>
-              <div className="hero-actions-row">
-                <a className="solid-button" href="#account">
-                  Download the app
-                </a>
-                <a className="ghost-button" href="#why">
-                  View features
-                </a>
+          return (
+            <article
+              key={banner.id}
+              className={`hero-slide${isActive ? ' is-active' : ''}`}
+              aria-hidden={!isActive}
+            >
+              <div className="hero-slide-background" style={slideBackgroundStyle(banner)} />
+              <div
+                className="hero-overlay"
+                style={{
+                  background:
+                    banner.overlay_color ??
+                    'linear-gradient(90deg,rgba(18,24,18,.62) 0%,rgba(18,24,18,.28) 38%,rgba(18,24,18,.08) 100%)',
+                }}
+              />
+              <div className="hero-slide-content container">
+                <div className="hero-copy" style={{ '--hero-text': textColor } as CSSProperties}>
+                  {banner.subtitle ? <span className="eyebrow">{banner.subtitle}</span> : null}
+                  <h1>{banner.title}</h1>
+                  {banner.description ? <p>{banner.description}</p> : null}
+                  <div className="hero-actions-row">
+                    {banner.primary_button_label && banner.primary_button_href ? (
+                      <a className="solid-button" href={banner.primary_button_href}>
+                        {banner.primary_button_label}
+                      </a>
+                    ) : null}
+                    {banner.secondary_button_label && banner.secondary_button_href ? (
+                      <a className="ghost-button" href={banner.secondary_button_href}>
+                        {banner.secondary_button_label}
+                      </a>
+                    ) : null}
+                  </div>
+                  <div className="slide-badges">
+                    <span className="slide-badge">Freshly brewed for the workday</span>
+                    <span className="slide-badge">Simple ordering, reliable delivery</span>
+                    {hasMedia ? <span className="slide-badge">Banner media from admin</span> : null}
+                  </div>
+                </div>
+                <div className="hero-art">
+                  {banner.media_kind === 'video' && banner.media_url ? (
+                    <video
+                      className="hero-img"
+                      src={banner.media_url}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                    />
+                  ) : banner.media_url ? (
+                    <img src={banner.media_url} alt={banner.title} className="hero-img" />
+                  ) : (
+                    <div className="hero-card hero-card--fallback">
+                      <h4>Admin-managed banner</h4>
+                      <p>{banner.title}</p>
+                    </div>
+                  )}
+                  {banner.media_url ? null : (
+                    <div className="hero-card">
+                      <h4>{banner.subtitle ?? 'Landing banner'}</h4>
+                      <p>{banner.description ?? 'Managed from the admin banner pipeline.'}</p>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="slide-badges">
-                <span className="slide-badge">Customized Flask Ordering</span>
-                <span className="slide-badge">Real-Time Order Tracking</span>
-                <span className="slide-badge">Go Paperless. Go Green.</span>
-              </div>
-            </div>
-            <div className="hero-art">
-              <img src="/assets/hero_app.png" alt="Mobilitea App" className="hero-img" />
-            </div>
-          </div>
-        </article>
+            </article>
+          );
+        })}
 
-        {/* Slide 3 — Events */}
-        <article
-          className={`hero-slide${activeSlide === 2 ? ' is-active' : ''}`}
-          aria-hidden={activeSlide !== 2}
-        >
-          <div
-            className="hero-slide-background"
-            style={{
-              background:
-                'radial-gradient(circle at 20% 20%,rgba(255,255,255,.20),transparent 16%),linear-gradient(135deg,#6f295e 0%,#b055ac 40%,#dd8dbd 100%)',
-            }}
-          />
-          <div
-            className="hero-overlay"
-            style={{
-              background:
-                'linear-gradient(90deg,rgba(17,24,18,.32) 0%,rgba(17,24,18,.08) 42%,rgba(17,24,18,.04) 100%)',
-            }}
-          />
-          <div className="hero-slide-content container">
-            <div className="hero-copy">
-              <span className="eyebrow">Bulk &amp; Event Orders</span>
-              <h1>Seamless Refreshment for Every Occasion.</h1>
-              <p>
-                MOBILITEA undertakes bulk, corporate, and event orders, delivering tea, coffee,
-                beverages, and snacks with consistency and care—no matter the scale.
-              </p>
-              <div className="hero-actions-row">
-                <a className="solid-button" href="#account">
-                  Get your quote
-                </a>
-                <a className="ghost-button" href="#corporate">
-                  Plan an event
-                </a>
-              </div>
-            </div>
-            <div className="hero-art">
-              <img src="/assets/hero_events.png" alt="Corporate Events" className="hero-img" />
-              <div className="event-panel">
-                <h3>Perfect Tea for Your Special Events</h3>
-                <p>Bulk, corporate, and event refreshment with premium service.</p>
-              </div>
-            </div>
+        {slides.length > 1 ? (
+          <div className="slide-indicators container">
+            {slides.map((banner, index) => (
+              <button
+                key={banner.id}
+                type="button"
+                className={`hero-indicator${currentSlide === index ? ' is-active' : ''}`}
+                onClick={() => onSlideChange(index)}
+                aria-label={`Slide ${index + 1}`}
+              />
+            ))}
           </div>
-        </article>
-
-        {/* Slide indicators */}
-        <div className="slide-indicators container">
-          {[0, 1, 2].map((i) => (
-            <button
-              key={i}
-              type="button"
-              className={`hero-indicator${activeSlide === i ? ' is-active' : ''}`}
-              onClick={() => onSlideChange(i)}
-              aria-label={`Slide ${i + 1}`}
-            />
-          ))}
-        </div>
+        ) : null}
       </div>
 
-      {/* Ticker */}
-      <div className="ticker-wrap">
-        <div className="ticker">
-          <span className="ticker-item">
-            ☕ <b>Tech in every step</b> · taste in every sip
-          </span>
-          <span className="ticker-item">📍 Real-time delivery tracking</span>
-          <span className="ticker-item">🧊 Temperature lock in insulated flasks</span>
-          <span className="ticker-item">🏢 Built for offices, events, and institutions</span>
-          <span className="ticker-item">
-            ☕ <b>Tech in every step</b> · taste in every sip
-          </span>
-          <span className="ticker-item">📍 Real-time delivery tracking</span>
-          <span className="ticker-item">🧊 Temperature lock in insulated flasks</span>
-          <span className="ticker-item">🏢 Built for offices, events, and institutions</span>
-        </div>
-      </div>
     </section>
   );
 }

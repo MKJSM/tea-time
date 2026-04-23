@@ -198,7 +198,7 @@ h1, h2, h3, h4, .serif {
   min-height: 76px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 20px;
 }
 .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; }
@@ -212,7 +212,7 @@ h1, h2, h3, h4, .serif {
   font-weight: 700;
 }
 .logo {
-  height: 48px;
+  height: 64px;
   width: auto;
   object-fit: contain;
   transition: transform 0.2s ease;
@@ -220,7 +220,16 @@ h1, h2, h3, h4, .serif {
 .brand:hover .logo {
   transform: scale(1.05);
 }
-.site-nav { display: flex; gap: 26px; color: var(--muted); font-size: 14px; font-weight: 700; }
+.site-nav {
+  display: flex;
+  gap: 26px;
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
 .header-actions { display: flex; align-items: center; gap: 16px; }
 
 .theme-toggle {
@@ -329,7 +338,7 @@ h1, h2, h3, h4, .serif {
 
 .hero-slider {
   position: relative;
-  min-height: 690px;
+  min-height: 640px;
   overflow: hidden;
 }
 
@@ -373,28 +382,32 @@ h1, h2, h3, h4, .serif {
 .hero-slide-content {
   position: relative;
   z-index: 2;
-  min-height: 690px;
+  min-height: 640px;
   display: grid;
   grid-template-columns: 1.06fr .94fr;
   align-items: center;
-  gap: 28px;
-  padding: 54px 0;
+  gap: 30px;
+  padding: 68px 0 58px;
 }
 
 /* Hero copy */
-.hero-copy { max-width: 570px; color: white; }
+.hero-copy {
+  --hero-text: #ffffff;
+  max-width: 570px;
+  color: var(--hero-text);
+}
 .hero-copy .eyebrow {
   background: rgba(255,255,255,.12);
   border-color: rgba(255,255,255,.16);
-  color: #f5dfb2;
+  color: var(--hero-text);
 }
 .hero-copy h1 {
   margin: 16px 0;
-  color: white;
-  font-size: clamp(52px, 6vw, 86px);
+  color: var(--hero-text);
+  font-size: clamp(48px, 5.6vw, 80px);
   line-height: .92;
 }
-.hero-copy p { margin: 0; color: rgba(255,255,255,.92); font-size: 18px; line-height: 1.75; }
+.hero-copy p { margin: 0; color: var(--hero-text); opacity: .92; font-size: 18px; line-height: 1.75; }
 .hero-copy p + p { margin-top: 14px; }
 
 .hero-actions-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; }
@@ -408,12 +421,17 @@ h1, h2, h3, h4, .serif {
   border: 1px solid rgba(255,255,255,.16);
   font-size: 13px;
   font-weight: 700;
-  color: white;
+  color: var(--hero-text);
   backdrop-filter: blur(10px);
 }
 
 /* ─── Hero Art — Slide 1 (Tea) ───────────────────────────── */
 .hero-art { position: relative; min-height: 500px; }
+.hero-card--fallback {
+  display: grid;
+  align-content: end;
+  min-height: 240px;
+}
 
 .tea-field {
   position: absolute; inset: 0;
@@ -451,8 +469,15 @@ h1, h2, h3, h4, .serif {
 
 /* Slide indicators */
 .slide-indicators {
-  position: absolute; left: 0; right: 0; bottom: 28px; z-index: 3; display: flex; gap: 10px;
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  z-index: 3;
+  display: flex;
+  gap: 10px;
   pointer-events: none;
+  width: fit-content;
+  transform: translateX(-50%);
 }
 .hero-indicator {
   pointer-events: auto;
@@ -534,7 +559,7 @@ h1, h2, h3, h4, .serif {
 
 .footer-cta-strip p {
   font-size: 14px;
-  color: rgba(240, 236, 228, 0.6);
+  color: var(--muted);
   margin: 0;
 }
 
@@ -568,7 +593,7 @@ h1, h2, h3, h4, .serif {
   line-height: 1.75;
   max-width: 240px;
   margin-bottom: 16px;
-  opacity: 0.8;
+  opacity: 1;
 }
 
 .footer-col h3, 
@@ -618,7 +643,7 @@ h1, h2, h3, h4, .serif {
 .bottom-links span {
   font-size: 12px;
   color: var(--muted);
-  opacity: 0.7;
+  opacity: 1;
 }
 
 .bottom-links {
@@ -706,14 +731,24 @@ h1, h2, h3, h4, .serif {
 /* ─── Category Grid ──────────────────────────────────────── */
 .category-chips { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
 
-.category-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 18px; }
+.category-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 18px;
+}
 .card {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
 }
-.category-card { overflow: hidden; transition: transform .25s ease, box-shadow .25s ease; }
+.category-card {
+  overflow: hidden;
+  transition: transform .25s ease, box-shadow .25s ease;
+  flex: 1 1 240px;
+  max-width: 272px;
+}
 .category-card:hover { transform: translateY(-6px); }
 .category-media {
   position: relative; height: 228px; overflow: hidden;
@@ -808,8 +843,12 @@ h1, h2, h3, h4, .serif {
   width: 42px; height: 42px;
   border-radius: 999px;
   display: grid; place-items: center;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
-  color: white; font-weight: 800; margin-bottom: 14px;
+  background: rgba(47,93,58,.12);
+  border: 1px solid rgba(47,93,58,.16);
+  color: var(--primary);
+  font-weight: 800;
+  margin-bottom: 14px;
+  font-size: 18px;
 }
 
 /* ─── Serve / Who We Serve ───────────────────────────────── */
@@ -1005,8 +1044,8 @@ input {
   .site-nav { display: none; }
   .section { padding: 56px 0; }
   .hero-slider, .hero-slide-content { min-height: auto; }
-  .hero-slide-content { padding: 28px 22px 68px; }
-  .hero-copy h1 { font-size: 48px; }
+  .hero-slide-content { padding: 28px 22px 76px; }
+  .hero-copy h1 { font-size: 44px; }
   .hero-copy p { font-size: 16px; }
   .feature-grid, .category-grid, .steps-grid, .serve-grid, .footer-grid { grid-template-columns: 1fr; }
   .phone-mock { position: relative; right: auto; top: auto; margin: 18px auto 0; }
@@ -1014,7 +1053,7 @@ input {
   .v2-cup { width: 198px; height: 145px; right: 32px; }
   .v2-steam { right: 108px; bottom: 170px; }
   .hero-card { width: calc(100% - 32px); left: 16px; }
-  .slide-indicators { left: 22px; }
+  .slide-indicators { left: 50%; bottom: 18px; transform: translateX(-50%); }
   .form-grid.two-up { grid-template-columns: 1fr; }
   .span-2 { grid-column: auto; }
   .flow-rail { grid-template-columns: 1fr 1fr; }
