@@ -8,3 +8,4 @@
 backend/server/public
 sample
 backend/server/public/*
+.agent

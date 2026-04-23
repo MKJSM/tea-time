@@ -9,6 +9,7 @@ import {
   getAddresses,
   getBanners,
   getCart,
+  getCategories,
   getCurrentCustomer,
   getOrder,
   getOrders,
@@ -30,6 +31,7 @@ import type {
   CheckoutResult,
   CustomerAuthResponse,
   CustomerRegisterInput,
+  CategoryListItem,
   LoginInput,
   OrderDetail,
   OrderSummary,
@@ -79,14 +81,14 @@ const emptyAddressForm: AddressInput = {
 const fallbackBanners: Banner[] = [
   {
     id: 'fallback-1',
-    title: 'Tea service designed for the workday rhythm.',
-    subtitle: 'Landing banner',
+    title: 'Refreshment That Moves with Your Workday.',
+    subtitle: 'Daily Workplace Refreshment',
     description:
-      'Freshly brewed workplace refreshment, simple ordering, and reliable delivery for teams.',
-    primary_button_label: 'Explore menu',
-    primary_button_href: '#categories',
-    secondary_button_label: 'Contact us',
-    secondary_button_href: '#contact',
+      'Daily delivery of hot & cold beverages - tea, coffee, fresh juices - plus snacks, served at your workplace morning and evening, through a hassle-free subscription. MOBILITEA is on a mission to create a complete refreshment solution ecosystem - reliable, refreshing, and made for workspaces.',
+    primary_button_label: 'SUBSCRIBE NOW',
+    primary_button_href: '#account',
+    secondary_button_label: null,
+    secondary_button_href: null,
     media_url: null,
     media_kind: 'image',
     background_type: 'gradient',
@@ -132,6 +134,9 @@ export function HomePage() {
   };
 
   const [banners, setBanners] = useState<Banner[]>(fallbackBanners);
+  const [categories, setCategories] = useState<CategoryListItem[]>([]);
+  const [categoriesState, setCategoriesState] = useState<AsyncState>('loading');
+  const [categoriesMessage, setCategoriesMessage] = useState('');
 
   const [session, setSession] = useState<CustomerAuthResponse | null>(null);
   const [authState, setAuthState] = useState<AsyncState>('idle');
@@ -194,19 +199,37 @@ export function HomePage() {
       window.clearTimeout(id);
       (
         (window as unknown as Record<string, unknown>)['__fadeObserver'] as
-          | IntersectionObserver
-          | undefined
+        | IntersectionObserver
+        | undefined
       )?.disconnect();
     };
   }, []);
 
   async function loadPublicData() {
-    try {
-      const bannerRes = await getBanners();
-      setBanners(bannerRes.items.length ? bannerRes.items : fallbackBanners);
-    } catch (error) {
+    setCategoriesState('loading');
+    setCategoriesMessage('');
+
+    const [bannerResult, categoryResult] = await Promise.allSettled([getBanners(), getCategories()]);
+
+    if (bannerResult.status === 'fulfilled') {
+      setBanners(bannerResult.value.items.length ? bannerResult.value.items : fallbackBanners);
+    } else {
       setBanners(fallbackBanners);
-      console.error(error);
+      console.error(bannerResult.reason);
+    }
+
+    if (categoryResult.status === 'fulfilled') {
+      setCategories(categoryResult.value.items);
+      setCategoriesState('ready');
+    } else {
+      setCategories([]);
+      setCategoriesState('error');
+      setCategoriesMessage(
+        categoryResult.reason instanceof Error
+          ? categoryResult.reason.message
+          : 'Failed to load categories',
+      );
+      console.error(categoryResult.reason);
     }
   }
 
@@ -489,10 +512,10 @@ export function HomePage() {
         },
         prefill: session
           ? {
-              name: `${session.user.first_name} ${session.user.last_name}`,
-              email: session.user.email,
-              contact: session.user.phone ?? undefined,
-            }
+            name: `${session.user.first_name} ${session.user.last_name}`,
+            email: session.user.email,
+            contact: session.user.phone ?? undefined,
+          }
           : undefined,
         theme: { color: '#315f40' },
       });
@@ -535,7 +558,11 @@ export function HomePage() {
 
       <HeroSlider banners={banners} activeSlide={activeSlide} onSlideChange={setActiveSlide} />
 
-      <CategoriesSection />
+      <CategoriesSection
+        categories={categories}
+        state={categoriesState}
+        message={categoriesMessage}
+      />
       <HowWeBrew />
 
       {/* Footer */}
@@ -558,7 +585,6 @@ export function HomePage() {
               <p className="brand-desc">
                 India's complete workplace refreshment ecosystem. Freshly brewed. Always on time.
               </p>
-              <div className="tagline-text">SIP. ENERGIZE. REPEAT.</div>
             </article>
 
             <article className="footer-col">

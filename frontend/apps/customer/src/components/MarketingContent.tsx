@@ -1,5 +1,44 @@
+import type { CategoryListItem } from '@tea-time/types';
+
+type AsyncState = 'idle' | 'loading' | 'ready' | 'error';
+
+interface CategoriesSectionProps {
+  categories: CategoryListItem[];
+  state: AsyncState;
+  message: string;
+}
+
+const fallbackCategoryVisuals = [
+  { cls: '', art: <div className="v2-kettle" /> },
+  { cls: 'cooler', art: <div className="v2-glass" /> },
+  {
+    cls: 'milkshake',
+    art: <div className="v2-glass" style={{ left: 84 }} />,
+  },
+  {
+    cls: 'juice',
+    art: <div className="v2-glass juice" style={{ left: 84 }} />,
+  },
+  {
+    cls: 'snack',
+    art: (
+      <div className="v2-biscuit-stack">
+        <div className="v2-cookie one" />
+        <div className="v2-cookie two" />
+        <div className="v2-cookie three" />
+      </div>
+    ),
+  },
+  { cls: 'sandwich', art: <div className="v2-cake-loaf sandwich" /> },
+  { cls: 'dessert', art: <div className="v2-cake-loaf" /> },
+] as const;
+
+function getCategoryCountLabel(productCount: number): string {
+  return `${productCount} product${productCount === 1 ? '' : 's'}`;
+}
+
 /** ── Categories ── */
-export function CategoriesSection() {
+export function CategoriesSection({ categories, state, message }: CategoriesSectionProps) {
   return (
     <section className="section fade-up" id="categories">
       <div className="container">
@@ -13,43 +52,42 @@ export function CategoriesSection() {
             delivered fresh every day.
           </p>
         </div>
-        <div className="category-grid">
-          {[
-            { label: 'Hot Beverages', cls: '', art: <div className="v2-kettle" /> },
-            { label: 'Coolers', cls: 'cooler', art: <div className="v2-glass" /> },
-            {
-              label: 'Milkshakes',
-              cls: 'milkshake',
-              art: <div className="v2-glass" style={{ left: 84 }} />,
-            },
-            {
-              label: 'Fresh Juices',
-              cls: 'juice',
-              art: <div className="v2-glass juice" style={{ left: 84 }} />,
-            },
-            {
-              label: 'Snacks',
-              cls: 'snack',
-              art: (
-                <div className="v2-biscuit-stack">
-                  <div className="v2-cookie one" />
-                  <div className="v2-cookie two" />
-                  <div className="v2-cookie three" />
-                </div>
-              ),
-            },
-            { label: 'Sandwiches', cls: 'sandwich', art: <div className="v2-cake-loaf sandwich" /> },
-            { label: 'Desserts', cls: 'dessert', art: <div className="v2-cake-loaf" /> },
-          ].map(({ label, cls, art }) => (
-            <article key={label} className="card category-card">
-              <div className={`category-media${cls ? ' ' + cls : ''}`}>{art}</div>
-              <div className="category-body">
-                <h3>{label}</h3>
-                <p>Freshly prepared and ready for repeat ordering.</p>
-              </div>
-            </article>
-          ))}
-        </div>
+        {state === 'loading' ? <p className="helper-copy">Loading categories…</p> : null}
+        {state === 'error' && message ? <p className="form-message error">{message}</p> : null}
+        {state === 'ready' && !categories.length ? (
+          <p className="helper-copy">No categories are available yet.</p>
+        ) : null}
+        {categories.length ? (
+          <div className="category-grid">
+            {categories.map((category, index) => {
+              const fallback = fallbackCategoryVisuals[index % fallbackCategoryVisuals.length];
+              const image = category.images[0] ?? null;
+
+              return (
+                <article key={category.id} className="card category-card">
+                  <div
+                    className={`category-media${fallback.cls ? ' ' + fallback.cls : ''}${
+                      image ? ' has-image' : ''
+                    }`}
+                  >
+                    {image ? (
+                      <img className="category-image" src={image} alt={category.name} />
+                    ) : (
+                      fallback.art
+                    )}
+                  </div>
+                  <div className="category-body">
+                    <div className="category-title-row">
+                      <h3>{category.name}</h3>
+                      <span className="category-count">{getCategoryCountLabel(category.product_count)}</span>
+                    </div>
+                    <p>Freshly prepared and ready for repeat ordering.</p>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
     </section>
   );
