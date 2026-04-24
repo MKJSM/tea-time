@@ -55,6 +55,8 @@ import {
 } from './components/CatalogSection';
 import { OrdersSection, PaymentsSection } from './components/OrdersSection';
 import { OverviewSection } from './components/OverviewSection';
+import { AdminModal } from './components/Modal';
+import { ThemeToggle } from './components/ThemeToggle';
 import { imageFieldToString, parseImageField } from './lib/format';
 
 type DashboardSectionKey =
@@ -103,6 +105,8 @@ const emptyBanner: BannerInput = {
   secondary_button_href: '#customers',
   media_url: '',
   media_kind: 'image',
+  content_mode: 'structured',
+  content_html: '',
   background_type: 'image',
   background_value: '/assets/home-Dr3wWsX4.webp',
   overlay_color: 'rgba(17, 24, 18, 0.24)',
@@ -184,6 +188,7 @@ export function AdminApp() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [message, setMessage] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [categories, setCategories] = useState<CategoryListItem[]>([]);
   const [products, setProducts] = useState<ProductListItem[]>([]);
@@ -201,6 +206,8 @@ export function AdminApp() {
   const [bannerForm, setBannerForm] = useState<BannerInput>(emptyBanner);
   const [bannerEditingId, setBannerEditingId] = useState('');
   const [userForm, setUserForm] = useState<CreateCustomerInput>(emptyUser);
+
+  const [activeModal, setActiveModal] = useState<'category' | 'product' | 'banner' | 'user' | 'order' | 'payment' | null>(null);
 
   const resetDashboard = () =>
     createResetState({
@@ -351,10 +358,15 @@ export function AdminApp() {
 
   useEffect(() => {
     if (!session || typeof window === 'undefined') return;
-    if (!window.location.hash || sectionFromHash(window.location.hash) === 'overview' && window.location.hash !== `#${sectionId('overview')}`) {
+    if (!window.location.hash || (sectionFromHash(window.location.hash) === 'overview' && window.location.hash !== `#${sectionId('overview')}`)) {
       window.location.hash = `#${sectionId('overview')}`;
     }
   }, [session]);
+
+  // Close modals on navigation
+  useEffect(() => {
+    setActiveModal(null);
+  }, [activeSection]);
 
   async function handleLoginSuccess(nextSession: AdminAuthResponse) {
     setSession(nextSession);
@@ -432,6 +444,7 @@ export function AdminApp() {
         setMessage('Category created.');
       }
       setCategoryForm(emptyCategory);
+      setActiveModal(null);
       await loadDashboardData();
     } catch (error) {
       const errorMessage = getErrorMessage(error);
@@ -461,6 +474,7 @@ export function AdminApp() {
         setMessage('Product created.');
       }
       setProductForm(emptyProduct);
+      setActiveModal(null);
       await loadDashboardData();
     } catch (error) {
       const errorMessage = getErrorMessage(error);
@@ -484,6 +498,7 @@ export function AdminApp() {
       }
       setBannerEditingId('');
       setBannerForm(emptyBanner);
+      setActiveModal(null);
       await loadDashboardData();
     } catch (error) {
       const errorMessage = getErrorMessage(error);
@@ -501,6 +516,7 @@ export function AdminApp() {
       await createUser({ ...userForm, phone: userForm.phone || null });
       setUserForm(emptyUser);
       setMessage('Customer account created.');
+      setActiveModal(null);
       await loadDashboardData();
     } catch (error) {
       const errorMessage = getErrorMessage(error);
@@ -515,6 +531,7 @@ export function AdminApp() {
   async function openUser(id: string) {
     try {
       setSelectedUser(await getUser(id));
+      setActiveModal('user');
     } catch (error) {
       const errorMessage = getErrorMessage(error);
       if (isSessionError(errorMessage)) {
@@ -528,6 +545,7 @@ export function AdminApp() {
   async function openOrder(id: string) {
     try {
       setSelectedOrder(await getOrder(id, 'admin'));
+      setActiveModal('order');
     } catch (error) {
       const errorMessage = getErrorMessage(error);
       if (isSessionError(errorMessage)) {
@@ -559,6 +577,7 @@ export function AdminApp() {
   async function openPayment(id: string) {
     try {
       setSelectedPayment(await getPayment(id));
+      setActiveModal('payment');
     } catch (error) {
       const errorMessage = getErrorMessage(error);
       if (isSessionError(errorMessage)) {
@@ -575,6 +594,7 @@ export function AdminApp() {
       name: category.name,
       imagesText: imageFieldToString(category.images),
     });
+    setActiveModal('category');
   }
 
   function editProduct(product: ProductListItem) {
@@ -586,6 +606,7 @@ export function AdminApp() {
       description: product.description ?? '',
       categoryIds: product.category_ids,
     });
+    setActiveModal('product');
   }
 
   function editBanner(banner: Banner) {
@@ -600,10 +621,12 @@ export function AdminApp() {
       secondary_button_href: banner.secondary_button_href,
       media_url: banner.media_url,
       media_kind: banner.media_kind === 'video' ? 'video' : 'image',
+      content_mode: banner.content_mode === 'html' ? 'html' : 'structured',
+      content_html: banner.content_html ?? '',
       background_type:
         banner.background_type === 'image' ||
-        banner.background_type === 'video' ||
-        banner.background_type === 'solid'
+          banner.background_type === 'video' ||
+          banner.background_type === 'solid'
           ? banner.background_type
           : 'gradient',
       background_value: banner.background_value,
@@ -612,6 +635,7 @@ export function AdminApp() {
       sort_order: banner.sort_order,
       is_active: banner.is_active,
     });
+    setActiveModal('banner');
   }
 
   async function removeCategory(id: string) {
@@ -669,14 +693,12 @@ export function AdminApp() {
         return (
           <CategoriesSection
             categories={categories}
-            categoryForm={categoryForm}
-            onCategoryFormChange={(patch) =>
-              setCategoryForm((current: CategoryFormState) => ({ ...current, ...patch }))
-            }
-            onSubmitCategory={(event) => void submitCategory(event)}
             onEditCategory={editCategory}
             onDeleteCategory={(id) => void removeCategory(id)}
-            onFileAppend={(event) => void handleFileAppend(event, 'category')}
+            onAddCategory={() => {
+              setCategoryForm(emptyCategory);
+              setActiveModal('category');
+            }}
           />
         );
       case 'products':
@@ -684,40 +706,36 @@ export function AdminApp() {
           <ProductsSection
             categories={categories}
             products={products}
-            productForm={productForm}
-            onProductFormChange={(patch) =>
-              setProductForm((current: ProductFormState) => ({ ...current, ...patch }))
-            }
-            onSubmitProduct={(event) => void submitProduct(event)}
             onEditProduct={editProduct}
             onDeleteProduct={(id) => void removeProduct(id)}
-            onFileAppend={(event) => void handleFileAppend(event, 'product')}
+            onAddProduct={() => {
+              setProductForm(emptyProduct);
+              setActiveModal('product');
+            }}
           />
         );
       case 'banners':
         return (
           <BannersSection
             banners={banners}
-            bannerForm={bannerForm}
-            bannerEditingId={bannerEditingId}
-            onBannerFormChange={(patch) =>
-              setBannerForm((current: BannerInput) => ({ ...current, ...patch }))
-            }
-            onSubmitBanner={(event) => void submitBanner(event)}
             onEditBanner={editBanner}
             onDeleteBanner={(id) => void removeBanner(id)}
-            onFileAppend={(event, target) => void handleFileAppend(event, target)}
+            onAddBanner={() => {
+              setBannerEditingId('');
+              setBannerForm(emptyBanner);
+              setActiveModal('banner');
+            }}
           />
         );
       case 'customers':
         return (
           <CustomersSection
             users={users}
-            userForm={userForm}
-            selectedUser={selectedUser}
-            onUserFormChange={(patch) => setUserForm((current) => ({ ...current, ...patch }))}
-            onSubmitUser={(event) => void submitUser(event)}
             onOpenUser={(id) => void openUser(id)}
+            onAddUser={() => {
+              setUserForm(emptyUser);
+              setActiveModal('user');
+            }}
           />
         );
       case 'orders':
@@ -744,8 +762,21 @@ export function AdminApp() {
   }
 
   return (
-    <div className="admin-layout">
+    <div className={`admin-layout ${sidebarOpen ? 'sidebar-open' : ''}`}>
+      <button
+        type="button"
+        className="admin-sidebar-backdrop"
+        aria-label="Close navigation"
+        onClick={() => setSidebarOpen(false)}
+      />
       <aside className="admin-sidebar">
+        <button
+          className="admin-sidebar-close"
+          onClick={() => setSidebarOpen(false)}
+          aria-label="Close sidebar"
+        >
+          ✕
+        </button>
         <div className="admin-sidebar-brand">
           <p className="admin-eyebrow">Tea Time Admin</p>
           <h1>Dashboard</h1>
@@ -758,6 +789,7 @@ export function AdminApp() {
               key={item.id}
               className={`admin-sidebar-link${activeSection === item.key ? ' is-active' : ''}`}
               href={`#${item.id}`}
+              onClick={() => setSidebarOpen(false)}
             >
               {item.label}
             </a>
@@ -765,9 +797,12 @@ export function AdminApp() {
         </nav>
 
         <div className="admin-sidebar-footer">
-          <span className="admin-badge">
-            {health?.database ? 'Database ready' : 'Checking backend'}
-          </span>
+          <div className="sidebar-footer-row">
+            <span className="admin-badge">
+              {health?.database ? 'Database ready' : 'Checking backend'}
+            </span>
+            <ThemeToggle />
+          </div>
           <button type="button" className="admin-logout" onClick={() => void handleLogout()}>
             Logout
           </button>
@@ -776,15 +811,183 @@ export function AdminApp() {
 
       <main className="admin-content">
         <header className="admin-content-header">
-          <div>
-            <p className="admin-eyebrow">Active section</p>
-            <h2>{activeSectionLabel}</h2>
+          <div className="header-title-row">
+            <button
+              className="admin-sidebar-toggle"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open sidebar"
+            >
+              ☰
+            </button>
+            <div>
+              <p className="admin-eyebrow">Active section</p>
+              <h2>{activeSectionLabel}</h2>
+            </div>
           </div>
           {message ? <p className="admin-banner-message">{message}</p> : null}
         </header>
 
         <div className="admin-content-body">{renderSection()}</div>
       </main>
+
+      <AdminModal
+        isOpen={activeModal === 'category'}
+        onClose={() => setActiveModal(null)}
+        title={categoryForm.id ? 'Edit Category' : 'Create Category'}
+      >
+        <form className="admin-form" onSubmit={submitCategory}>
+          <label>
+            Name
+            <input
+              value={categoryForm.name}
+              onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+              placeholder="Black Tea"
+            />
+          </label>
+          <label>
+            Image URLs
+            <textarea
+              value={categoryForm.imagesText}
+              onChange={(e) => setCategoryForm({ ...categoryForm, imagesText: e.target.value })}
+              placeholder="One image URL per line"
+            />
+          </label>
+          <label className="upload-field">
+            Upload image
+            <input type="file" accept="image/*" onChange={(e) => void handleFileAppend(e, 'category')} />
+          </label>
+
+          <div className="form-actions">
+            <button type="submit">{categoryForm.id ? 'Update category' : 'Create category'}</button>
+          </div>
+        </form>
+      </AdminModal>
+
+      <AdminModal
+        isOpen={activeModal === 'product'}
+        onClose={() => setActiveModal(null)}
+        title={productForm.id ? 'Edit Product' : 'Create Product'}
+      >
+        <form className="admin-form" onSubmit={submitProduct}>
+          <label>
+            Name
+            <input
+              value={productForm.name}
+              onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+              placeholder="Masala Ember"
+            />
+          </label>
+          <label>
+            Price
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={productForm.price}
+              onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
+            />
+          </label>
+          <label>
+            Description
+            <textarea
+              value={productForm.description}
+              onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+            />
+          </label>
+          <label>
+            Category links
+            <select
+              multiple
+              value={productForm.categoryIds}
+              onChange={(e) =>
+                setProductForm({
+                  ...productForm,
+                  categoryIds: Array.from(e.target.selectedOptions, (option) => option.value),
+                })
+              }
+            >
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Image URLs
+            <textarea
+              value={productForm.imagesText}
+              onChange={(e) => setProductForm({ ...productForm, imagesText: e.target.value })}
+              placeholder="One image URL per line"
+            />
+          </label>
+          <label className="upload-field">
+            Upload image
+            <input type="file" accept="image/*" onChange={(e) => void handleFileAppend(e, 'product')} />
+          </label>
+
+          <div className="form-actions">
+            <button type="submit">{productForm.id ? 'Update product' : 'Create product'}</button>
+          </div>
+        </form>
+      </AdminModal>
+
+      <AdminModal
+        isOpen={activeModal === 'banner'}
+        onClose={() => setActiveModal(null)}
+        title={bannerEditingId ? 'Edit Banner' : 'Create Banner'}
+        width="min(94vw, 1200px)"
+      >
+        <BannersSection
+          bannerForm={bannerForm}
+          bannerEditingId={bannerEditingId}
+          onBannerFormChange={(patch) => setBannerForm((c: any) => ({ ...c, ...patch }))}
+          onFileAppend={(e, t) => void handleFileAppend(e, t)}
+          onSubmitBanner={submitBanner}
+          variant="editor"
+        />
+      </AdminModal>
+
+      <AdminModal
+        isOpen={activeModal === 'user'}
+        onClose={() => setActiveModal(null)}
+        title="Customer Account"
+      >
+        <CustomersSection
+          userForm={userForm}
+          selectedUser={selectedUser}
+          onUserFormChange={(patch) => setUserForm((c: any) => ({ ...c, ...patch }))}
+          onSubmitUser={submitUser}
+          variant={selectedUser ? 'view' : 'create'}
+        />
+      </AdminModal>
+
+      <AdminModal
+        isOpen={activeModal === 'order'}
+        onClose={() => setActiveModal(null)}
+        title="Order Details"
+      >
+        {selectedOrder && (
+          <OrdersSection
+            selectedOrder={selectedOrder}
+            onChangeOrderStatus={changeOrderStatus}
+            variant="view"
+          />
+        )}
+      </AdminModal>
+
+      <AdminModal
+        isOpen={activeModal === 'payment'}
+        onClose={() => setActiveModal(null)}
+        title="Payment Details"
+      >
+        {selectedPayment && (
+          <PaymentsSection
+            selectedPayment={selectedPayment}
+            variant="view"
+          />
+        )}
+      </AdminModal>
     </div>
   );
 }

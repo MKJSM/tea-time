@@ -91,6 +91,8 @@ const fallbackBanners: Banner[] = [
     secondary_button_href: null,
     media_url: null,
     media_kind: 'image',
+    content_mode: 'structured',
+    content_html: null,
     background_type: 'image',
     background_value: '/assets/home-Dr3wWsX4.webp',
     overlay_color: 'rgba(17, 24, 18, 0.28)',
@@ -164,6 +166,7 @@ export function HomePage() {
   const [paymentMessage, setPaymentMessage] = useState<string>('');
   const [busyProductId, setBusyProductId] = useState<string | null>(null);
   const [activeSlide, setActiveSlide] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     void loadPublicData();
@@ -534,11 +537,11 @@ export function HomePage() {
           <a className="brand" href="#home" style={{ textDecoration: 'none' }}>
             <img src="/assets/logo.webp" alt="Mobilitea Logo" className="logo" />
           </a>
-          <nav className="site-nav">
-            <a href="#home">Home</a>
-            <a href="#categories">Menu</a>
-            <a href="#ritual">Process</a>
-            <a href="#contact">Contact</a>
+          <nav className={`site-nav ${mobileMenuOpen ? 'is-open' : ''}`}>
+            <a href="#home" onClick={() => setMobileMenuOpen(false)}>Home</a>
+            <a href="#categories" onClick={() => setMobileMenuOpen(false)}>Menu</a>
+            <a href="#ritual" onClick={() => setMobileMenuOpen(false)}>Process</a>
+            <a href="#contact" onClick={() => setMobileMenuOpen(false)}>Contact</a>
           </nav>
           <div className="header-actions">
             <button
@@ -552,6 +555,17 @@ export function HomePage() {
             <a className="solid-button btn-cta-pulse" href="#categories">
               Subscribe
             </a>
+            <button
+              className="mobile-toggle"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              <div className={`hamburger ${mobileMenuOpen ? 'is-active' : ''}`}>
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </button>
           </div>
         </div>
       </header>

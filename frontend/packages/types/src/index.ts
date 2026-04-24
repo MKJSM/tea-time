@@ -66,6 +66,8 @@ export interface Banner {
   secondary_button_href: string | null;
   media_url: string | null;
   media_kind: 'image' | 'video' | string;
+  content_mode: 'structured' | 'html' | string;
+  content_html: string | null;
   background_type: 'image' | 'video' | 'gradient' | 'solid' | string;
   background_value: string | null;
   overlay_color: string | null;
@@ -84,6 +86,8 @@ export interface BannerInput {
   secondary_button_href?: string | null;
   media_url?: string | null;
   media_kind: 'image' | 'video';
+  content_mode: 'structured' | 'html';
+  content_html?: string | null;
   background_type: 'image' | 'video' | 'gradient' | 'solid';
   background_value?: string | null;
   overlay_color?: string | null;

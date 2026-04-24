@@ -19,6 +19,28 @@ export function OverviewSection({ health, summary, session }: Props) {
               and payments.
             </p>
           </div>
+          <div className="overview-meta">
+            <span className="status-chip is-active">Session active</span>
+            <span className="type-chip">{health?.database ? 'Database ready' : 'Checking database'}</span>
+            <span className="mode-chip">Admin: {session.admin.user_name}</span>
+          </div>
+        </div>
+
+        <div className="overview-summary-grid">
+          <article className="overview-note">
+            <span>Backend scope</span>
+            <strong>{health?.scope ?? 'admin'}</strong>
+            <p>{health?.service ?? 'Serving the authenticated admin dashboard.'}</p>
+          </article>
+          <article className="overview-note">
+            <span>Database</span>
+            <strong>{health?.database ? 'Connected' : 'Loading'}</strong>
+            <p>
+              {health?.database
+                ? 'Live catalog, banners, and orders are available.'
+                : 'Waiting for the latest health response.'}
+            </p>
+          </article>
         </div>
 
         <div className="overview-grid">

@@ -49,6 +49,15 @@ impl fmt::Display for AppError {
     }
 }
 
+impl std::error::Error for AppError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            AppError::Database(error) => Some(error),
+            _ => None,
+        }
+    }
+}
+
 impl From<tokio_postgres::Error> for AppError {
     fn from(value: tokio_postgres::Error) -> Self {
         Self::Database(value)

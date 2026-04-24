@@ -243,6 +243,84 @@ h4,
   transform: translateY(0);
 }
 
+/* ─── Marketing Content ──────────────────────────────────── */
+
+.v2-glass-offset {
+  left: 84px;
+}
+
+.marketing-eyebrow {
+  color: var(--accent);
+}
+
+.marketing-lead-desc {
+  color: var(--muted);
+  max-width: 480px;
+}
+
+.dark-card-num {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 700;
+  margin-bottom: 8px;
+  letter-spacing: .12em;
+}
+
+.dark-card-title {
+  font-size: 16px;
+  margin-bottom: 7px;
+}
+
+.dark-card-desc {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.marketing-cta-row {
+  text-align: center;
+  margin-top: 52px;
+}
+
+.marketing-cta-btn {
+  padding: 16px 36px !important; /* override default button padding if needed */
+}
+
+.step-label-v2 {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.about-title {
+  font-size: 32px;
+  margin-bottom: 20px;
+}
+
+.about-stack {
+  margin-bottom: 24px;
+}
+
+.about-label {
+  color: var(--accent);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: .1em;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.about-text {
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.stats-list-stack {
+  margin-top: 24px;
+}
+
 /* ─── Eyebrow ────────────────────────────────────────────── */
 .eyebrow {
   display: inline-flex;
@@ -274,8 +352,8 @@ h4,
   min-height: 76px;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 20px;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .brand {
@@ -313,12 +391,9 @@ h4,
 .site-nav {
   display: flex;
   gap: 26px;
-  margin-left: auto;
   color: var(--muted);
   font-size: 14px;
   font-weight: 700;
-  justify-content: flex-end;
-  flex-wrap: wrap;
 }
 
 .header-actions {
@@ -346,6 +421,51 @@ h4,
   background: var(--surface);
   border-color: var(--accent);
   transform: rotate(12deg) scale(1.1);
+}
+
+/* ─── Mobile Toggle ─── */
+.mobile-toggle {
+  display: none;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  color: var(--text);
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 100;
+}
+
+.hamburger {
+  width: 20px;
+  height: 14px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.hamburger span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: currentColor;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
+.hamburger.is-active span:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+
+.hamburger.is-active span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger.is-active span:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
 }
 
 /* ─── Buttons ────────────────────────────────────────────── */
@@ -493,6 +613,21 @@ h4,
   z-index: 1;
 }
 
+.banner-renderer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+}
+
+.banner-renderer-frame {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+}
+
 .hero-art {
   position: relative;
   height: 100%;
@@ -521,6 +656,20 @@ h4,
   align-items: stretch;
   gap: 30px;
   padding: 56px 0 72px;
+}
+
+.banner-renderer-content--preview.hero-slide-content {
+  grid-template-columns: 1fr;
+  min-height: 160px;
+  padding: 18px;
+}
+
+.banner-renderer-content--preview .hero-copy {
+  max-width: none;
+}
+
+.banner-renderer-content--preview .hero-art {
+  display: none;
 }
 
 /* Hero copy */
@@ -592,6 +741,40 @@ h4,
   line-height: 1.25;
   color: var(--hero-text);
   backdrop-filter: blur(10px);
+}
+
+.banner-html-shell {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  display: grid;
+}
+
+.banner-html-shell--hero {
+  padding: 56px 0 72px;
+}
+
+.banner-html-shell--preview {
+  min-height: 160px;
+  padding: 0;
+}
+
+.banner-html-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: transparent;
+}
+
+.banner-html-frame--hero {
+  min-height: calc(100svh - 76px - 128px);
+}
+
+.banner-html-frame--preview {
+  min-height: 160px;
 }
 
 /* ─── Hero Art — Slide 1 (Tea) ───────────────────────────── */
@@ -1871,8 +2054,33 @@ input {
 }
 
 @media (max-width: 760px) {
+  .mobile-toggle {
+    display: flex;
+  }
+
   .site-nav {
-    display: none;
+    position: fixed;
+    top: 76px;
+    left: 0;
+    width: 100%;
+    height: calc(100vh - 76px);
+    background: var(--bg);
+    flex-direction: column;
+    padding: 40px;
+    gap: 32px;
+    transform: translateX(100%);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 90;
+    justify-content: flex-start;
+    font-size: 24px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .site-nav.is-open {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
   }
 
   .section {

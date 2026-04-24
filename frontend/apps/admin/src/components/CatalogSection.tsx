@@ -21,23 +21,17 @@ export interface ProductFormState {
 
 interface CategoriesProps {
   categories: CategoryListItem[];
-  categoryForm: CategoryFormState;
-  onCategoryFormChange: (patch: Partial<CategoryFormState>) => void;
-  onSubmitCategory: (event: FormEvent<HTMLFormElement>) => void;
   onEditCategory: (category: CategoryListItem) => void;
   onDeleteCategory: (id: string) => void;
-  onFileAppend: (event: ChangeEvent<HTMLInputElement>) => void;
+  onAddCategory: () => void;
 }
 
 interface ProductsProps {
   categories: CategoryListItem[];
   products: ProductListItem[];
-  productForm: ProductFormState;
-  onProductFormChange: (patch: Partial<ProductFormState>) => void;
-  onSubmitProduct: (event: FormEvent<HTMLFormElement>) => void;
   onEditProduct: (product: ProductListItem) => void;
   onDeleteProduct: (id: string) => void;
-  onFileAppend: (event: ChangeEvent<HTMLInputElement>) => void;
+  onAddProduct: () => void;
 }
 
 function parseImageCount(images: string[]) {
@@ -46,12 +40,9 @@ function parseImageCount(images: string[]) {
 
 export function CategoriesSection({
   categories,
-  categoryForm,
-  onCategoryFormChange,
-  onSubmitCategory,
   onEditCategory,
   onDeleteCategory,
-  onFileAppend,
+  onAddCategory,
 }: CategoriesProps) {
   return (
     <section className="admin-page-section" id="admin-categories">
@@ -64,31 +55,10 @@ export function CategoriesSection({
               Keep the category catalog organized, image-backed, and easy to edit.
             </p>
           </div>
+          <button className="add-button" onClick={onAddCategory}>
+            <span>+</span> Add Category
+          </button>
         </div>
-
-        <form className="admin-form admin-form--tight" onSubmit={onSubmitCategory}>
-          <label>
-            Name
-            <input
-              value={categoryForm.name}
-              onChange={(e) => onCategoryFormChange({ name: e.target.value })}
-              placeholder="Black Tea"
-            />
-          </label>
-          <label>
-            Image URLs
-            <textarea
-              value={categoryForm.imagesText}
-              onChange={(e) => onCategoryFormChange({ imagesText: e.target.value })}
-              placeholder="One image URL per line"
-            />
-          </label>
-          <label className="upload-field">
-            Upload image
-            <input type="file" accept="image/*" onChange={onFileAppend} />
-          </label>
-          <button type="submit">{categoryForm.id ? 'Update category' : 'Create category'}</button>
-        </form>
 
         <div className="admin-table">
           <div className="admin-table-head">
@@ -121,12 +91,9 @@ export function CategoriesSection({
 export function ProductsSection({
   categories,
   products,
-  productForm,
-  onProductFormChange,
-  onSubmitProduct,
   onEditProduct,
   onDeleteProduct,
-  onFileAppend,
+  onAddProduct,
 }: ProductsProps) {
   return (
     <section className="admin-page-section" id="admin-products">
@@ -139,66 +106,10 @@ export function ProductsSection({
               Manage product cards, category links, and image uploads from one place.
             </p>
           </div>
+          <button className="add-button" onClick={onAddProduct}>
+            <span>+</span> Add Product
+          </button>
         </div>
-
-        <form className="admin-form admin-form--tight" onSubmit={onSubmitProduct}>
-          <label>
-            Name
-            <input
-              value={productForm.name}
-              onChange={(e) => onProductFormChange({ name: e.target.value })}
-              placeholder="Masala Ember"
-            />
-          </label>
-          <label>
-            Price
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={productForm.price}
-              onChange={(e) => onProductFormChange({ price: e.target.value })}
-            />
-          </label>
-          <label>
-            Description
-            <textarea
-              value={productForm.description}
-              onChange={(e) => onProductFormChange({ description: e.target.value })}
-            />
-          </label>
-          <label>
-            Category links
-            <select
-              multiple
-              value={productForm.categoryIds}
-              onChange={(e) =>
-                onProductFormChange({
-                  categoryIds: Array.from(e.target.selectedOptions, (option) => option.value),
-                })
-              }
-            >
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Image URLs
-            <textarea
-              value={productForm.imagesText}
-              onChange={(e) => onProductFormChange({ imagesText: e.target.value })}
-              placeholder="One image URL per line"
-            />
-          </label>
-          <label className="upload-field">
-            Upload image
-            <input type="file" accept="image/*" onChange={onFileAppend} />
-          </label>
-          <button type="submit">{productForm.id ? 'Update product' : 'Create product'}</button>
-        </form>
 
         <div className="admin-table">
           <div className="admin-table-head">
@@ -228,29 +139,23 @@ export function ProductsSection({
   );
 }
 
-interface CatalogProps extends CategoriesProps, ProductsProps {}
+interface CatalogProps extends CategoriesProps, ProductsProps { }
 
 export function CatalogSection(props: CatalogProps) {
   return (
     <div className="catalog-stack">
       <CategoriesSection
         categories={props.categories}
-        categoryForm={props.categoryForm}
-        onCategoryFormChange={props.onCategoryFormChange}
-        onSubmitCategory={props.onSubmitCategory}
         onEditCategory={props.onEditCategory}
         onDeleteCategory={props.onDeleteCategory}
-        onFileAppend={props.onFileAppend}
+        onAddCategory={props.onAddCategory}
       />
       <ProductsSection
         categories={props.categories}
         products={props.products}
-        productForm={props.productForm}
-        onProductFormChange={props.onProductFormChange}
-        onSubmitProduct={props.onSubmitProduct}
         onEditProduct={props.onEditProduct}
         onDeleteProduct={props.onDeleteProduct}
-        onFileAppend={props.onFileAppend}
+        onAddProduct={props.onAddProduct}
       />
     </div>
   );

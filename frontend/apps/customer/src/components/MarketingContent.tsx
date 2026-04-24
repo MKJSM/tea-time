@@ -13,11 +13,11 @@ const fallbackCategoryVisuals = [
   { cls: 'cooler', art: <div className="v2-glass" /> },
   {
     cls: 'milkshake',
-    art: <div className="v2-glass" style={{ left: 84 }} />,
+    art: <div className="v2-glass v2-glass-offset" />,
   },
   {
     cls: 'juice',
-    art: <div className="v2-glass juice" style={{ left: 84 }} />,
+    art: <div className="v2-glass juice v2-glass-offset" />,
   },
   {
     cls: 'snack',
@@ -66,9 +66,8 @@ export function CategoriesSection({ categories, state, message }: CategoriesSect
               return (
                 <article key={category.id} className="card category-card">
                   <div
-                    className={`category-media${fallback.cls ? ' ' + fallback.cls : ''}${
-                      image ? ' has-image' : ''
-                    }`}
+                    className={`category-media${fallback.cls ? ' ' + fallback.cls : ''}${image ? ' has-image' : ''
+                      }`}
                   >
                     {image ? (
                       <img className="category-image" src={image} alt={category.name} />
@@ -100,10 +99,10 @@ export function WhySection() {
       <div className="container">
         <div className="section-head">
           <div>
-            <span className="eyebrow" style={{ color: 'var(--accent)' }}>The MOBILITEA Difference</span>
+            <span className="eyebrow marketing-eyebrow">The MOBILITEA Difference</span>
             <h2 className="serif">Why Choose Us?</h2>
           </div>
-          <p style={{ color: 'var(--muted)', maxWidth: 480 }}>
+          <p className="marketing-lead-desc">
             Ten reasons thousands of workplaces trust MOBILITEA for daily refreshment.
           </p>
         </div>
@@ -121,14 +120,14 @@ export function WhySection() {
             { n: '10', title: 'Built for Business', desc: 'Daily subscriptions, bulk & corporate orders. We scale as you grow.' },
           ].map(({ n, title, desc }) => (
             <article key={title} className="dark-card">
-              <div className="mono" style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 700, marginBottom: 8, letterSpacing: '.12em' }}>{n}</div>
-              <h3 className="serif" style={{ fontSize: 16, marginBottom: 7 }}>{title}</h3>
-              <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>{desc}</p>
+              <div className="dark-card-num">{n}</div>
+              <h3 className="serif dark-card-title">{title}</h3>
+              <p className="dark-card-desc">{desc}</p>
             </article>
           ))}
         </div>
-        <div className="cta-row" style={{ textAlign: 'center', marginTop: 52 }}>
-          <a className="solid-button" href="#menu" style={{ padding: '16px 36px' }}>
+        <div className="marketing-cta-row">
+          <a className="solid-button marketing-cta-btn" href="#menu">
             Upgrade Your Workplace Breaks Today →
           </a>
         </div>
@@ -165,7 +164,7 @@ export function HowWeBrew() {
           ].map(({ n, icon, title, desc }) => (
             <article key={n} className="card v2-step">
               <div className="step-num">{icon}</div>
-              <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--accent)', marginBottom: 4 }}>STEP {n}</div>
+              <div className="step-label-v2">STEP {n}</div>
               <h3>{title}</h3>
               <p>{desc}</p>
             </article>
@@ -219,16 +218,16 @@ export function AboutSection() {
         <div className="customer-grid wide">
           <div className="panel">
             <span className="eyebrow">Our Story</span>
-            <h2 className="serif" style={{ fontSize: 32, marginBottom: 20 }}>
+            <h2 className="serif about-title">
               India's Most Trusted Workplace Refreshment Ecosystem
             </h2>
-            <div style={{ marginBottom: 24 }}>
-              <strong style={{ color: 'var(--accent)', textTransform: 'uppercase', fontSize: 11, letterSpacing: '.1em', display: 'block', marginBottom: 8 }}>🌿 Vision</strong>
-              <p style={{ color: 'var(--muted)', lineHeight: 1.7 }}>To become India's most trusted and innovative workplace refreshment ecosystem, redefining how people sip, energize, and perform—every day.</p>
+            <div className="about-stack">
+              <strong className="about-label">🌿 Vision</strong>
+              <p className="about-text">To become India's most trusted and innovative workplace refreshment ecosystem, redefining how people sip, energize, and perform—every day.</p>
             </div>
             <div>
-              <strong style={{ color: 'var(--accent)', textTransform: 'uppercase', fontSize: 11, letterSpacing: '.1em', display: 'block', marginBottom: 8 }}>🎯 Mission</strong>
-              <p style={{ color: 'var(--muted)', lineHeight: 1.7 }}>To deliver a complete refreshment solution through freshly prepared beverages and snacks, powered by technology, sustainability, and service excellence.</p>
+              <strong className="about-label">🎯 Mission</strong>
+              <p className="about-text">To deliver a complete refreshment solution through freshly prepared beverages and snacks, powered by technology, sustainability, and service excellence.</p>
             </div>
           </div>
           <div className="panel v2-stats-panel">
@@ -246,7 +245,7 @@ export function AboutSection() {
                 <div className="stat-label">On-Time</div>
               </div>
             </div>
-            <div className="list-stack" style={{ marginTop: 24 }}>
+            <div className="list-stack stats-list-stack">
               {[
                 { t: 'Quality First', d: 'We never compromise on taste, freshness, or ingredients.' },
                 { t: 'Customer-Centricity', d: 'From customized flasks to real-time tracking, every service is designed around your convenience.' },
