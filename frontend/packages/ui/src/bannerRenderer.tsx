@@ -66,6 +66,7 @@ const GLOBAL_ATTRS = new Set([
   'lang',
   'width',
   'height',
+  'style',
 ]);
 
 const allowedTagAttrs: Record<string, Set<string>> = {
@@ -181,6 +182,12 @@ function buildHtmlDocument(html: string) {
     a {
       color: inherit;
     }
+    .banner-block-heading h2 { margin: 0 0 1rem; font-size: 2.5rem; font-weight: 800; line-height: 1.1; }
+    .banner-block-text p { margin: 0 0 1.5rem; font-size: 1.1rem; line-height: 1.6; opacity: 0.9; }
+    .banner-block-image img { width: 100%; border-radius: 12px; margin-bottom: 1.5rem; }
+    .banner-block-actions a { display: inline-block; padding: 14px 28px; background: white; color: #111812; border-radius: 999px; text-decoration: none; font-weight: 800; font-size: 0.9rem; margin-right: 12px; margin-bottom: 1rem; }
+    .banner-block-divider hr { border: 0; border-top: 1px solid rgba(255,255,255,0.2); margin: 2rem 0; }
+    .banner-block-spacer { display: block; width: 100%; }
   </style></head><body>${html}</body></html>`;
 }
 
@@ -243,9 +250,8 @@ function StructuredPreview({ banner, variant }: { banner: Banner; variant: Banne
 
   return (
     <div
-      className={`banner-renderer-content banner-renderer-content--${variant} hero-slide-content${
-        variant === 'hero' ? ' container' : ''
-      }`}
+      className={`banner-renderer-content banner-renderer-content--${variant} hero-slide-content${variant === 'hero' ? ' container' : ''
+        }`}
     >
       <div className="hero-copy" style={{ '--hero-text': textColor } as CSSProperties}>
         {banner.subtitle ? <span className="eyebrow">{banner.subtitle}</span> : null}
@@ -314,20 +320,14 @@ function HtmlPreview({ banner, variant }: { banner: Banner; variant: BannerVaria
   const sanitized = sanitizeBannerHtml(banner.content_html ?? '');
   const fallbackHtml = `<div style="padding: 1rem; color: ${banner.text_color ?? '#ffffff'}; font-size: 1rem;">
     <strong>${banner.title}</strong>
-    <p style="margin: 0.75rem 0 0; opacity: 0.85;">Paste HTML to render the custom banner here.</p>
+    <p style="margin: 0.75rem 0 0; opacity: 0.85;">Build your custom banner in the visual editor.</p>
   </div>`;
-  const srcDoc = buildHtmlDocument(sanitized || fallbackHtml);
 
   return (
-    <div className={`banner-html-shell banner-html-shell--${variant}`}>
-      <iframe
-        className={`banner-html-frame banner-html-frame--${variant}`}
-        title={banner.title}
-        srcDoc={srcDoc}
-        sandbox=""
-        loading="lazy"
-      />
-    </div>
+    <div
+      className={`banner-html-shell banner-html-shell--${variant}`}
+      dangerouslySetInnerHTML={{ __html: sanitized || fallbackHtml }}
+    />
   );
 }
 

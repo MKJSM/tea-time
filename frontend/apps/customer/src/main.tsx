@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 
 import { ErrorBoundary } from '@tea-time/ui';
 
-import { HomePage } from './HomePage';
+import { App } from './App';
 import './styles.css';
 
 const rootElement = document.getElementById('root');
@@ -15,7 +15,7 @@ if (!rootElement) {
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <HomePage />
+      <App />
     </ErrorBoundary>
   </React.StrictMode>,
 );

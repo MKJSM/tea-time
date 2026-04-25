@@ -6,6 +6,7 @@ interface CategoriesSectionProps {
   categories: CategoryListItem[];
   state: AsyncState;
   message: string;
+  getCategoryHref?: (category: CategoryListItem) => string;
 }
 
 const fallbackCategoryVisuals = [
@@ -38,7 +39,12 @@ function getCategoryCountLabel(productCount: number): string {
 }
 
 /** ── Categories ── */
-export function CategoriesSection({ categories, state, message }: CategoriesSectionProps) {
+export function CategoriesSection({
+  categories,
+  state,
+  message,
+  getCategoryHref,
+}: CategoriesSectionProps) {
   return (
     <section className="section fade-up" id="categories">
       <div className="container">
@@ -62,9 +68,8 @@ export function CategoriesSection({ categories, state, message }: CategoriesSect
             {categories.map((category, index) => {
               const fallback = fallbackCategoryVisuals[index % fallbackCategoryVisuals.length];
               const image = category.images[0] ?? null;
-
-              return (
-                <article key={category.id} className="card category-card">
+              const card = (
+                <article className="card category-card">
                   <div
                     className={`category-media${fallback.cls ? ' ' + fallback.cls : ''}${image ? ' has-image' : ''
                       }`}
@@ -83,6 +88,16 @@ export function CategoriesSection({ categories, state, message }: CategoriesSect
                     <p>Freshly prepared and ready for repeat ordering.</p>
                   </div>
                 </article>
+              );
+
+              return (
+                getCategoryHref ? (
+                  <a key={category.id} className="category-card-link" href={getCategoryHref(category)}>
+                    {card}
+                  </a>
+                ) : (
+                  <div key={category.id}>{card}</div>
+                )
               );
             })}
           </div>

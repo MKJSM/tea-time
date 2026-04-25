@@ -10,6 +10,7 @@ import {
   rgbaFromHex,
   backgroundThumbStyle
 } from '../lib/colors';
+import { VisualBannerEditor, BannerBlockPalette, type BannerBlock, type BlockType } from './VisualBannerEditor';
 
 interface BannersProps {
   banners?: Banner[];
@@ -52,6 +53,7 @@ export function BannersSection({
       media_kind: bannerForm.media_kind,
       content_mode: bannerForm.content_mode,
       content_html: bannerForm.content_html || null,
+      content_json: bannerForm.content_json ?? null,
       background_type: bannerForm.background_type,
       background_value: bannerForm.background_value || null,
       overlay_color: bannerForm.overlay_color || null,
@@ -60,7 +62,6 @@ export function BannersSection({
       is_active: bannerForm.is_active,
     };
 
-    const backgroundValue = bannerForm.background_value ?? '';
     const isImageBackground = bannerForm.background_type === 'image';
     const isVideoBackground = bannerForm.background_type === 'video';
     const isSolidBackground = bannerForm.background_type === 'solid';
@@ -71,46 +72,40 @@ export function BannersSection({
     const handleOverlayColorChange = (nextColor: string) => onBannerFormChange({ overlay_color: rgbaFromHex(nextColor, overlay.opacity) });
     const handleOverlayOpacityChange = (nextOpacity: number) => onBannerFormChange({ overlay_color: rgbaFromHex(overlay.color, nextOpacity) });
 
+    const bannerBlocks = Array.isArray(bannerForm.content_json) ? bannerForm.content_json as BannerBlock[] : [];
+
+    const handleUpdateBlocks = (newBlocks: BannerBlock[]) => {
+      onBannerFormChange({ content_json: newBlocks });
+    };
+
+    const addBlock = (type: BlockType) => {
+      const newBlock: BannerBlock = {
+        id: Math.random().toString(36).substr(2, 9),
+        type,
+        content: type === 'image' ? { src: '', alt: '' } : type === 'button' ? { label: 'Click here', href: '#' } : type === 'divider' ? {} : 'New ' + type,
+      };
+      handleUpdateBlocks([...bannerBlocks, newBlock]);
+    };
+
     return (
       <div className="banner-editor">
-        <form className="banner-editor-form admin-form" onSubmit={onSubmitBanner}>
-          <div className="editor-group">
-            <h3>Content</h3>
-            <label>
-              Title
-              <input
-                value={bannerForm.title}
-                onChange={(e) => onBannerFormChange({ title: e.target.value })}
-                placeholder="Refreshment That Moves with Your Workday."
-              />
-            </label>
-            <label>
-              Content mode
-              <select
-                value={bannerForm.content_mode}
-                onChange={(e) =>
-                  onBannerFormChange({
-                    content_mode: e.target.value as BannerInput['content_mode'],
-                  })
-                }
-              >
-                <option value="structured">Structured editor</option>
-                <option value="html">Custom HTML</option>
-              </select>
-            </label>
+        <form className="banner-editor-form admin-form" onSubmit={onSubmitBanner} id="banner-master-form">
+          <aside className="banner-palette">
+            <h3>Blocks</h3>
+            <BannerBlockPalette onAdd={addBlock} />
+          </aside>
 
+          <main className="banner-canvas-workspace">
             {isHtmlMode ? (
-              <label>
-                HTML content
-                <textarea
-                  className="banner-html-input"
-                  value={bannerForm.content_html ?? ''}
-                  onChange={(e) => onBannerFormChange({ content_html: e.target.value })}
-                  placeholder="<section style=&quot;padding: 32px; color: white;&quot;>...</section>"
-                />
-              </label>
+              <VisualBannerEditor
+                bannerForm={bannerForm}
+                onChange={onBannerFormChange}
+                blocks={bannerBlocks}
+                onUpdateBlocks={handleUpdateBlocks}
+              />
             ) : (
-              <>
+              <div className="structured-editor-fallback">
+                <h3>Structured Content</h3>
                 <label>
                   Subtitle
                   <input
@@ -127,173 +122,160 @@ export function BannersSection({
                     placeholder="A short line that explains the banner."
                   />
                 </label>
-                <div className="split-inputs">
-                  <label>
-                    Primary button label
-                    <input
-                      value={bannerForm.primary_button_label ?? ''}
-                      onChange={(e) =>
-                        onBannerFormChange({ primary_button_label: e.target.value })
-                      }
-                      placeholder="Subscribe now"
-                    />
-                  </label>
-                  <label>
-                    Primary button href
-                    <input
-                      value={bannerForm.primary_button_href ?? ''}
-                      onChange={(e) =>
-                        onBannerFormChange({ primary_button_href: e.target.value })
-                      }
-                      placeholder="#categories"
-                    />
-                  </label>
-                </div>
-                <div className="split-inputs">
-                  <label>
-                    Secondary button label
-                    <input
-                      value={bannerForm.secondary_button_label ?? ''}
-                      onChange={(e) =>
-                        onBannerFormChange({ secondary_button_label: e.target.value })
-                      }
-                      placeholder="Explore menu"
-                    />
-                  </label>
-                  <label>
-                    Secondary button href
-                    <input
-                      value={bannerForm.secondary_button_href ?? ''}
-                      onChange={(e) =>
-                        onBannerFormChange({ secondary_button_href: e.target.value })
-                      }
-                      placeholder="#products"
-                    />
-                  </label>
-                </div>
-              </>
+              </div>
             )}
-          </div>
+          </main>
 
-          <div className="editor-group bg-type-fields">
-            <h3>Background</h3>
-            <label>
-              Background type
-              <select
-                value={bannerForm.background_type}
-                onChange={(e) =>
-                  onBannerFormChange({
-                    background_type: e.target.value as BannerInput['background_type'],
-                  })
-                }
-              >
-                <option value="gradient">Gradient</option>
-                <option value="solid">Solid</option>
-                <option value="image">Image</option>
-                <option value="video">Video</option>
-              </select>
-            </label>
+          <aside className="banner-sidebar-settings">
+            <div className="editor-group no-border">
+              <h3>Editor Mode</h3>
+              <label className="checkbox-field">
+                <input
+                  type="checkbox"
+                  checked={isHtmlMode}
+                  onChange={(e) => onBannerFormChange({ content_mode: e.target.checked ? 'html' : 'structured' })}
+                />
+                <span>Enable HTML-First Mode</span>
+              </label>
+              <p className="field-hint">Use blocks to build a custom visual layout.</p>
+            </div>
 
-            {isGradientBackground ? (
+            <div className="editor-group">
+              <h3>General</h3>
               <label>
-                Gradient CSS
-                <textarea
-                  value={backgroundValue}
-                  onChange={(e) => onBannerFormChange({ background_value: e.target.value })}
-                  placeholder="linear-gradient(135deg, #375c36 0%, #7d8f49 42%, #283b24 100%)"
+                Internal Title
+                <input
+                  value={bannerForm.title}
+                  onChange={(e) => onBannerFormChange({ title: e.target.value })}
+                  placeholder="e.g. Summer Promo 2024"
                 />
               </label>
-            ) : null}
+              <div className="split-inputs">
+                <label>
+                  Sort Order
+                  <input
+                    type="number"
+                    value={bannerForm.sort_order}
+                    onChange={(e) => onBannerFormChange({ sort_order: parseInt(e.target.value) || 0 })}
+                  />
+                </label>
+                <label className="checkbox-field">
+                  <input
+                    type="checkbox"
+                    checked={bannerForm.is_active}
+                    onChange={(e) => onBannerFormChange({ is_active: e.target.checked })}
+                  />
+                  <span>Active</span>
+                </label>
+              </div>
+            </div>
 
-            {isSolidBackground ? (
+            <div className="editor-group">
+              <h3>Background</h3>
               <label>
-                Solid color
+                Background Type
+                <select
+                  value={bannerForm.background_type}
+                  onChange={(e) => onBannerFormChange({ background_type: e.target.value as any })}
+                >
+                  <option value="solid">Solid Color</option>
+                  <option value="gradient">Gradient</option>
+                  <option value="image">Image</option>
+                  <option value="video">Video</option>
+                </select>
+              </label>
+
+              {(isImageBackground || isVideoBackground) && (
+                <label className="upload-field">
+                  {isImageBackground ? 'Upload Image' : 'Upload Video'}
+                  <input
+                    type="file"
+                    accept={isImageBackground ? 'image/*' : 'video/*'}
+                    onChange={(e) => onFileAppend(e, 'banner-background')}
+                  />
+                  {bannerForm.background_value && (
+                    <div
+                      className="bg-preview-mini"
+                      style={backgroundThumbStyle({
+                        background_type: bannerForm.background_type,
+                        background_value: bannerForm.background_value,
+                        media_url: bannerForm.media_url || null,
+                      })}
+                    />
+                  )}
+                </label>
+              )}
+
+              {(isSolidBackground || isGradientBackground) && (
+                <label>
+                  {isSolidBackground ? 'Color Value' : 'Gradient CSS'}
+                  <input
+                    value={bannerForm.background_value ?? ''}
+                    onChange={(e) => onBannerFormChange({ background_value: e.target.value })}
+                    placeholder={isSolidBackground ? '#1d2b20' : 'linear-gradient(...)'}
+                  />
+                </label>
+              )}
+
+              <div className="color-pair">
+                <label>
+                  Overlay Color
+                  <div className="color-with-picker">
+                    <input
+                      type="color"
+                      value={overlay.color}
+                      onChange={(e) => handleOverlayColorChange(e.target.value)}
+                    />
+                    <input
+                      type="text"
+                      value={bannerForm.overlay_color ?? ''}
+                      onChange={(e) => onBannerFormChange({ overlay_color: e.target.value })}
+                    />
+                  </div>
+                </label>
+                <label>
+                  Overlay Opacity ({overlay.opacity}%)
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={overlay.opacity}
+                    onChange={(e) => handleOverlayOpacityChange(parseInt(e.target.value, 10))}
+                  />
+                </label>
+              </div>
+
+              <label>
+                Text Base Color
                 <div className="color-with-picker">
                   <input
                     type="color"
-                    value={normalizeHexColor(backgroundValue, '#315f40')}
-                    onChange={(e) =>
-                      onBannerFormChange({ background_value: e.target.value.toUpperCase() })
-                    }
+                    value={textColor}
+                    onChange={(e) => handleTextColorChange(e.target.value)}
                   />
                   <input
                     type="text"
-                    value={backgroundValue}
-                    onChange={(e) => onBannerFormChange({ background_value: e.target.value })}
-                    placeholder="#315f40"
+                    value={bannerForm.text_color ?? ''}
+                    onChange={(e) => handleTextColorChange(e.target.value)}
                   />
                 </div>
               </label>
-            ) : null}
-
-            {isImageBackground ? (
-              <>
-                <label>
-                  Image URL
-                  <input
-                    value={backgroundValue}
-                    onChange={(e) => onBannerFormChange({ background_value: e.target.value })}
-                    placeholder="/assets/home-Dr3wWsX4.webp"
-                  />
-                </label>
-                <label className="upload-field">
-                  Upload background image
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => onFileAppend(e, 'banner-background')}
-                  />
-                </label>
-              </>
-            ) : null}
-
-            {isVideoBackground ? (
-              <label>
-                Video URL
-                <input
-                  value={backgroundValue}
-                  onChange={(e) => onBannerFormChange({ background_value: e.target.value })}
-                  placeholder="https://..."
-                />
-              </label>
-            ) : null}
-          </div>
-
-          <div className="editor-group">
-            <h3>Appearance</h3>
-            <div className="split-inputs">
-              <label>
-                Sort order
-                <input
-                  type="number"
-                  value={bannerForm.sort_order}
-                  onChange={(e) => onBannerFormChange({ sort_order: Number(e.target.value) })}
-                />
-              </label>
-              <label className="checkbox-line">
-                <input
-                  type="checkbox"
-                  checked={bannerForm.is_active}
-                  onChange={(e) => onBannerFormChange({ is_active: e.target.checked })}
-                />
-                Active
-              </label>
             </div>
-          </div>
 
-          <div className="form-actions">
-            <button type="submit">{bannerEditingId ? 'Update banner' : 'Create banner'}</button>
-          </div>
+            <div className="banner-preview">
+              <h3>Live Preview</h3>
+              <div className="preview-container mini">
+                <BannerRenderer banner={previewBanner} variant="preview" />
+              </div>
+            </div>
+
+            <div className="form-actions sticky-footer">
+              <button type="submit" form="banner-master-form" className="solid-button large">
+                {bannerEditingId ? 'Update Banner' : 'Create Banner'}
+              </button>
+            </div>
+          </aside>
         </form>
-
-        <aside className="banner-preview" aria-label="Live preview">
-          <div className="banner-preview-head">
-            <p className="section-kicker">Live preview</p>
-          </div>
-          <div className="banner-preview-canvas">
-            <BannerRenderer banner={previewBanner} variant="preview" />
-          </div>
-        </aside>
       </div>
     );
   }

@@ -28,12 +28,14 @@ export interface ListResponse<T> {
 export interface CategoryListItem {
   id: string;
   name: string;
+  slug: string;
   images: string[];
   product_count: number;
 }
 
 export interface CategoryInput {
   name: string;
+  slug: string;
   images: string[];
 }
 
@@ -68,6 +70,7 @@ export interface Banner {
   media_kind: 'image' | 'video' | string;
   content_mode: 'structured' | 'html' | string;
   content_html: string | null;
+  content_json: any | null;
   background_type: 'image' | 'video' | 'gradient' | 'solid' | string;
   background_value: string | null;
   overlay_color: string | null;
@@ -88,6 +91,7 @@ export interface BannerInput {
   media_kind: 'image' | 'video';
   content_mode: 'structured' | 'html';
   content_html?: string | null;
+  content_json?: any | null;
   background_type: 'image' | 'video' | 'gradient' | 'solid';
   background_value?: string | null;
   overlay_color?: string | null;

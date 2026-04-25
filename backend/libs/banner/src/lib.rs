@@ -22,6 +22,7 @@ pub struct Banner {
     pub media_kind: String,
     pub content_mode: String,
     pub content_html: Option<String>,
+    pub content_json: Option<serde_json::Value>,
     pub background_type: String,
     pub background_value: Option<String>,
     pub overlay_color: Option<String>,
@@ -43,6 +44,7 @@ pub struct BannerInput {
     pub media_kind: String,
     pub content_mode: String,
     pub content_html: Option<String>,
+    pub content_json: Option<serde_json::Value>,
     pub background_type: String,
     pub background_value: Option<String>,
     pub overlay_color: Option<String>,
@@ -66,7 +68,7 @@ async fn list(pool: &Pool, active_only: bool) -> Result<serde_json::Value, AppEr
             .query(
                 "SELECT id::text, title, subtitle, description, primary_button_label, primary_button_href,
                  secondary_button_label, secondary_button_href, media_url, media_kind, content_mode, content_html,
-                 background_type, background_value, overlay_color, text_color, sort_order, is_active
+                 content_json, background_type, background_value, overlay_color, text_color, sort_order, is_active
                  FROM banner
                  WHERE is_active = TRUE
                  ORDER BY sort_order ASC, created_on ASC",
@@ -78,7 +80,7 @@ async fn list(pool: &Pool, active_only: bool) -> Result<serde_json::Value, AppEr
             .query(
                 "SELECT id::text, title, subtitle, description, primary_button_label, primary_button_href,
                  secondary_button_label, secondary_button_href, media_url, media_kind, content_mode, content_html,
-                 background_type, background_value, overlay_color, text_color, sort_order, is_active
+                 content_json, background_type, background_value, overlay_color, text_color, sort_order, is_active
                  FROM banner
                  ORDER BY sort_order ASC, created_on ASC",
                 &[],
@@ -101,9 +103,9 @@ pub async fn create(pool: &Pool, input: BannerInput) -> Result<Banner, AppError>
             "INSERT INTO banner
              (id, title, subtitle, description, primary_button_label, primary_button_href,
               secondary_button_label, secondary_button_href, media_url, media_kind, content_mode, content_html,
-              background_type, background_value, overlay_color, text_color, sort_order, is_active)
+              content_json, background_type, background_value, overlay_color, text_color, sort_order, is_active)
              VALUES
-             ($1::text::uuid, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)",
+             ($1::text::uuid, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)",
             &[
                 &id,
                 &input.title,
@@ -117,6 +119,7 @@ pub async fn create(pool: &Pool, input: BannerInput) -> Result<Banner, AppError>
                 &input.media_kind,
                 &input.content_mode,
                 &input.content_html,
+                &input.content_json,
                 &input.background_type,
                 &input.background_value,
                 &input.overlay_color,
@@ -137,8 +140,8 @@ pub async fn update(pool: &Pool, banner_id: &str, input: BannerInput) -> Result<
             "UPDATE banner SET
              title = $2, subtitle = $3, description = $4, primary_button_label = $5, primary_button_href = $6,
              secondary_button_label = $7, secondary_button_href = $8, media_url = $9, media_kind = $10,
-             content_mode = $11, content_html = $12, background_type = $13, background_value = $14,
-             overlay_color = $15, text_color = $16, sort_order = $17, is_active = $18, modified_on = NOW()
+             content_mode = $11, content_html = $12, content_json = $13, background_type = $14, background_value = $15,
+             overlay_color = $16, text_color = $17, sort_order = $18, is_active = $19, modified_on = NOW()
              WHERE id = $1::text::uuid",
             &[
                 &banner_id,
@@ -153,6 +156,7 @@ pub async fn update(pool: &Pool, banner_id: &str, input: BannerInput) -> Result<
                 &input.media_kind,
                 &input.content_mode,
                 &input.content_html,
+                &input.content_json,
                 &input.background_type,
                 &input.background_value,
                 &input.overlay_color,
@@ -185,7 +189,7 @@ pub async fn get(pool: &Pool, banner_id: &str) -> Result<Banner, AppError> {
         .query_opt(
             "SELECT id::text, title, subtitle, description, primary_button_label, primary_button_href,
              secondary_button_label, secondary_button_href, media_url, media_kind, content_mode, content_html,
-             background_type, background_value, overlay_color, text_color, sort_order, is_active
+             content_json, background_type, background_value, overlay_color, text_color, sort_order, is_active
              FROM banner WHERE id = $1::text::uuid",
             &[&banner_id],
         )
@@ -208,12 +212,13 @@ fn map_banner(row: &Row) -> Banner {
         media_kind: row.get(9),
         content_mode: row.get(10),
         content_html: row.get(11),
-        background_type: row.get(12),
-        background_value: row.get(13),
-        overlay_color: row.get(14),
-        text_color: row.get(15),
-        sort_order: row.get(16),
-        is_active: row.get(17),
+        content_json: row.get(12),
+        background_type: row.get(13),
+        background_value: row.get(14),
+        overlay_color: row.get(15),
+        text_color: row.get(16),
+        sort_order: row.get(17),
+        is_active: row.get(18),
     }
 }
 
@@ -319,6 +324,7 @@ mod tests {
             media_kind: "image".to_string(),
             content_mode: BANNER_CONTENT_MODE_STRUCTURED.to_string(),
             content_html: None,
+            content_json: None,
             background_type: "image".to_string(),
             background_value: None,
             overlay_color: None,

@@ -9,9 +9,9 @@ interface Props {
   selectedCategoryId: string;
   catalogState: AsyncState;
   catalogMessage: string;
-  busyProductId: string | null;
+  busyProductId?: string | null;
   onCategorySelect: (categoryId: string) => void;
-  onAddToCart: (productId: string) => void;
+  onAddToCart?: (productId: string) => void;
 }
 
 export function CatalogSection({
@@ -55,8 +55,13 @@ export function CatalogSection({
       </div>
 
       {catalogState === 'loading' ? <p className="helper-copy">Loading products…</p> : null}
-      {catalogState === 'error' ? (
-        <p className="form-message error">{catalogMessage}</p>
+      {catalogMessage ? (
+        <p className={catalogState === 'error' ? 'form-message error' : 'helper-copy'}>
+          {catalogMessage}
+        </p>
+      ) : null}
+      {catalogState === 'ready' && !products.length ? (
+        <p className="helper-copy">No products are available in this view yet.</p>
       ) : null}
 
       <div className="catalog-grid">
@@ -83,16 +88,18 @@ export function CatalogSection({
                 ))}
               </div>
             </div>
-            <div className="product-footer">
-              <button
-                className="solid-button"
-                type="button"
-                onClick={() => onAddToCart(product.id)}
-                disabled={busyProductId === product.id}
-              >
-                {busyProductId === product.id ? 'Adding…' : 'Add to cart'}
-              </button>
-            </div>
+            {onAddToCart ? (
+              <div className="product-footer">
+                <button
+                  className="solid-button"
+                  type="button"
+                  onClick={() => onAddToCart(product.id)}
+                  disabled={busyProductId === product.id}
+                >
+                  {busyProductId === product.id ? 'Adding…' : 'Add to cart'}
+                </button>
+              </div>
+            ) : null}
           </article>
         ))}
       </div>

@@ -7,6 +7,7 @@ import { formatMoney } from '../lib/format';
 export interface CategoryFormState {
   id: string;
   name: string;
+  slug: string;
   imagesText: string;
 }
 
@@ -69,7 +70,11 @@ export function CategoriesSection({
           </div>
           {categories.map((category) => (
             <div key={category.id} className="admin-table-row">
-              <strong>{category.name}</strong>
+              <div>
+                <strong>{category.name}</strong>
+                <br />
+                <code>{category.slug}</code>
+              </div>
               <span>{parseImageCount(category.images)}</span>
               <span>{category.product_count}</span>
               <div className="row-actions">

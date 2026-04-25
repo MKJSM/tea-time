@@ -42,7 +42,9 @@ import { CartSection } from './components/CartSection';
 import { HeroSlider } from './components/HeroSlider';
 import { CategoriesSection, HowWeBrew } from './components/MarketingContent';
 import { OrdersSection } from './components/OrdersSection';
+import { buildProductsPath } from './lib/catalog';
 import { ensureRazorpayScript } from './lib/razorpay';
+import { useSiteTheme } from './lib/theme';
 
 declare global {
   interface Window {
@@ -93,6 +95,7 @@ const fallbackBanners: Banner[] = [
     media_kind: 'image',
     content_mode: 'structured',
     content_html: null,
+    content_json: null,
     background_type: 'image',
     background_value: '/assets/home-Dr3wWsX4.webp',
     overlay_color: 'rgba(17, 24, 18, 0.28)',
@@ -119,21 +122,7 @@ function normalizeAddressForm(address?: Address): AddressInput {
 }
 
 export function HomePage() {
-  const [theme, setTheme] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('mt-theme') || 'light';
-    }
-    return 'light';
-  });
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('mt-theme', theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
-  };
+  const { theme, toggleTheme } = useSiteTheme();
 
   const [banners, setBanners] = useState<Banner[]>(fallbackBanners);
   const [categories, setCategories] = useState<CategoryListItem[]>([]);
@@ -540,6 +529,7 @@ export function HomePage() {
           <nav className={`site-nav ${mobileMenuOpen ? 'is-open' : ''}`}>
             <a href="#home" onClick={() => setMobileMenuOpen(false)}>Home</a>
             <a href="#categories" onClick={() => setMobileMenuOpen(false)}>Menu</a>
+            <a href="/products" onClick={() => setMobileMenuOpen(false)}>Products</a>
             <a href="#ritual" onClick={() => setMobileMenuOpen(false)}>Process</a>
             <a href="#contact" onClick={() => setMobileMenuOpen(false)}>Contact</a>
           </nav>
@@ -576,6 +566,7 @@ export function HomePage() {
         categories={categories}
         state={categoriesState}
         message={categoriesMessage}
+        getCategoryHref={(category) => buildProductsPath(category.slug)}
       />
       <HowWeBrew />
 

@@ -84,7 +84,7 @@ const dashboardSections: DashboardSection[] = [
   { key: 'payments', id: 'admin-payments', label: 'Payments' },
 ];
 
-const emptyCategory: CategoryFormState = { id: '', name: '', imagesText: '' };
+const emptyCategory: CategoryFormState = { id: '', name: '', slug: '', imagesText: '' };
 
 const emptyProduct: ProductFormState = {
   id: '',
@@ -137,6 +137,14 @@ function sectionId(section: DashboardSectionKey): string {
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   return String(error);
+}
+
+function slugifyCategoryName(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 function isSessionError(message: string): boolean {
@@ -433,6 +441,7 @@ export function AdminApp() {
     event.preventDefault();
     const payload: CategoryInput = {
       name: categoryForm.name,
+      slug: categoryForm.slug,
       images: parseImageField(categoryForm.imagesText),
     };
     try {
@@ -592,6 +601,7 @@ export function AdminApp() {
     setCategoryForm({
       id: category.id,
       name: category.name,
+      slug: category.slug,
       imagesText: imageFieldToString(category.images),
     });
     setActiveModal('category');
@@ -623,6 +633,7 @@ export function AdminApp() {
       media_kind: banner.media_kind === 'video' ? 'video' : 'image',
       content_mode: banner.content_mode === 'html' ? 'html' : 'structured',
       content_html: banner.content_html ?? '',
+      content_json: banner.content_json,
       background_type:
         banner.background_type === 'image' ||
           banner.background_type === 'video' ||
@@ -840,9 +851,27 @@ export function AdminApp() {
             Name
             <input
               value={categoryForm.name}
-              onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+              onChange={(e) =>
+                setCategoryForm((current) => {
+                  const name = e.target.value;
+                  return {
+                    ...current,
+                    name,
+                    slug: current.slug ? current.slug : slugifyCategoryName(name),
+                  };
+                })
+              }
               placeholder="Black Tea"
             />
+          </label>
+          <label>
+            Slug
+            <input
+              value={categoryForm.slug}
+              onChange={(e) => setCategoryForm({ ...categoryForm, slug: e.target.value })}
+              placeholder="black-tea"
+            />
+            <small className="helper-copy">Used in /products?category=...</small>
           </label>
           <label>
             Image URLs
@@ -936,7 +965,7 @@ export function AdminApp() {
         isOpen={activeModal === 'banner'}
         onClose={() => setActiveModal(null)}
         title={bannerEditingId ? 'Edit Banner' : 'Create Banner'}
-        width="min(94vw, 1200px)"
+        width="min(98vw, 1400px)"
       >
         <BannersSection
           bannerForm={bannerForm}
