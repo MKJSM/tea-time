@@ -31,6 +31,6 @@ async fn list(
 async fn get_one(
     State(state): State<AppState>,
     Path(id): Path<String>,
-) -> Result<Json<backend_product::ProductListItem>, AppError> {
+) -> Result<Json<backend_product::ProductDetail>, AppError> {
     Ok(Json(backend_product::get(&state.db, &id).await?))
 }

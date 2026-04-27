@@ -25,6 +25,7 @@ import type {
   OrderSummary,
   PaymentDetailResponse,
   PaymentRecord,
+  ProductDetail,
   ProductInput,
   ProductListItem,
   UpdateCustomerProfileInput,
@@ -114,18 +115,18 @@ export function getProducts(scope: 'customer' | 'admin' = 'customer', categoryId
 }
 
 export function getProduct(id: string, scope: 'customer' | 'admin' = 'customer') {
-  return requestJson<ProductListItem>(`${apiBase(scope)}/products/${id}`);
+  return requestJson<ProductDetail>(`${apiBase(scope)}/products/${id}`);
 }
 
 export function createProduct(input: ProductInput) {
-  return requestJson<ProductListItem>(`${apiBase('admin')}/products`, {
+  return requestJson<ProductDetail>(`${apiBase('admin')}/products`, {
     method: 'POST',
     body: input,
   });
 }
 
 export function updateProduct(id: string, input: ProductInput) {
-  return requestJson<ProductListItem>(`${apiBase('admin')}/products/${id}`, {
+  return requestJson<ProductDetail>(`${apiBase('admin')}/products/${id}`, {
     method: 'PATCH',
     body: input,
   });

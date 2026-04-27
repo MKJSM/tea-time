@@ -610,7 +610,7 @@ code {
   gap: 20px;
 }
 
-.banner-editor-form--grapes {
+.banner-editor-form--grapes-3zone {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 24px;
@@ -618,11 +618,46 @@ code {
   padding: 0;
 }
 
-.banner-editor-grid {
+.banner-editor-3zone-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 400px;
+  grid-template-columns: 320px minmax(0, 1fr) 400px;
   gap: 24px;
   align-items: start;
+}
+
+.banner-sidebar-1,
+.banner-sidebar-2 {
+  position: sticky;
+  top: 104px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  height: auto;
+}
+
+.paste-html-modal {
+  width: min(800px, 90vw);
+  display: grid;
+  gap: 16px;
+}
+
+.paste-area {
+  width: 100%;
+  min-height: 320px;
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Monaco, Consolas, 'Courier New', monospace;
+  font-size: 13px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface-soft);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 .banner-editor-canvas-wrap {

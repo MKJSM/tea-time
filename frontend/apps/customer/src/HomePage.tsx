@@ -395,7 +395,11 @@ export function HomePage() {
     }
     setBusyProductId(productId);
     try {
-      const response = await addCartItem({ product_id: productId, quantity: 1 });
+      const response = await addCartItem({
+        product_id: productId,
+        quantity: 1,
+        selected_customization_option_ids: [],
+      });
       setCart(response);
       setOrderMessage('Product added to cart.');
     } catch (error) {
@@ -519,7 +523,6 @@ export function HomePage() {
           </a>
           <nav className={`site-nav ${mobileMenuOpen ? 'is-open' : ''}`}>
             <a href="#home" onClick={() => setMobileMenuOpen(false)}>Home</a>
-            <a href="#categories" onClick={() => setMobileMenuOpen(false)}>Menu</a>
             <a href="/products" onClick={() => setMobileMenuOpen(false)}>Products</a>
             <a href="#ritual" onClick={() => setMobileMenuOpen(false)}>Process</a>
             <a href="#contact" onClick={() => setMobileMenuOpen(false)}>Contact</a>

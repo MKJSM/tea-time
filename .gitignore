@@ -5,6 +5,7 @@
 /frontend/*.tsbuildinfo
 /.codex
 /.DS_Store
+backend/.env
 backend/server/public
 sample
 backend/server/public/*

@@ -117,7 +117,6 @@ export function ProductsPage() {
           </a>
           <nav className="site-nav">
             <a href="/">Home</a>
-            <a href="/#categories">Menu</a>
             <a href="/products">Products</a>
             <a href="/#ritual">Process</a>
             <a href="/#contact">Contact</a>

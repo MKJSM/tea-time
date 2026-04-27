@@ -1,9 +1,21 @@
+use std::collections::{BTreeMap, BTreeSet};
+
 use backend_address::{get_default_for_user, Address};
 use backend_shared::{map_pool_error_to_app_error, AppError};
 use deadpool_postgres::Pool;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use tokio_postgres::Row;
 use uuid::Uuid;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SelectedCustomizationSnapshot {
+    pub group_id: String,
+    pub group_name: String,
+    pub option_id: String,
+    pub option_name: String,
+    pub price_delta: f64,
+}
 
 #[derive(Debug, Clone, Serialize)]
 pub struct CartItem {
@@ -14,6 +26,7 @@ pub struct CartItem {
     pub quantity: i32,
     pub unit_price: f64,
     pub line_total: f64,
+    pub selected_customizations: Vec<SelectedCustomizationSnapshot>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -27,6 +40,8 @@ pub struct CartResponse {
 pub struct CartItemInput {
     pub product_id: String,
     pub quantity: i32,
+    #[serde(default)]
+    pub selected_customization_option_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -65,6 +80,19 @@ pub struct CheckoutResult {
     pub currency: String,
 }
 
+#[derive(Debug, Clone)]
+struct CustomizationGroupRow {
+    group_id: String,
+    group_name: String,
+    min_select: i32,
+    max_select: i32,
+    sort_order: i32,
+    option_id: Option<String>,
+    option_name: Option<String>,
+    option_price_delta: Option<f64>,
+    option_sort_order: Option<i32>,
+}
+
 pub async fn get_cart(pool: &Pool, user_id: &str) -> Result<CartResponse, AppError> {
     let cart_id = ensure_cart(pool, user_id).await?;
     load_cart(pool, &cart_id).await
@@ -78,6 +106,7 @@ pub async fn add_cart_item(
     validate_qty(input.quantity)?;
     let cart_id = ensure_cart(pool, user_id).await?;
     let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
+
     let product = client
         .query_opt(
             "SELECT id::text, name, price FROM product WHERE id = $1::text::uuid",
@@ -86,13 +115,37 @@ pub async fn add_cart_item(
         .await?;
     let product = product.ok_or_else(|| AppError::NotFound("product not found".into()))?;
     let price: f64 = product.get(2);
-    client.execute(
-        "INSERT INTO cart_item (id, cart_id, product_id, quantity, unit_price_snapshot)
-         VALUES ($1::text::uuid, $2::text::uuid, $3::text::uuid, $4, $5)
-         ON CONFLICT (cart_id, product_id)
-         DO UPDATE SET quantity = cart_item.quantity + EXCLUDED.quantity, unit_price_snapshot = EXCLUDED.unit_price_snapshot, modified_on = NOW()",
-        &[&Uuid::new_v4().to_string(), &cart_id, &input.product_id, &input.quantity, &price]
-    ).await?;
+
+    let customization_groups = load_product_customizations(&client, &input.product_id).await?;
+    let selection = resolve_customization_selection(
+        &customization_groups,
+        &input.selected_customization_option_ids,
+    )?;
+    let selected_customizations_json = serde_json::to_value(&selection)
+        .map_err(|error| AppError::Config(format!("failed to serialize customization snapshot: {error}")))?;
+    let selection_price_delta: f64 = selection.iter().map(|item| item.price_delta).sum();
+    let unit_price = price + selection_price_delta;
+
+    client
+        .execute(
+            r#"
+            INSERT INTO cart_item
+                (id, cart_id, product_id, quantity, unit_price_snapshot, selected_customizations_json)
+            VALUES
+                ($1::text::uuid, $2::text::uuid, $3::text::uuid, $4, $5, $6)
+            ON CONFLICT (cart_id, product_id, selected_customizations_json)
+            DO UPDATE SET quantity = cart_item.quantity + EXCLUDED.quantity, modified_on = NOW()
+            "#,
+            &[
+                &Uuid::new_v4().to_string(),
+                &cart_id,
+                &input.product_id,
+                &input.quantity,
+                &unit_price,
+                &selected_customizations_json,
+            ],
+        )
+        .await?;
     load_cart(pool, &cart_id).await
 }
 
@@ -167,10 +220,12 @@ pub async fn checkout(
           &address.country, &address.landmark]
     ).await?;
     for item in &cart.items {
+        let selected_customizations_json = serde_json::to_value(&item.selected_customizations)
+            .map_err(|error| AppError::Config(format!("failed to serialize customization snapshot: {error}")))?;
         tx.execute(
-            "INSERT INTO order_item (id, order_id, product_id, product_name_snapshot, unit_price, quantity, line_total)
-             VALUES ($1::text::uuid, $2::text::uuid, $3::text::uuid, $4, $5, $6, $7)",
-            &[&Uuid::new_v4().to_string(), &order_id, &item.product_id, &item.product_name, &item.unit_price, &item.quantity, &item.line_total]
+            "INSERT INTO order_item (id, order_id, product_id, product_name_snapshot, unit_price, quantity, line_total, selected_customizations_json)
+             VALUES ($1::text::uuid, $2::text::uuid, $3::text::uuid, $4, $5, $6, $7, $8)",
+            &[&Uuid::new_v4().to_string(), &order_id, &item.product_id, &item.product_name, &item.unit_price, &item.quantity, &item.line_total, &selected_customizations_json]
         ).await?;
     }
     tx.execute(
@@ -286,20 +341,18 @@ async fn get_order(
     };
     let row = row.ok_or_else(|| AppError::NotFound("order not found".into()))?;
     let address_id: String = row.get(6);
-    let address_user_id = user_id.unwrap_or_else(|| "");
     let address = if let Some(user_id) = user_id {
         backend_address::get_for_user(pool, user_id, &address_id).await?
     } else {
         load_address_any(pool, &address_id).await?
     };
     let item_rows = client.query(
-        "SELECT oi.id::text, oi.product_id::text, oi.product_name_snapshot, COALESCE(p.images, '{}'::text[]), oi.quantity, oi.unit_price, oi.line_total
+        "SELECT oi.id::text, oi.product_id::text, oi.product_name_snapshot, COALESCE(p.images, '{}'::text[]), oi.quantity, oi.unit_price, oi.line_total, oi.selected_customizations_json
          FROM order_item oi
          LEFT JOIN product p ON p.id = oi.product_id
          WHERE oi.order_id = $1::text::uuid",
         &[&order_id]
     ).await?;
-    let _ = address_user_id;
     Ok(OrderDetail {
         id: row.get(0),
         order_number: row.get(1),
@@ -336,7 +389,7 @@ async fn ensure_cart(pool: &Pool, user_id: &str) -> Result<String, AppError> {
 async fn load_cart(pool: &Pool, cart_id: &str) -> Result<CartResponse, AppError> {
     let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
     let rows = client.query(
-        "SELECT ci.id::text, ci.product_id::text, p.name, p.images, ci.quantity, ci.unit_price_snapshot, (ci.quantity * ci.unit_price_snapshot) AS line_total
+        "SELECT ci.id::text, ci.product_id::text, p.name, p.images, ci.quantity, ci.unit_price_snapshot, (ci.quantity * ci.unit_price_snapshot) AS line_total, ci.selected_customizations_json
          FROM cart_item ci
          JOIN product p ON p.id = ci.product_id
          WHERE ci.cart_id = $1::text::uuid
@@ -352,7 +405,127 @@ async fn load_cart(pool: &Pool, cart_id: &str) -> Result<CartResponse, AppError>
     })
 }
 
+async fn load_product_customizations(
+    client: &deadpool_postgres::Client,
+    product_id: &str,
+) -> Result<Vec<CustomizationGroupRow>, AppError> {
+    let rows = client
+        .query(
+            r#"
+            SELECT
+                g.id::text AS group_id,
+                g.name AS group_name,
+                g.min_select,
+                g.max_select,
+                g.sort_order,
+                o.id::text AS option_id,
+                o.name AS option_name,
+                o.price_delta AS option_price_delta,
+                o.sort_order AS option_sort_order
+            FROM product_customization_group g
+            LEFT JOIN product_customization_option o ON o.group_id = g.id
+            WHERE g.product_id = $1::text::uuid
+            ORDER BY g.sort_order ASC, o.sort_order ASC, o.created_on ASC
+            "#,
+            &[&product_id],
+        )
+        .await?;
+
+    let mut result = Vec::with_capacity(rows.len());
+    for row in rows {
+        result.push(CustomizationGroupRow {
+            group_id: row.get(0),
+            group_name: row.get(1),
+            min_select: row.get(2),
+            max_select: row.get(3),
+            sort_order: row.get(4),
+            option_id: row.get(5),
+            option_name: row.get(6),
+            option_price_delta: row.get(7),
+            option_sort_order: row.get(8),
+        });
+    }
+    Ok(result)
+}
+
+fn resolve_customization_selection(
+    rows: &[CustomizationGroupRow],
+    selected_option_ids: &[String],
+) -> Result<Vec<SelectedCustomizationSnapshot>, AppError> {
+    let mut groups: BTreeMap<String, GroupAccumulator> = BTreeMap::new();
+    for row in rows {
+        let entry = groups.entry(row.group_id.clone()).or_insert_with(|| GroupAccumulator {
+            group_id: row.group_id.clone(),
+            group_name: row.group_name.clone(),
+            min_select: row.min_select,
+            max_select: row.max_select,
+            sort_order: row.sort_order,
+            options: Vec::new(),
+        });
+        if let Some(option_id) = &row.option_id {
+            entry.options.push(OptionAccumulator {
+                option_id: option_id.clone(),
+                option_name: row.option_name.clone().unwrap_or_default(),
+                price_delta: row.option_price_delta.unwrap_or(0.0),
+                sort_order: row.option_sort_order.unwrap_or(0),
+            });
+        }
+    }
+
+    let mut selected_ids = BTreeSet::new();
+    for option_id in selected_option_ids {
+        if !selected_ids.insert(option_id.clone()) {
+            return Err(AppError::BadRequest(
+                "duplicate customization options are not allowed".into(),
+            ));
+        }
+    }
+
+    let mut selection = Vec::new();
+    let mut matched_option_ids = BTreeSet::new();
+
+    let mut ordered_groups: Vec<GroupAccumulator> = groups.into_values().collect();
+    ordered_groups.sort_by_key(|group| group.sort_order);
+
+    for group in ordered_groups {
+        let mut chosen = Vec::new();
+        for option in &group.options {
+            if selected_ids.contains(&option.option_id) {
+                chosen.push(option.clone());
+                matched_option_ids.insert(option.option_id.clone());
+            }
+        }
+
+        if chosen.len() < group.min_select as usize || chosen.len() > group.max_select as usize {
+            return Err(AppError::BadRequest(format!(
+                "customization group '{}' requires between {} and {} selection(s)",
+                group.group_name, group.min_select, group.max_select
+            )));
+        }
+
+        chosen.sort_by_key(|option| option.sort_order);
+        for option in chosen {
+            selection.push(SelectedCustomizationSnapshot {
+                group_id: group.group_id.clone(),
+                group_name: group.group_name.clone(),
+                option_id: option.option_id,
+                option_name: option.option_name,
+                price_delta: option.price_delta,
+            });
+        }
+    }
+
+    if matched_option_ids.len() != selected_ids.len() {
+        return Err(AppError::BadRequest(
+            "one or more selected customization options are invalid".into(),
+        ));
+    }
+
+    Ok(selection)
+}
+
 fn map_cart_item(row: &Row) -> CartItem {
+    let selected_customizations_json: Value = row.get(7);
     CartItem {
         id: row.get(0),
         product_id: row.get(1),
@@ -361,10 +534,12 @@ fn map_cart_item(row: &Row) -> CartItem {
         quantity: row.get(4),
         unit_price: row.get(5),
         line_total: row.get(6),
+        selected_customizations: parse_selected_customizations(selected_customizations_json),
     }
 }
 
 fn map_order_item(row: &Row) -> CartItem {
+    let selected_customizations_json: Value = row.get(7);
     CartItem {
         id: row.get(0),
         product_id: row.get(1),
@@ -373,7 +548,12 @@ fn map_order_item(row: &Row) -> CartItem {
         quantity: row.get(4),
         unit_price: row.get(5),
         line_total: row.get(6),
+        selected_customizations: parse_selected_customizations(selected_customizations_json),
     }
+}
+
+fn parse_selected_customizations(value: Value) -> Vec<SelectedCustomizationSnapshot> {
+    serde_json::from_value(value).unwrap_or_default()
 }
 
 fn map_order_summary(row: &Row) -> OrderSummary {
@@ -419,4 +599,97 @@ fn validate_qty(quantity: i32) -> Result<(), AppError> {
         ));
     }
     Ok(())
+}
+
+#[derive(Clone)]
+struct GroupAccumulator {
+    group_id: String,
+    group_name: String,
+    min_select: i32,
+    max_select: i32,
+    sort_order: i32,
+    options: Vec<OptionAccumulator>,
+}
+
+#[derive(Clone)]
+struct OptionAccumulator {
+    option_id: String,
+    option_name: String,
+    price_delta: f64,
+    sort_order: i32,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample_rows() -> Vec<CustomizationGroupRow> {
+        vec![
+            CustomizationGroupRow {
+                group_id: "group-1".into(),
+                group_name: "Strength".into(),
+                min_select: 0,
+                max_select: 1,
+                sort_order: 1,
+                option_id: Some("option-a".into()),
+                option_name: Some("Light".into()),
+                option_price_delta: Some(0.0),
+                option_sort_order: Some(1),
+            },
+            CustomizationGroupRow {
+                group_id: "group-1".into(),
+                group_name: "Strength".into(),
+                min_select: 0,
+                max_select: 1,
+                sort_order: 1,
+                option_id: Some("option-b".into()),
+                option_name: Some("Bold".into()),
+                option_price_delta: Some(18.0),
+                option_sort_order: Some(2),
+            },
+            CustomizationGroupRow {
+                group_id: "group-2".into(),
+                group_name: "Finish".into(),
+                min_select: 0,
+                max_select: 1,
+                sort_order: 2,
+                option_id: Some("option-c".into()),
+                option_name: Some("Honey".into()),
+                option_price_delta: Some(10.0),
+                option_sort_order: Some(1),
+            },
+        ]
+    }
+
+    #[test]
+    fn resolves_snapshot_and_price() {
+        let selection = resolve_customization_selection(
+            &sample_rows(),
+            &["option-b".to_string(), "option-c".to_string()],
+        )
+        .expect("selection should resolve");
+
+        assert_eq!(selection.len(), 2);
+        assert_eq!(selection[0].group_name, "Strength");
+        assert_eq!(selection[0].option_name, "Bold");
+        assert_eq!(selection[1].group_name, "Finish");
+        assert_eq!(selection[1].price_delta, 10.0);
+    }
+
+    #[test]
+    fn rejects_unknown_option() {
+        let error = resolve_customization_selection(&sample_rows(), &["missing".into()])
+            .unwrap_err();
+        assert!(error.to_string().contains("invalid"));
+    }
+
+    #[test]
+    fn rejects_duplicate_option() {
+        let error = resolve_customization_selection(
+            &sample_rows(),
+            &["option-b".into(), "option-b".into()],
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("duplicate"));
+    }
 }

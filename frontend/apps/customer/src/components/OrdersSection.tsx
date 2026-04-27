@@ -1,6 +1,10 @@
 import type { OrderDetail, OrderSummary } from '@tea-time/types';
 import { formatDate, formatMoney } from '../lib/format';
 
+function describeCustomizations(selected: OrderDetail['items'][number]['selected_customizations']) {
+  return selected.map((item) => `${item.group_name}: ${item.option_name}`).join(' · ');
+}
+
 interface Props {
   orders: OrderSummary[];
   selectedOrder: OrderDetail | null;
@@ -68,6 +72,7 @@ export function OrdersSection({ orders, selectedOrder, onOrderOpen }: Props) {
                   <div key={item.id} className="mini-row">
                     <span>
                       {item.product_name} x {item.quantity}
+                      {item.selected_customizations.length ? ` · ${describeCustomizations(item.selected_customizations)}` : ''}
                     </span>
                     <strong>{formatMoney(item.line_total, selectedOrder.currency)}</strong>
                   </div>

@@ -294,8 +294,8 @@ fn normalize_optional_text(value: Option<String>) -> Option<String> {
 
 fn sanitize_banner_html(html: &str) -> String {
     let mut builder = ammonia::Builder::default();
-    builder.rm_clean_content_tags(["style"]);
     builder
+        .rm_clean_content_tags(["style"])
         .add_tags([
             "a", "article", "aside", "blockquote", "br", "button", "code", "div", "em", "figure",
             "figcaption", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "img",

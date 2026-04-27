@@ -8,6 +8,10 @@ export function buildProductsPath(categorySlug?: string | null) {
   return `/products?${params.toString()}`;
 }
 
+export function buildProductPath(productId: string) {
+  return `/product/${productId}`;
+}
+
 export function readCategorySlug(search: string) {
   const value = new URLSearchParams(search).get('category');
   const normalized = value?.trim().toLowerCase();

@@ -1,6 +1,10 @@
 import type { Address, CartResponse, CheckoutResult, OrderDetail } from '@tea-time/types';
 import { formatMoney } from '../lib/format';
 
+function describeCustomizations(selected: OrderDetail['items'][number]['selected_customizations']) {
+  return selected.map((item) => `${item.group_name}: ${item.option_name}`).join(' · ');
+}
+
 interface Props {
   session: boolean;
   cart: CartResponse | null;
@@ -52,6 +56,9 @@ export function CartSection({
                   </div>
                   <div>
                     <strong>{item.product_name}</strong>
+                    {item.selected_customizations.length ? (
+                      <p className="cart-customizations">{describeCustomizations(item.selected_customizations)}</p>
+                    ) : null}
                     <p>
                       {formatMoney(item.unit_price)} each · {formatMoney(item.line_total)}
                     </p>
@@ -83,7 +90,7 @@ export function CartSection({
             ))}
           </div>
         ) : (
-          <p className="helper-copy">Your cart is empty. Add products from the menu first.</p>
+          <p className="helper-copy">Your cart is empty. Add products from the catalog first.</p>
         )}
       </section>
 
@@ -129,15 +136,16 @@ export function CartSection({
             <p>
               {selectedOrder.status} · {formatMoney(selectedOrder.total_amount, selectedOrder.currency)}
             </p>
-            <div className="mini-list">
-              {selectedOrder.items.map((item) => (
-                <div key={item.id} className="mini-row">
-                  <span>
-                    {item.product_name} x {item.quantity}
-                  </span>
-                  <strong>{formatMoney(item.line_total, selectedOrder.currency)}</strong>
-                </div>
-              ))}
+                <div className="mini-list">
+                  {selectedOrder.items.map((item) => (
+                    <div key={item.id} className="mini-row">
+                      <span>
+                        {item.product_name} x {item.quantity}
+                        {item.selected_customizations.length ? ` · ${describeCustomizations(item.selected_customizations)}` : ''}
+                      </span>
+                      <strong>{formatMoney(item.line_total, selectedOrder.currency)}</strong>
+                    </div>
+                  ))}
             </div>
           </article>
         ) : null}

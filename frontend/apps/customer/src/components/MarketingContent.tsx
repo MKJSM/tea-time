@@ -177,7 +177,7 @@ export function WhySection() {
           ))}
         </div>
         <div className="marketing-cta-row">
-          <a className="solid-button marketing-cta-btn" href="#menu">
+          <a className="solid-button marketing-cta-btn" href="#categories">
             Upgrade Your Workplace Breaks Today →
           </a>
         </div>
@@ -329,7 +329,7 @@ export function CTABand() {
             customized flask delivery — all in one.
           </p>
           <div className="cta-band-actions">
-            <a className="solid-button" href="#menu">
+            <a className="solid-button" href="#categories">
               Get Started Free →
             </a>
             <button className="outline-button" type="button">

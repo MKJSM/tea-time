@@ -29,3 +29,14 @@ export function parseImageField(value: string) {
     .map((item) => item.trim())
     .filter(Boolean);
 }
+
+export function parseLineField(value: string) {
+  return value
+    .split('\n')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+export function lineFieldToString(items: string[]) {
+  return items.join('\n');
+}

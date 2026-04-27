@@ -18,6 +18,15 @@ export interface ProductFormState {
   imagesText: string;
   price: string;
   description: string;
+  rating: string;
+  origin: string;
+  caffeine: string;
+  format: string;
+  story: string;
+  tagsText: string;
+  flavorProfileText: string;
+  brewingGuideText: string;
+  customizationGroupsText: string;
   categoryIds: string[];
 }
 
@@ -241,7 +250,8 @@ export function ProductsSection({
             <p className="section-kicker">Catalog</p>
             <h2>Products</h2>
             <p className="section-copy">
-              Manage product cards, category links, and image uploads from one place.
+              Manage product cards, category links, and image uploads from one place across{' '}
+              {categories.length} categories.
             </p>
           </div>
           <button className="add-button" onClick={onAddProduct}>

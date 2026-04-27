@@ -45,8 +45,67 @@ export interface ProductListItem {
   images: string[];
   price: number;
   description: string | null;
+  rating: number;
+  origin: string | null;
+  caffeine: string | null;
+  format: string | null;
+  tags: string[];
+  flavor_profile: string[];
   category_ids: string[];
   categories: string[];
+}
+
+export interface ProductCustomizationOption {
+  id: string;
+  name: string;
+  description: string | null;
+  price_delta: number;
+  sort_order: number;
+}
+
+export interface ProductCustomizationGroup {
+  id: string;
+  name: string;
+  description: string | null;
+  min_select: number;
+  max_select: number;
+  sort_order: number;
+  options: ProductCustomizationOption[];
+}
+
+export interface ProductCustomizationGroupInput {
+  name: string;
+  description: string | null;
+  min_select: number;
+  max_select: number;
+  sort_order: number;
+  options: ProductCustomizationOptionInput[];
+}
+
+export interface ProductCustomizationOptionInput {
+  name: string;
+  description: string | null;
+  price_delta: number;
+  sort_order: number;
+}
+
+export interface ProductDetail {
+  id: string;
+  name: string;
+  images: string[];
+  price: number;
+  description: string | null;
+  rating: number;
+  origin: string | null;
+  caffeine: string | null;
+  format: string | null;
+  story: string | null;
+  tags: string[];
+  flavor_profile: string[];
+  brewing_guide: string[];
+  category_ids: string[];
+  categories: string[];
+  customization_groups: ProductCustomizationGroup[];
 }
 
 export interface ProductInput {
@@ -54,7 +113,16 @@ export interface ProductInput {
   images: string[];
   price: number;
   description: string | null;
+  rating: number;
+  origin: string | null;
+  caffeine: string | null;
+  format: string | null;
+  story: string | null;
+  tags: string[];
+  flavor_profile: string[];
+  brewing_guide: string[];
   category_ids: string[];
+  customization_groups: ProductCustomizationGroupInput[];
 }
 
 export type BannerMediaKind = 'image' | 'video' | string;
@@ -365,6 +433,7 @@ export interface CartItem {
   quantity: number;
   unit_price: number;
   line_total: number;
+  selected_customizations: CustomizationSelectionSnapshot[];
 }
 
 export interface CartResponse {
@@ -376,6 +445,15 @@ export interface CartResponse {
 export interface CartItemInput {
   product_id: string;
   quantity: number;
+  selected_customization_option_ids: string[];
+}
+
+export interface CustomizationSelectionSnapshot {
+  group_id: string;
+  group_name: string;
+  option_id: string;
+  option_name: string;
+  price_delta: number;
 }
 
 export interface CheckoutInput {

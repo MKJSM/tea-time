@@ -17,6 +17,7 @@ import {
   getPayment,
   getPayments,
   getProducts,
+  getProduct,
   getUser,
   getUsers,
   logoutAdmin,
@@ -61,7 +62,7 @@ import { OrdersSection, PaymentsSection } from './components/OrdersSection';
 import { OverviewSection } from './components/OverviewSection';
 import { AdminModal } from './components/Modal';
 import { ThemeToggle } from './components/ThemeToggle';
-import { imageFieldToString, parseImageField } from './lib/format';
+import { imageFieldToString, lineFieldToString, parseImageField, parseLineField } from './lib/format';
 
 type DashboardSectionKey =
   | 'overview'
@@ -97,6 +98,15 @@ const emptyProduct: ProductFormState = {
   imagesText: '',
   price: '0',
   description: '',
+  rating: '4.7',
+  origin: '',
+  caffeine: '',
+  format: '',
+  story: '',
+  tagsText: '',
+  flavorProfileText: '',
+  brewingGuideText: '',
+  customizationGroupsText: '[]',
   categoryIds: [],
 };
 
@@ -166,6 +176,16 @@ function slugifyCategoryName(value: string): string {
 
 function isSessionError(message: string): boolean {
   return /admin session/i.test(message);
+}
+
+function parseCustomizationGroups(value: string): ProductInput['customization_groups'] {
+  const trimmed = value.trim();
+  if (!trimmed) return [];
+  const parsed = JSON.parse(trimmed) as ProductInput['customization_groups'];
+  if (!Array.isArray(parsed)) {
+    throw new Error('Customization groups must be a JSON array.');
+  }
+  return parsed;
 }
 
 function createResetState(setters: {
@@ -660,14 +680,23 @@ export function AdminApp() {
 
   async function submitProduct(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const payload: ProductInput = {
-      name: productForm.name,
-      images: parseImageField(productForm.imagesText),
-      price: Number(productForm.price),
-      description: productForm.description || null,
-      category_ids: productForm.categoryIds,
-    };
     try {
+      const payload: ProductInput = {
+        name: productForm.name,
+        images: parseImageField(productForm.imagesText),
+        price: Number(productForm.price),
+        description: productForm.description || null,
+        rating: Number(productForm.rating),
+        origin: productForm.origin.trim() || null,
+        caffeine: productForm.caffeine.trim() || null,
+        format: productForm.format.trim() || null,
+        story: productForm.story.trim() || null,
+        tags: parseLineField(productForm.tagsText),
+        flavor_profile: parseLineField(productForm.flavorProfileText),
+        brewing_guide: parseLineField(productForm.brewingGuideText),
+        category_ids: productForm.categoryIds,
+        customization_groups: parseCustomizationGroups(productForm.customizationGroupsText),
+      };
       if (productForm.id) {
         await updateProduct(productForm.id, payload);
         setMessage('Product updated.');
@@ -776,16 +805,35 @@ export function AdminApp() {
     setActiveModal('category');
   }
 
-  function editProduct(product: ProductListItem) {
-    setProductForm({
-      id: product.id,
-      name: product.name,
-      imagesText: imageFieldToString(product.images),
-      price: String(product.price),
-      description: product.description ?? '',
-      categoryIds: product.category_ids,
-    });
-    setActiveModal('product');
+  async function editProduct(product: ProductListItem) {
+    try {
+      const detail = await getProduct(product.id, 'admin');
+      setProductForm({
+        id: detail.id,
+        name: detail.name,
+        imagesText: imageFieldToString(detail.images),
+        price: String(detail.price),
+        description: detail.description ?? '',
+        rating: String(detail.rating),
+        origin: detail.origin ?? '',
+        caffeine: detail.caffeine ?? '',
+        format: detail.format ?? '',
+        story: detail.story ?? '',
+        tagsText: lineFieldToString(detail.tags),
+        flavorProfileText: lineFieldToString(detail.flavor_profile),
+        brewingGuideText: lineFieldToString(detail.brewing_guide),
+        customizationGroupsText: JSON.stringify(detail.customization_groups, null, 2),
+        categoryIds: detail.category_ids,
+      });
+      setActiveModal('product');
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      if (isSessionError(errorMessage)) {
+        await handleLogout();
+        return;
+      }
+      setMessage(errorMessage);
+    }
   }
 
   async function removeCategory(id: string) {
@@ -876,7 +924,7 @@ export function AdminApp() {
           <ProductsSection
             categories={categories}
             products={products}
-            onEditProduct={editProduct}
+            onEditProduct={(product) => void editProduct(product)}
             onDeleteProduct={(id) => void removeProduct(id)}
             onAddProduct={() => {
               setProductForm(emptyProduct);
@@ -1071,21 +1119,94 @@ export function AdminApp() {
               placeholder=""
             />
           </label>
-          <label>
-            Price
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={productForm.price}
-              onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
-            />
-          </label>
+          <div className="split-inputs">
+            <label>
+              Price
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={productForm.price}
+                onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
+              />
+            </label>
+            <label>
+              Rating
+              <input
+                type="number"
+                min="0"
+                max="5"
+                step="0.1"
+                value={productForm.rating}
+                onChange={(e) => setProductForm({ ...productForm, rating: e.target.value })}
+              />
+            </label>
+          </div>
+          <div className="split-inputs">
+            <label>
+              Origin
+              <input
+                value={productForm.origin}
+                onChange={(e) => setProductForm({ ...productForm, origin: e.target.value })}
+              />
+            </label>
+            <label>
+              Caffeine
+              <input
+                value={productForm.caffeine}
+                onChange={(e) => setProductForm({ ...productForm, caffeine: e.target.value })}
+              />
+            </label>
+          </div>
+          <div className="split-inputs">
+            <label>
+              Format
+              <input
+                value={productForm.format}
+                onChange={(e) => setProductForm({ ...productForm, format: e.target.value })}
+              />
+            </label>
+            <label>
+              Story
+              <input
+                value={productForm.story}
+                onChange={(e) => setProductForm({ ...productForm, story: e.target.value })}
+              />
+            </label>
+          </div>
           <label>
             Description
             <textarea
               value={productForm.description}
               onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+            />
+          </label>
+          <div className="split-inputs">
+            <label>
+              Tags
+              <textarea
+                value={productForm.tagsText}
+                onChange={(e) => setProductForm({ ...productForm, tagsText: e.target.value })}
+                placeholder="One tag per line"
+              />
+            </label>
+            <label>
+              Flavor profile
+              <textarea
+                value={productForm.flavorProfileText}
+                onChange={(e) =>
+                  setProductForm({ ...productForm, flavorProfileText: e.target.value })
+                }
+                placeholder="One note per line"
+              />
+            </label>
+          </div>
+          <label>
+            Brewing guide
+            <textarea
+              value={productForm.brewingGuideText}
+              onChange={(e) => setProductForm({ ...productForm, brewingGuideText: e.target.value })}
+              placeholder="One brewing step per line"
             />
           </label>
           <label>
@@ -1095,6 +1216,19 @@ export function AdminApp() {
               selectedIds={productForm.categoryIds}
               onChange={(categoryIds) => setProductForm({ ...productForm, categoryIds })}
             />
+          </label>
+          <label>
+            Customization groups JSON
+            <textarea
+              value={productForm.customizationGroupsText}
+              onChange={(e) =>
+                setProductForm({ ...productForm, customizationGroupsText: e.target.value })
+              }
+              placeholder="[]"
+            />
+            <small className="helper-copy">
+              Use a JSON array of groups with options. Leave empty for a plain product.
+            </small>
           </label>
           <div>
             <p className="admin-eyebrow" style={{ marginBottom: 8 }}>Gallery</p>

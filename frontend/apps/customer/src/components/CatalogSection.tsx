@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import type { CategoryListItem, ProductListItem } from '@tea-time/types';
 import { formatMoney } from '../lib/format';
 import { useAutoScroll } from '../lib/autoScroll';
+import { buildProductPath } from '../lib/catalog';
 
 type AsyncState = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -94,38 +95,49 @@ function ProductCard({
 
   return (
     <article className="product-card">
-      <div className="product-media">
-        {product.images.length > 0 ? (
-          <div className="image-scroller" ref={scrollerRef}>
-            {product.images.map((url, i) => (
-              <img key={`${product.id}-img-${i}`} src={url} alt={product.name} />
-            ))}
-            {product.images.length > 1 && (
-              <div className="scroller-dots">
-                {product.images.map((_, i) => (
-                  <div key={i} className="scroller-dot" />
-                ))}
-              </div>
-            )}
+      <a className="product-card-link" href={buildProductPath(product.id)}>
+        <div className="product-media">
+          {product.images.length > 0 ? (
+            <div className="image-scroller" ref={scrollerRef}>
+              {product.images.map((url, i) => (
+                <img key={`${product.id}-img-${i}`} src={url} alt={product.name} />
+              ))}
+              {product.images.length > 1 && (
+                <div className="scroller-dots">
+                  {product.images.map((_, i) => (
+                    <div key={i} className="scroller-dot" />
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="product-placeholder">{product.name.slice(0, 1)}</div>
+          )}
+        </div>
+        <div className="product-content">
+          <div className="product-title-row">
+            <h3>{product.name}</h3>
+            <strong>{formatMoney(product.price)}</strong>
           </div>
-        ) : (
-          <div className="product-placeholder">{product.name.slice(0, 1)}</div>
-        )}
-      </div>
-      <div className="product-content">
-        <div className="product-title-row">
-          <h3>{product.name}</h3>
-          <strong>{formatMoney(product.price)}</strong>
+          <p>{product.description ?? 'Freshly prepared and ready for repeat ordering.'}</p>
+          <div className="product-meta-row">
+            <span>{product.rating.toFixed(1)} rating</span>
+            <span>{product.origin ?? 'House blend'}</span>
+          </div>
+          <div className="product-tags">
+            {product.categories.map((c) => (
+              <span key={`${product.id}-${c}`} className="product-tag">
+                {c}
+              </span>
+            ))}
+            {product.tags.slice(0, 2).map((tag) => (
+              <span key={`${product.id}-${tag}`} className="product-tag is-soft">
+                {tag}
+              </span>
+            ))}
+          </div>
         </div>
-        <p>{product.description ?? 'Freshly prepared and ready for repeat ordering.'}</p>
-        <div className="product-tags">
-          {product.categories.map((c) => (
-            <span key={`${product.id}-${c}`} className="product-tag">
-              {c}
-            </span>
-          ))}
-        </div>
-      </div>
+      </a>
       {onAddToCart ? (
         <div className="product-footer">
           <button

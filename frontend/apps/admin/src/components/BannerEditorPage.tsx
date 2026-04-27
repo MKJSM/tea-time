@@ -136,6 +136,9 @@ export function BannerEditorPage({
   );
   const [status, setStatus] = useState('');
   const [saving, setSaving] = useState(false);
+  const [isPasting, setIsPasting] = useState(false);
+  const [pasteHtml, setPasteHtml] = useState('');
+
   const editorRootRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<any>(null);
 
@@ -169,20 +172,19 @@ export function BannerEditorPage({
           const files = Array.from(
             (event?.dataTransfer?.files ?? event?.target?.files ?? []) as FileList | File[],
           );
-          const urls: string[] = [];
 
-          for (const file of files) {
-            const response = await uploadFile(file);
-            urls.push(response.file_url);
+          try {
+            const urls: string[] = [];
+            for (const file of files) {
+              const response = await uploadFile(file);
+              urls.push(response.file_url);
+              editor.AssetManager.add({ src: response.file_url });
+            }
+            return urls;
+          } catch (error) {
+            onMessage(error instanceof Error ? error.message : 'Upload failed');
+            return [];
           }
-
-          if (urls.length) {
-            urls.forEach((src) => {
-              editor.AssetManager.add({ src });
-            });
-          }
-
-          return urls;
         },
       },
     });
@@ -201,6 +203,24 @@ export function BannerEditorPage({
     // The banner editor page is keyed by banner id, so remounting covers identity changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function handlePasteSubmit() {
+    if (!editorRef.current || !pasteHtml.trim()) {
+      setIsPasting(false);
+      return;
+    }
+
+    const editor = editorRef.current;
+    const { html, css } = splitHtmlContent(pasteHtml);
+    editor.setComponents(html);
+    if (css) {
+      editor.setStyle(css);
+    }
+
+    setPasteHtml('');
+    setIsPasting(false);
+    onMessage('Custom HTML applied to editor.');
+  }
 
   async function saveBanner(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -289,10 +309,13 @@ export function BannerEditorPage({
             <p className="section-kicker">Banners</p>
             <h2>{existingBanner ? 'Edit Banner' : 'Create Banner'}</h2>
             <p className="section-copy">
-              Use GrapesJS to compose the banner body, then save the HTML that powers the customer homepage.
+              Compose the banner body with GrapesJS or paste custom HTML.
             </p>
           </div>
           <div className="row-actions">
+            <button type="button" className="secondary" onClick={() => setIsPasting(true)}>
+              Paste HTML
+            </button>
             <button type="button" onClick={onBack}>
               Back
             </button>
@@ -304,13 +327,29 @@ export function BannerEditorPage({
           </div>
         </div>
 
-        <form className="banner-editor-form banner-editor-form--grapes admin-form" onSubmit={saveBanner}>
-          <div className="banner-editor-grid">
-            <div className="banner-editor-canvas-wrap">
-              <div className="banner-editor-canvas" ref={editorRootRef} />
+        {isPasting && (
+          <div className="admin-modal-overlay">
+            <div className="admin-modal paste-html-modal">
+              <h3>Paste Custom HTML</h3>
+              <p className="helper-copy">Input raw HTML and CSS (inside style tags if needed). This will overwrite the current canvas content.</p>
+              <textarea
+                value={pasteHtml}
+                onChange={(e) => setPasteHtml(e.target.value)}
+                placeholder="<style>...</style><div>...</div>"
+                className="paste-area"
+              />
+              <div className="modal-actions">
+                <button type="button" className="secondary" onClick={() => setIsPasting(false)}>Cancel</button>
+                <button type="button" className="solid-button" onClick={handlePasteSubmit}>Apply to Editor</button>
+              </div>
             </div>
+          </div>
+        )}
 
-            <aside className="banner-sidebar-settings">
+        <form className="banner-editor-form banner-editor-form--grapes-3zone admin-form" onSubmit={saveBanner}>
+          <div className="banner-editor-3zone-grid">
+            {/* Zone 1: Left Sidebar - General & Actions */}
+            <aside className="banner-sidebar-1">
               <div className="editor-group">
                 <h3>General</h3>
                 <label>
@@ -319,6 +358,7 @@ export function BannerEditorPage({
                     value={draft.title}
                     onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
                     placeholder="Summer Refreshment"
+                    required
                   />
                 </label>
                 <label>
@@ -398,12 +438,20 @@ export function BannerEditorPage({
                   />
                 </label>
               </div>
+            </aside>
 
+            {/* Zone 2: Middle - GrapesJS Canvas */}
+            <div className="banner-editor-canvas-wrap">
+              <div className="banner-editor-canvas" ref={editorRootRef} />
+            </div>
+
+            {/* Zone 3: Right Sidebar - Banner Settings & Preview */}
+            <aside className="banner-sidebar-2">
               <div className="editor-group">
-                <h3>Banner Settings</h3>
+                <h3>Banner Config</h3>
                 <div className="split-inputs">
                   <label>
-                    Sort Order
+                    Order
                     <input
                       type="number"
                       value={draft.sort_order}
@@ -485,9 +533,12 @@ export function BannerEditorPage({
               </div>
 
               <div className="banner-preview">
-                <h3>Live Preview</h3>
+                <div className="banner-preview-head">
+                  <h3>Live Preview</h3>
+                  <span className="mode-chip">Hero Variant</span>
+                </div>
                 <div className="banner-preview-canvas">
-                  <BannerRenderer banner={previewBanner} variant="preview" />
+                  <BannerRenderer banner={previewBanner} variant="hero" />
                 </div>
               </div>
             </aside>

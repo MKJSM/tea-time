@@ -21,14 +21,14 @@ async fn list(State(state): State<AppState>) -> Result<Json<serde_json::Value>, 
 async fn get_one(
     State(state): State<AppState>,
     Path(id): Path<String>,
-) -> Result<Json<backend_product::ProductListItem>, AppError> {
+) -> Result<Json<backend_product::ProductDetail>, AppError> {
     Ok(Json(backend_product::get(&state.db, &id).await?))
 }
 
 async fn create(
     State(state): State<AppState>,
     Json(input): Json<backend_product::ProductInput>,
-) -> Result<Json<backend_product::ProductListItem>, AppError> {
+) -> Result<Json<backend_product::ProductDetail>, AppError> {
     Ok(Json(backend_product::create(&state.db, input).await?))
 }
 
@@ -36,7 +36,7 @@ async fn update(
     State(state): State<AppState>,
     Path(id): Path<String>,
     Json(input): Json<backend_product::ProductInput>,
-) -> Result<Json<backend_product::ProductListItem>, AppError> {
+) -> Result<Json<backend_product::ProductDetail>, AppError> {
     Ok(Json(backend_product::update(&state.db, &id, input).await?))
 }
 
