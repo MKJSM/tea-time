@@ -1,4 +1,5 @@
-import type { ChangeEvent, FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { FormEvent } from 'react';
 
 import type { CategoryListItem, ProductListItem } from '@tea-time/types';
 
@@ -37,6 +38,138 @@ interface ProductsProps {
 
 function parseImageCount(images: string[]) {
   return images.length;
+}
+
+interface ProductCategoryPickerProps {
+  categories: CategoryListItem[];
+  selectedIds: string[];
+  onChange: (categoryIds: string[]) => void;
+}
+
+export function ProductCategoryPicker({ categories, selectedIds, onChange }: ProductCategoryPickerProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    function handleDocumentMouseDown(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleDocumentMouseDown);
+    return () => document.removeEventListener('mousedown', handleDocumentMouseDown);
+  }, []);
+
+  const selectedCategories = useMemo(
+    () => categories.filter((category) => selectedIds.includes(category.id)),
+    [categories, selectedIds],
+  );
+
+  const filteredCategories = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) return categories;
+    return categories.filter((category) => {
+      return `${category.name} ${category.slug}`.toLowerCase().includes(normalizedQuery);
+    });
+  }, [categories, query]);
+
+  function toggleCategory(categoryId: string) {
+    const nextIds = selectedIds.includes(categoryId)
+      ? selectedIds.filter((id) => id !== categoryId)
+      : [...selectedIds, categoryId];
+    onChange(nextIds);
+  }
+
+  function removeCategory(categoryId: string) {
+    onChange(selectedIds.filter((id) => id !== categoryId));
+  }
+
+  return (
+    <div className="product-category-picker" ref={rootRef}>
+      <div className="editor-chip-row product-category-picker__chips">
+        {selectedCategories.length ? (
+          selectedCategories.map((category) => (
+            <span key={category.id} className="status-chip is-active product-category-chip">
+              {category.name}
+              <button
+                type="button"
+                className="chip-remove-btn"
+                onClick={() => removeCategory(category.id)}
+                aria-label={`Remove ${category.name}`}
+              >
+                ×
+              </button>
+            </span>
+          ))
+        ) : (
+          <span className="type-chip product-category-placeholder">No categories selected</span>
+        )}
+      </div>
+
+      <div className="product-category-picker__toolbar">
+        <button
+          type="button"
+          className="product-category-picker__trigger"
+          aria-expanded={isOpen}
+          aria-haspopup="listbox"
+          onClick={() => setIsOpen((current) => !current)}
+        >
+          <span>
+            {selectedCategories.length ? `${selectedCategories.length} selected` : 'Select categories'}
+          </span>
+          <span aria-hidden="true">▾</span>
+        </button>
+        {selectedIds.length ? (
+          <button
+            type="button"
+            className="product-category-picker__clear"
+            onClick={() => onChange([])}
+          >
+            Clear
+          </button>
+        ) : null}
+      </div>
+
+      {isOpen ? (
+        <div className="product-category-picker__panel">
+          <label className="product-category-picker__search">
+            Search categories
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Type a category name or slug"
+            />
+          </label>
+
+          <div className="product-category-picker__list" role="listbox" aria-multiselectable="true">
+            {filteredCategories.length ? (
+              filteredCategories.map((category) => {
+                const checked = selectedIds.includes(category.id);
+                return (
+                  <label key={category.id} className="product-category-option">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleCategory(category.id)}
+                    />
+                    <span className="product-category-option__meta">
+                      <strong>{category.name}</strong>
+                      <small>{category.slug}</small>
+                    </span>
+                  </label>
+                );
+              })
+            ) : (
+              <p className="field-hint product-category-empty">No matching categories found.</p>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 export function CategoriesSection({

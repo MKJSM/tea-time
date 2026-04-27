@@ -241,10 +241,14 @@ fn normalize_input(mut input: BannerInput) -> Result<BannerInput, AppError> {
         return Err(AppError::BadRequest("banner title is required".into()));
     }
     if !matches!(input.media_kind.as_str(), "image" | "video") {
-        return Err(AppError::BadRequest("banner media_kind must be image or video".into()));
+        return Err(AppError::BadRequest(
+            "banner media_kind must be image or video".into(),
+        ));
     }
     if !matches!(input.background_type.as_str(), "image" | "video" | "gradient" | "solid") {
-        return Err(AppError::BadRequest("banner background_type is invalid".into()));
+        return Err(AppError::BadRequest(
+            "banner background_type is invalid".into(),
+        ));
     }
 
     if input.content_mode == BANNER_CONTENT_MODE_HTML {
@@ -290,19 +294,19 @@ fn normalize_optional_text(value: Option<String>) -> Option<String> {
 
 fn sanitize_banner_html(html: &str) -> String {
     let mut builder = ammonia::Builder::default();
+    builder.rm_clean_content_tags(["style"]);
     builder
         .add_tags([
             "a", "article", "aside", "blockquote", "br", "button", "code", "div", "em", "figure",
             "figcaption", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "img",
             "li", "main", "ol", "p", "pre", "section", "small", "span", "strong", "sub",
-            "sup", "table", "tbody", "td", "th", "thead", "tr", "u", "ul",
+            "sup", "table", "tbody", "td", "th", "thead", "tr", "u", "ul", "style",
         ])
         .add_generic_attributes([
             "class", "id", "role", "style", "title", "align", "dir", "lang", "width", "height",
         ])
         .add_tag_attributes("a", ["href", "target", "title"])
-        .add_tag_attributes("img", ["src", "alt", "title", "width", "height", "loading", "decoding"])
-        ;
+        .add_tag_attributes("img", ["src", "alt", "title", "width", "height", "loading", "decoding"]);
 
     builder.clean(html).to_string()
 }

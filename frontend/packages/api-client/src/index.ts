@@ -4,6 +4,8 @@ import type {
   AdminAuthResponse,
   Banner,
   BannerInput,
+  PageDocument,
+  PageInput,
   CartItemInput,
   CartResponse,
   CategoryInput,
@@ -37,7 +39,7 @@ export function apiBase(scope: 'customer' | 'admin'): string {
 }
 
 
-type RequestBody = any;
+type RequestBody = unknown;
 
 async function requestJson<T>(path: string, init?: Omit<RequestInit, 'body'> & { body?: RequestBody }): Promise<T> {
   const headers = new Headers(init?.headers);
@@ -155,6 +157,35 @@ export function updateBanner(id: string, input: BannerInput) {
 
 export function deleteBanner(id: string) {
   return requestJson<{ ok: boolean }>(`${apiBase('admin')}/banners/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+export function getPage(scope: 'customer' | 'admin' = 'customer') {
+  return requestJson<PageDocument>(`${apiBase(scope)}/page`);
+}
+
+export function savePage(input: PageInput) {
+  return requestJson<PageDocument>(`${apiBase('admin')}/page`, {
+    method: 'PUT',
+    body: input,
+  });
+}
+
+export function publishPage() {
+  return requestJson<PageDocument>(`${apiBase('admin')}/page/publish`, {
+    method: 'POST',
+  });
+}
+
+export function unpublishPage() {
+  return requestJson<PageDocument>(`${apiBase('admin')}/page/unpublish`, {
+    method: 'POST',
+  });
+}
+
+export function deletePage() {
+  return requestJson<{ ok: boolean }>(`${apiBase('admin')}/page`, {
     method: 'DELETE',
   });
 }
@@ -322,5 +353,12 @@ export async function uploadFile(file: File) {
   return requestJson<UploadResponse>(`${apiBase('customer')}/files/upload`, {
     method: 'POST',
     body: formData,
+  });
+}
+
+export function deleteFile(fileUrl: string) {
+  const search = new URLSearchParams({ url: fileUrl });
+  return requestJson<{ ok: boolean }>(`${apiBase('customer')}/files?${search.toString()}`, {
+    method: 'DELETE',
   });
 }

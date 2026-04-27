@@ -77,16 +77,24 @@ pub async fn mark_paid(
     tx.execute(
         "UPDATE customer_order SET payment_status = 'paid', status = 'paid', modified_on = NOW()
          WHERE id = $1::text::uuid",
-        &[&order_id]
-    ).await?;
+        &[&order_id],
+    )
+    .await?;
     tx.execute(
         "INSERT INTO payment_event (id, payment_id, provider_event_id, event_type, payload_json)
          VALUES ($1::text::uuid, $2::text::uuid, $3, 'payment.verified', $4::jsonb)",
-        &[&Uuid::new_v4().to_string(), &payment_id, &provider_payment_id, &serde_json::json!({
-            "provider_order_id": provider_order_id,
-            "provider_payment_id": provider_payment_id
-        }).to_string()]
-    ).await?;
+        &[
+            &Uuid::new_v4().to_string(),
+            &payment_id,
+            &provider_payment_id,
+            &serde_json::json!({
+                "provider_order_id": provider_order_id,
+                "provider_payment_id": provider_payment_id
+            })
+            .to_string(),
+        ],
+    )
+    .await?;
     tx.commit().await?;
     get_by_provider_order(pool, provider_order_id).await
 }
@@ -99,10 +107,12 @@ pub async fn mark_failed(
     payload: serde_json::Value,
 ) -> Result<(), AppError> {
     let mut client = pool.get().await.map_err(map_pool_error_to_app_error)?;
-    let payment = client.query_opt(
-        "SELECT id::text, order_id::text FROM payment WHERE provider_order_id = $1",
-        &[&provider_order_id]
-    ).await?;
+    let payment = client
+        .query_opt(
+            "SELECT id::text, order_id::text FROM payment WHERE provider_order_id = $1",
+            &[&provider_order_id],
+        )
+        .await?;
     let Some(payment) = payment else {
         return Ok(());
     };
@@ -112,18 +122,26 @@ pub async fn mark_failed(
     tx.execute(
         "UPDATE payment SET status = 'failed', failure_reason = $2, modified_on = NOW()
          WHERE id = $1::text::uuid",
-        &[&payment_id, &reason]
-    ).await?;
+        &[&payment_id, &reason],
+    )
+    .await?;
     tx.execute(
         "UPDATE customer_order SET payment_status = 'failed', modified_on = NOW()
          WHERE id = $1::text::uuid",
-        &[&order_id]
-    ).await?;
+        &[&order_id],
+    )
+    .await?;
     tx.execute(
         "INSERT INTO payment_event (id, payment_id, provider_event_id, event_type, payload_json)
          VALUES ($1::text::uuid, $2::text::uuid, NULL, $3, $4::jsonb)",
-        &[&Uuid::new_v4().to_string(), &payment_id, &event_type, &payload.to_string()]
-    ).await?;
+        &[
+            &Uuid::new_v4().to_string(),
+            &payment_id,
+            &event_type,
+            &payload.to_string(),
+        ],
+    )
+    .await?;
     tx.commit().await?;
     Ok(())
 }
@@ -145,12 +163,16 @@ pub async fn get_admin(pool: &Pool, payment_id: &str) -> Result<serde_json::Valu
          FROM payment WHERE id = $1::text::uuid",
         &[&payment_id]
     ).await?;
-    let payment = row.map(|row| map_payment(&row)).ok_or_else(|| AppError::NotFound("payment not found".into()))?;
-    let events = client.query(
-        "SELECT id::text, provider_event_id, event_type, payload_json::text, created_on::text
+    let payment = row
+        .map(|row| map_payment(&row))
+        .ok_or_else(|| AppError::NotFound("payment not found".into()))?;
+    let events = client
+        .query(
+            "SELECT id::text, provider_event_id, event_type, payload_json::text, created_on::text
          FROM payment_event WHERE payment_id = $1::text::uuid ORDER BY created_on DESC",
-        &[&payment_id]
-    ).await?;
+            &[&payment_id],
+        )
+        .await?;
     Ok(serde_json::json!({
         "ok": true,
         "item": payment,
@@ -164,7 +186,10 @@ pub async fn get_admin(pool: &Pool, payment_id: &str) -> Result<serde_json::Valu
     }))
 }
 
-pub async fn get_checkout_context(pool: &Pool, order_id: &str) -> Result<InitiatePaymentResponse, AppError> {
+pub async fn get_checkout_context(
+    pool: &Pool,
+    order_id: &str,
+) -> Result<InitiatePaymentResponse, AppError> {
     let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
     let row = client.query_opt(
         "SELECT p.id::text, co.id::text, co.order_number, co.total_amount, co.currency, COALESCE(p.provider_order_id, '')
@@ -185,14 +210,18 @@ pub async fn get_checkout_context(pool: &Pool, order_id: &str) -> Result<Initiat
     })
 }
 
-pub async fn get_by_provider_order(pool: &Pool, provider_order_id: &str) -> Result<PaymentRecord, AppError> {
+pub async fn get_by_provider_order(
+    pool: &Pool,
+    provider_order_id: &str,
+) -> Result<PaymentRecord, AppError> {
     let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
     let row = client.query_opt(
         "SELECT id::text, order_id::text, user_id::text, provider, provider_order_id, provider_payment_id, status, amount, currency, failure_reason, paid_on::text
          FROM payment WHERE provider_order_id = $1",
         &[&provider_order_id]
     ).await?;
-    row.map(|row| map_payment(&row)).ok_or_else(|| AppError::NotFound("payment not found".into()))
+    row.map(|row| map_payment(&row))
+        .ok_or_else(|| AppError::NotFound("payment not found".into()))
 }
 
 fn map_payment(row: &Row) -> PaymentRecord {

@@ -1,7 +1,7 @@
-use backend_db::{connect, migrate, DatabaseConfig};
-use deadpool_postgres::Pool;
 use axum::http::header::{AUTHORIZATION, CONTENT_TYPE};
 use axum::http::Method;
+use backend_db::{connect, migrate, DatabaseConfig};
+use deadpool_postgres::Pool;
 use std::net::SocketAddr;
 use tower_http::cors::{AllowOrigin, CorsLayer};
 
@@ -33,7 +33,13 @@ async fn initialize_database(config: &Config) -> Result<Pool, Box<dyn std::error
 
 fn build_cors(config: &Config) -> Result<CorsLayer, Box<dyn std::error::Error>> {
     let layer = CorsLayer::new()
-        .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE, Method::OPTIONS])
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::PATCH,
+            Method::DELETE,
+            Method::OPTIONS,
+        ])
         .allow_headers([CONTENT_TYPE, AUTHORIZATION])
         .allow_credentials(true);
 
@@ -76,10 +82,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         key_secret: config.razorpay_key_secret.clone(),
         webhook_secret: config.razorpay_webhook_secret.clone(),
     };
-    let mut s3_loader =
-        aws_config::defaults(aws_config::BehaviorVersion::latest()).region(
-            aws_sdk_s3::config::Region::new(config.s3_region.clone()),
-        );
+    let mut s3_loader = aws_config::defaults(aws_config::BehaviorVersion::latest())
+        .region(aws_sdk_s3::config::Region::new(config.s3_region.clone()));
     if let Some(endpoint) = &config.s3_endpoint {
         s3_loader = s3_loader.endpoint_url(endpoint);
     }

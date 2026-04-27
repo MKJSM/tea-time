@@ -60,17 +60,22 @@ async fn logout(
     jar: CookieJar,
 ) -> Result<(CookieJar, Json<serde_json::Value>), AppError> {
     let cookie_name = cookie_name(SessionScope::Customer);
-    let maybe_token = jar.get(cookie_name).map(|cookie| cookie.value().to_string());
+    let maybe_token = jar
+        .get(cookie_name)
+        .map(|cookie| cookie.value().to_string());
 
     if let Some(token) = maybe_token {
         delete_session(&state.db, SessionScope::Customer, &token).await?;
     }
 
-    Ok((without_session_cookie(jar, SessionScope::Customer), Json(serde_json::json!({
-        "ok": true,
-        "scope": "customer_auth",
-        "logged_out": true,
-    }))))
+    Ok((
+        without_session_cookie(jar, SessionScope::Customer),
+        Json(serde_json::json!({
+            "ok": true,
+            "scope": "customer_auth",
+            "logged_out": true,
+        })),
+    ))
 }
 
 fn with_session_cookie(jar: CookieJar, session_token: String) -> CookieJar {

@@ -53,8 +53,7 @@ impl Config {
             tracing::warn!("AWS_S3_BUCKET not set — using default 'teatime-uploads'.");
             "teatime-uploads".to_string()
         });
-        let s3_region =
-            env::var("AWS_REGION").unwrap_or_else(|_| "ap-south-1".to_string());
+        let s3_region = env::var("AWS_REGION").unwrap_or_else(|_| "ap-south-1".to_string());
         let s3_endpoint = env::var("AWS_S3_ENDPOINT").ok();
         let s3_public_url = env::var("S3_PUBLIC_URL").ok();
         let max_upload_size = env::var("MAX_UPLOAD_SIZE")

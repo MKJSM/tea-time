@@ -119,14 +119,25 @@ pub async fn create(pool: &Pool, input: ProductInput) -> Result<ProductListItem,
     tx.execute(
         "INSERT INTO product (id, name, images, price, description)
          VALUES ($1::text::uuid, $2, $3, $4, $5)",
-        &[&product_id, &input.name, &input.images, &input.price, &input.description],
-    ).await?;
+        &[
+            &product_id,
+            &input.name,
+            &input.images,
+            &input.price,
+            &input.description,
+        ],
+    )
+    .await?;
     sync_categories(&tx, &product_id, &input.category_ids).await?;
     tx.commit().await?;
     get(pool, &product_id).await
 }
 
-pub async fn update(pool: &Pool, product_id: &str, input: ProductInput) -> Result<ProductListItem, AppError> {
+pub async fn update(
+    pool: &Pool,
+    product_id: &str,
+    input: ProductInput,
+) -> Result<ProductListItem, AppError> {
     validate(&input)?;
     let mut client = pool.get().await.map_err(map_pool_error_to_app_error)?;
     let tx = client.transaction().await?;
@@ -138,7 +149,11 @@ pub async fn update(pool: &Pool, product_id: &str, input: ProductInput) -> Resul
     if updated == 0 {
         return Err(AppError::NotFound("product not found".into()));
     }
-    tx.execute("DELETE FROM category_product WHERE product_id = $1::text::uuid", &[&product_id]).await?;
+    tx.execute(
+        "DELETE FROM category_product WHERE product_id = $1::text::uuid",
+        &[&product_id],
+    )
+    .await?;
     sync_categories(&tx, product_id, &input.category_ids).await?;
     tx.commit().await?;
     get(pool, product_id).await
@@ -146,7 +161,12 @@ pub async fn update(pool: &Pool, product_id: &str, input: ProductInput) -> Resul
 
 pub async fn delete(pool: &Pool, product_id: &str) -> Result<(), AppError> {
     let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
-    let deleted = client.execute("DELETE FROM product WHERE id = $1::text::uuid", &[&product_id]).await?;
+    let deleted = client
+        .execute(
+            "DELETE FROM product WHERE id = $1::text::uuid",
+            &[&product_id],
+        )
+        .await?;
     if deleted == 0 {
         return Err(AppError::NotFound("product not found".into()));
     }
@@ -173,7 +193,8 @@ pub async fn get(pool: &Pool, product_id: &str) -> Result<ProductListItem, AppEr
         "#,
         &[&product_id]
     ).await?;
-    row.map(|row| map_product_row(&row)).ok_or_else(|| AppError::NotFound("product not found".into()))
+    row.map(|row| map_product_row(&row))
+        .ok_or_else(|| AppError::NotFound("product not found".into()))
 }
 
 fn map_product_row(row: &Row) -> ProductListItem {
@@ -210,7 +231,9 @@ fn validate(input: &ProductInput) -> Result<(), AppError> {
         return Err(AppError::BadRequest("product name is required".into()));
     }
     if input.price <= 0.0 {
-        return Err(AppError::BadRequest("product price must be greater than zero".into()));
+        return Err(AppError::BadRequest(
+            "product price must be greater than zero".into(),
+        ));
     }
     Ok(())
 }

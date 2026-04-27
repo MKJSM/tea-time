@@ -26,7 +26,9 @@ async fn require_admin_session(
     request: Request,
     next: Next,
 ) -> Response {
-    let token = jar.get(cookie_name(SessionScope::Admin)).map(|c| c.value().to_string());
+    let token = jar
+        .get(cookie_name(SessionScope::Admin))
+        .map(|c| c.value().to_string());
 
     let Some(token) = token else {
         return (
@@ -55,9 +57,10 @@ pub fn router(state: AppState) -> Router<AppState> {
         .nest("/users", user::router())
         .nest("/orders", order::router())
         .nest("/payments", payment::router())
-        .route_layer(middleware::from_fn_with_state(state.clone(), require_admin_session));
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            require_admin_session,
+        ));
 
-    Router::new()
-        .nest("/auth", auth::router())
-        .merge(protected)
+    Router::new().nest("/auth", auth::router()).merge(protected)
 }

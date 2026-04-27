@@ -1,4 +1,6 @@
+import React, { useRef } from 'react';
 import type { CategoryListItem } from '@tea-time/types';
+import { useAutoScroll } from '../lib/autoScroll';
 
 type AsyncState = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -67,37 +69,13 @@ export function CategoriesSection({
           <div className="category-grid">
             {categories.map((category, index) => {
               const fallback = fallbackCategoryVisuals[index % fallbackCategoryVisuals.length];
-              const image = category.images[0] ?? null;
-              const card = (
-                <article className="card category-card">
-                  <div
-                    className={`category-media${fallback.cls ? ' ' + fallback.cls : ''}${image ? ' has-image' : ''
-                      }`}
-                  >
-                    {image ? (
-                      <img className="category-image" src={image} alt={category.name} />
-                    ) : (
-                      fallback.art
-                    )}
-                  </div>
-                  <div className="category-body">
-                    <div className="category-title-row">
-                      <h3>{category.name}</h3>
-                      <span className="category-count">{getCategoryCountLabel(category.product_count)}</span>
-                    </div>
-                    <p>Freshly prepared and ready for repeat ordering.</p>
-                  </div>
-                </article>
-              );
-
               return (
-                getCategoryHref ? (
-                  <a key={category.id} className="category-card-link" href={getCategoryHref(category)}>
-                    {card}
-                  </a>
-                ) : (
-                  <div key={category.id}>{card}</div>
-                )
+                <CategoryCard
+                  key={category.id}
+                  category={category}
+                  fallback={fallback}
+                  href={getCategoryHref ? getCategoryHref(category) : undefined}
+                />
               );
             })}
           </div>
@@ -105,6 +83,63 @@ export function CategoriesSection({
       </div>
     </section>
   );
+}
+
+function CategoryCard({
+  category,
+  fallback,
+  href,
+}: {
+  category: CategoryListItem;
+  fallback: (typeof fallbackCategoryVisuals)[number];
+  href?: string;
+}) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const images = category.images;
+  useAutoScroll(scrollerRef, images.length);
+
+  const card = (
+    <article className="card category-card">
+      <div
+        className={`category-media${fallback.cls ? ' ' + fallback.cls : ''}${images.length > 0 ? ' has-image' : ''
+          }`}
+      >
+        {images.length > 0 ? (
+          <div className="image-scroller" ref={scrollerRef}>
+            {images.map((url, i) => (
+              <img key={`${category.id}-img-${i}`} className="category-image" src={url} alt={category.name} />
+            ))}
+            {images.length > 1 && (
+              <div className="scroller-dots">
+                {images.map((_, i) => (
+                  <div key={i} className="scroller-dot" />
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          fallback.art
+        )}
+      </div>
+      <div className="category-body">
+        <div className="category-title-row">
+          <h3>{category.name}</h3>
+          <span className="category-count">{getCategoryCountLabel(category.product_count)}</span>
+        </div>
+        <p>Freshly prepared and ready for repeat ordering.</p>
+      </div>
+    </article>
+  );
+
+  if (href) {
+    return (
+      <a className="category-card-link" href={href}>
+        {card}
+      </a>
+    );
+  }
+
+  return <div>{card}</div>;
 }
 
 /** ── Why Mobilitea ── */

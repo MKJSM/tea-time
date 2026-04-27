@@ -1,0 +1,509 @@
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+
+import grapesjs from 'grapesjs';
+import 'grapesjs/dist/css/grapes.min.css';
+
+import { createBanner, deleteBanner, updateBanner, uploadFile } from '@tea-time/api-client';
+import type { Banner, BannerInput } from '@tea-time/types';
+import { BannerRenderer } from '@tea-time/ui';
+
+interface BannerEditorPageProps {
+  bannerId: string | null;
+  banners: Banner[];
+  onBack: () => void;
+  onSaved: () => Promise<void> | void;
+  onRemoved: () => Promise<void> | void;
+  onMessage: (message: string) => void;
+}
+
+const DEFAULT_EDITOR_HTML = `
+  <section class="banner-root">
+    <div class="banner-copy">
+      <span class="eyebrow">Daily Workplace Refreshment</span>
+      <h1>Refreshment That Moves with Your Workday.</h1>
+      <p>Daily delivery of hot and cold beverages, fresh juices, and snacks, served at your workplace morning and evening.</p>
+      <div class="hero-actions-row">
+        <a class="solid-button" href="#account">Subscribe Now</a>
+      </div>
+    </div>
+  </section>
+`;
+
+const DEFAULT_EDITOR_CSS = `
+  .banner-root {
+    min-height: 100%;
+    display: flex;
+    align-items: center;
+  }
+
+  .banner-copy {
+    max-width: 720px;
+    color: inherit;
+  }
+
+  .banner-copy h1 {
+    margin: 0 0 16px;
+    font-size: 64px;
+    line-height: 0.95;
+    letter-spacing: -0.05em;
+  }
+
+  .banner-copy p {
+    margin: 0 0 24px;
+    font-size: 18px;
+    line-height: 1.7;
+  }
+`;
+
+function createBlankBanner(sortOrder: number): BannerInput {
+  return {
+    title: '',
+    subtitle: 'Daily Workplace Refreshment',
+    description: '',
+    primary_button_label: 'SUBSCRIBE NOW',
+    primary_button_href: '#account',
+    secondary_button_label: null,
+    secondary_button_href: null,
+    media_url: null,
+    media_kind: 'image',
+    content_mode: 'html',
+    content_html: `<style>${DEFAULT_EDITOR_CSS}</style>${DEFAULT_EDITOR_HTML}`,
+    content_json: null,
+    background_type: 'image',
+    background_value: '/assets/home-Dr3wWsX4.webp',
+    overlay_color: 'rgba(17, 24, 18, 0.28)',
+    text_color: '#ffffff',
+    sort_order: sortOrder,
+    is_active: true,
+  };
+}
+
+function fromBanner(banner: Banner, sortOrderFallback: number): BannerInput {
+  return {
+    title: banner.title,
+    subtitle: banner.subtitle,
+    description: banner.description,
+    primary_button_label: banner.primary_button_label,
+    primary_button_href: banner.primary_button_href,
+    secondary_button_label: banner.secondary_button_label,
+    secondary_button_href: banner.secondary_button_href,
+    media_url: banner.media_url,
+    media_kind: banner.media_kind,
+    content_mode: 'html',
+    content_html: banner.content_html,
+    content_json: banner.content_json,
+    background_type: banner.background_type,
+    background_value: banner.background_value,
+    overlay_color: banner.overlay_color,
+    text_color: banner.text_color,
+    sort_order: banner.sort_order ?? sortOrderFallback,
+    is_active: banner.is_active,
+  };
+}
+
+function splitHtmlContent(contentHtml: string | null | undefined) {
+  const raw = contentHtml ?? '';
+  const styleMatch = raw.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+  const css = styleMatch?.[1] ?? '';
+  const html = raw.replace(/<style[^>]*>[\s\S]*?<\/style>/i, '').trim();
+  return { html, css };
+}
+
+function composeHtml(contentHtml: string, contentCss: string) {
+  const html = contentHtml.trim();
+  const css = contentCss.trim();
+  return css ? `<style>${css}</style>${html}` : html;
+}
+
+function getEditorMarkup() {
+  return DEFAULT_EDITOR_HTML.trim();
+}
+
+export function BannerEditorPage({
+  bannerId,
+  banners,
+  onBack,
+  onSaved,
+  onRemoved,
+  onMessage,
+}: BannerEditorPageProps) {
+  const existingBanner = useMemo(
+    () => banners.find((banner) => banner.id === bannerId) ?? null,
+    [bannerId, banners],
+  );
+  const [draft, setDraft] = useState<BannerInput>(() =>
+    existingBanner ? fromBanner(existingBanner, banners.length + 1) : createBlankBanner(banners.length + 1),
+  );
+  const [status, setStatus] = useState('');
+  const [saving, setSaving] = useState(false);
+  const editorRootRef = useRef<HTMLDivElement | null>(null);
+  const editorRef = useRef<any>(null);
+
+  useEffect(() => {
+    setDraft(
+      existingBanner ? fromBanner(existingBanner, banners.length + 1) : createBlankBanner(banners.length + 1),
+    );
+  }, [existingBanner, banners.length]);
+
+  useEffect(() => {
+    const root = editorRootRef.current;
+    if (!root) return undefined;
+
+    root.innerHTML = '';
+
+    const editor = grapesjs.init({
+      container: root,
+      height: '100%',
+      width: 'auto',
+      storageManager: false,
+      noticeOnUnload: false,
+      fromElement: false,
+      avoidInlineStyle: false,
+      allowScripts: false,
+      canvas: {
+        styles: [],
+      },
+      assetManager: {
+        upload: true,
+        uploadFile: async (event: any) => {
+          const files = Array.from(
+            (event?.dataTransfer?.files ?? event?.target?.files ?? []) as FileList | File[],
+          );
+          const urls: string[] = [];
+
+          for (const file of files) {
+            const response = await uploadFile(file);
+            urls.push(response.file_url);
+          }
+
+          if (urls.length) {
+            urls.forEach((src) => {
+              editor.AssetManager.add({ src });
+            });
+          }
+
+          return urls;
+        },
+      },
+    });
+
+    editorRef.current = editor;
+
+    const { html, css } = splitHtmlContent(draft.content_html);
+    editor.setComponents(html || getEditorMarkup());
+    editor.setStyle(css || DEFAULT_EDITOR_CSS);
+
+    return () => {
+      editorRef.current = null;
+      editor.destroy();
+      root.innerHTML = '';
+    };
+    // The banner editor page is keyed by banner id, so remounting covers identity changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function saveBanner(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setStatus('');
+
+    try {
+      const editor = editorRef.current;
+      const html = editor ? editor.getHtml() : splitHtmlContent(draft.content_html).html;
+      const css = editor ? editor.getCss() : splitHtmlContent(draft.content_html).css;
+      const projectData = editor?.getProjectData?.() ?? draft.content_json;
+      const payload: BannerInput = {
+        ...draft,
+        content_mode: 'html',
+        content_html: composeHtml(html, css),
+        content_json: projectData,
+        title: draft.title.trim(),
+      };
+
+      if (existingBanner) {
+        await updateBanner(existingBanner.id, payload);
+        setStatus('Banner updated.');
+      } else {
+        await createBanner(payload);
+        setStatus('Banner created.');
+      }
+
+      onMessage(existingBanner ? 'Banner updated.' : 'Banner created.');
+      await onSaved();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to save banner';
+      setStatus(message);
+      onMessage(message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removeBanner() {
+    if (!existingBanner) {
+      onBack();
+      return;
+    }
+
+    if (!window.confirm('Delete this banner?')) return;
+
+    try {
+      await deleteBanner(existingBanner.id);
+      setStatus('Banner deleted.');
+      onMessage('Banner deleted.');
+      await onRemoved();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete banner';
+      setStatus(message);
+      onMessage(message);
+    }
+  }
+
+  const previewBanner: Banner = {
+    id: existingBanner?.id ?? 'preview',
+    title: draft.title || 'Banner title',
+    subtitle: draft.subtitle ?? null,
+    description: draft.description ?? null,
+    primary_button_label: draft.primary_button_label ?? null,
+    primary_button_href: draft.primary_button_href ?? null,
+    secondary_button_label: draft.secondary_button_label ?? null,
+    secondary_button_href: draft.secondary_button_href ?? null,
+    media_url: draft.media_url ?? null,
+    media_kind: draft.media_kind,
+    content_mode: 'html',
+    content_html: draft.content_html ?? null,
+    content_json: draft.content_json ?? null,
+    background_type: draft.background_type,
+    background_value: draft.background_value ?? null,
+    overlay_color: draft.overlay_color ?? null,
+    text_color: draft.text_color ?? null,
+    sort_order: draft.sort_order,
+    is_active: draft.is_active,
+  };
+
+  return (
+    <section className="admin-page-section banner-page" id="admin-banner-editor">
+      <article className="admin-card banner-editor-shell">
+        <div className="section-card-head">
+          <div>
+            <p className="section-kicker">Banners</p>
+            <h2>{existingBanner ? 'Edit Banner' : 'Create Banner'}</h2>
+            <p className="section-copy">
+              Use GrapesJS to compose the banner body, then save the HTML that powers the customer homepage.
+            </p>
+          </div>
+          <div className="row-actions">
+            <button type="button" onClick={onBack}>
+              Back
+            </button>
+            {existingBanner ? (
+              <button type="button" className="danger" onClick={() => void removeBanner()}>
+                Delete
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        <form className="banner-editor-form banner-editor-form--grapes admin-form" onSubmit={saveBanner}>
+          <div className="banner-editor-grid">
+            <div className="banner-editor-canvas-wrap">
+              <div className="banner-editor-canvas" ref={editorRootRef} />
+            </div>
+
+            <aside className="banner-sidebar-settings">
+              <div className="editor-group">
+                <h3>General</h3>
+                <label>
+                  Title
+                  <input
+                    value={draft.title}
+                    onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
+                    placeholder="Summer Refreshment"
+                  />
+                </label>
+                <label>
+                  Subtitle
+                  <input
+                    value={draft.subtitle ?? ''}
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, subtitle: event.target.value || null }))
+                    }
+                    placeholder="Daily Workplace Refreshment"
+                  />
+                </label>
+                <label>
+                  Description
+                  <textarea
+                    value={draft.description ?? ''}
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, description: event.target.value || null }))
+                    }
+                    placeholder="A short line that explains the banner."
+                  />
+                </label>
+              </div>
+
+              <div className="editor-group">
+                <h3>Actions</h3>
+                <label>
+                  Primary button label
+                  <input
+                    value={draft.primary_button_label ?? ''}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        primary_button_label: event.target.value || null,
+                      }))
+                    }
+                    placeholder="SUBSCRIBE NOW"
+                  />
+                </label>
+                <label>
+                  Primary button href
+                  <input
+                    value={draft.primary_button_href ?? ''}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        primary_button_href: event.target.value || null,
+                      }))
+                    }
+                    placeholder="#account"
+                  />
+                </label>
+                <label>
+                  Secondary button label
+                  <input
+                    value={draft.secondary_button_label ?? ''}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        secondary_button_label: event.target.value || null,
+                      }))
+                    }
+                    placeholder="Learn more"
+                  />
+                </label>
+                <label>
+                  Secondary button href
+                  <input
+                    value={draft.secondary_button_href ?? ''}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        secondary_button_href: event.target.value || null,
+                      }))
+                    }
+                    placeholder="#contact"
+                  />
+                </label>
+              </div>
+
+              <div className="editor-group">
+                <h3>Banner Settings</h3>
+                <div className="split-inputs">
+                  <label>
+                    Sort Order
+                    <input
+                      type="number"
+                      value={draft.sort_order}
+                      onChange={(event) =>
+                        setDraft((current) => ({
+                          ...current,
+                          sort_order: Number.parseInt(event.target.value, 10) || 0,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className="checkbox-field">
+                    <input
+                      type="checkbox"
+                      checked={draft.is_active}
+                      onChange={(event) =>
+                        setDraft((current) => ({ ...current, is_active: event.target.checked }))
+                      }
+                    />
+                    <span>Active</span>
+                  </label>
+                </div>
+                <label>
+                  Background Type
+                  <select
+                    value={draft.background_type}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        background_type: event.target.value,
+                      }))
+                    }
+                  >
+                    <option value="image">Image</option>
+                    <option value="video">Video</option>
+                    <option value="gradient">Gradient</option>
+                    <option value="solid">Solid Color</option>
+                  </select>
+                </label>
+                <label>
+                  Background Value
+                  <input
+                    value={draft.background_value ?? ''}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        background_value: event.target.value || null,
+                      }))
+                    }
+                    placeholder="/assets/home.webp or linear-gradient(...)"
+                  />
+                </label>
+                <label>
+                  Overlay Color
+                  <input
+                    value={draft.overlay_color ?? ''}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        overlay_color: event.target.value || null,
+                      }))
+                    }
+                    placeholder="rgba(17, 24, 18, 0.28)"
+                  />
+                </label>
+                <label>
+                  Text Color
+                  <input
+                    value={draft.text_color ?? ''}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        text_color: event.target.value || null,
+                      }))
+                    }
+                    placeholder="#ffffff"
+                  />
+                </label>
+              </div>
+
+              <div className="banner-preview">
+                <h3>Live Preview</h3>
+                <div className="banner-preview-canvas">
+                  <BannerRenderer banner={previewBanner} variant="preview" />
+                </div>
+              </div>
+            </aside>
+          </div>
+
+          <div className="form-actions sticky-footer">
+            <button type="button" className="secondary" onClick={onBack}>
+              Cancel
+            </button>
+            <button type="submit" className="solid-button large" disabled={saving}>
+              {saving ? 'Saving…' : existingBanner ? 'Update Banner' : 'Create Banner'}
+            </button>
+          </div>
+          {status ? <p className="helper-copy">{status}</p> : null}
+        </form>
+      </article>
+    </section>
+  );
+}

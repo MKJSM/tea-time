@@ -1,4 +1,8 @@
-use axum::{extract::{Path, State}, routing::{get, patch}, Json, Router};
+use axum::{
+    extract::{Path, State},
+    routing::{get, patch},
+    Json, Router,
+};
 use axum_extra::extract::cookie::CookieJar;
 
 use backend_session::{cookie_name, lookup_subject_id, SessionScope};
@@ -12,9 +16,14 @@ pub fn router() -> Router<AppState> {
         .route("/{id}", patch(update).delete(remove))
 }
 
-async fn list(State(state): State<AppState>, jar: CookieJar) -> Result<Json<serde_json::Value>, AppError> {
+async fn list(
+    State(state): State<AppState>,
+    jar: CookieJar,
+) -> Result<Json<serde_json::Value>, AppError> {
     let user_id = current_user_id(&state, &jar).await?;
-    Ok(Json(backend_address::list_for_user(&state.db, &user_id).await?))
+    Ok(Json(
+        backend_address::list_for_user(&state.db, &user_id).await?,
+    ))
 }
 
 async fn create(
@@ -23,7 +32,9 @@ async fn create(
     Json(input): Json<backend_address::AddressInput>,
 ) -> Result<Json<backend_address::Address>, AppError> {
     let user_id = current_user_id(&state, &jar).await?;
-    Ok(Json(backend_address::create_for_user(&state.db, &user_id, input).await?))
+    Ok(Json(
+        backend_address::create_for_user(&state.db, &user_id, input).await?,
+    ))
 }
 
 async fn update(
@@ -33,7 +44,9 @@ async fn update(
     Json(input): Json<backend_address::AddressInput>,
 ) -> Result<Json<backend_address::Address>, AppError> {
     let user_id = current_user_id(&state, &jar).await?;
-    Ok(Json(backend_address::update_for_user(&state.db, &user_id, &id, input).await?))
+    Ok(Json(
+        backend_address::update_for_user(&state.db, &user_id, &id, input).await?,
+    ))
 }
 
 async fn remove(

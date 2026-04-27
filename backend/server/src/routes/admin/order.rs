@@ -1,4 +1,8 @@
-use axum::{extract::{Path, State}, routing::{get, patch}, Json, Router};
+use axum::{
+    extract::{Path, State},
+    routing::{get, patch},
+    Json, Router,
+};
 use backend_shared::AppError;
 
 use crate::state::AppState;
@@ -19,7 +23,10 @@ async fn list(State(state): State<AppState>) -> Result<Json<serde_json::Value>, 
     Ok(Json(backend_order::list_orders_admin(&state.db).await?))
 }
 
-async fn detail(State(state): State<AppState>, Path(id): Path<String>) -> Result<Json<backend_order::OrderDetail>, AppError> {
+async fn detail(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> Result<Json<backend_order::OrderDetail>, AppError> {
     Ok(Json(backend_order::get_order_admin(&state.db, &id).await?))
 }
 

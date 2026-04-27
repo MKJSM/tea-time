@@ -44,6 +44,7 @@ const ALLOWED_TAGS = new Set([
   'small',
   'span',
   'strong',
+  'style',
   'sub',
   'sup',
   'table',
@@ -138,6 +139,15 @@ function overlayToCss(value: string | null | undefined) {
   return `rgba(${r}, ${g}, ${b}, ${fallback.opacity / 100})`;
 }
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function slideBackgroundStyle(banner: Banner): CSSProperties {
   if (banner.background_type === 'solid' || banner.background_type === 'gradient') {
     return {
@@ -159,36 +169,6 @@ function slideBackgroundStyle(banner: Banner): CSSProperties {
     backgroundRepeat: 'no-repeat',
     backgroundSize: 'cover',
   };
-}
-
-function buildHtmlDocument(html: string) {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><style>
-    html, body {
-      margin: 0;
-      width: 100%;
-      min-height: 100%;
-      background: transparent;
-      color: inherit;
-      font: inherit;
-      overflow: hidden;
-    }
-    *, *::before, *::after {
-      box-sizing: border-box;
-    }
-    img, video, svg {
-      max-width: 100%;
-      height: auto;
-    }
-    a {
-      color: inherit;
-    }
-    .banner-block-heading h2 { margin: 0 0 1rem; font-size: 2.5rem; font-weight: 800; line-height: 1.1; }
-    .banner-block-text p { margin: 0 0 1.5rem; font-size: 1.1rem; line-height: 1.6; opacity: 0.9; }
-    .banner-block-image img { width: 100%; border-radius: 12px; margin-bottom: 1.5rem; }
-    .banner-block-actions a { display: inline-block; padding: 14px 28px; background: white; color: #111812; border-radius: 999px; text-decoration: none; font-weight: 800; font-size: 0.9rem; margin-right: 12px; margin-bottom: 1rem; }
-    .banner-block-divider hr { border: 0; border-top: 1px solid rgba(255,255,255,0.2); margin: 2rem 0; }
-    .banner-block-spacer { display: block; width: 100%; }
-  </style></head><body>${html}</body></html>`;
 }
 
 export function sanitizeBannerHtml(html: string) {
@@ -250,8 +230,9 @@ function StructuredPreview({ banner, variant }: { banner: Banner; variant: Banne
 
   return (
     <div
-      className={`banner-renderer-content banner-renderer-content--${variant} hero-slide-content${variant === 'hero' ? ' container' : ''
-        }`}
+      className={`banner-renderer-content banner-renderer-content--${variant} hero-slide-content${
+        variant === 'hero' ? ' container' : ''
+      }`}
     >
       <div className="hero-copy" style={{ '--hero-text': textColor } as CSSProperties}>
         {banner.subtitle ? <span className="eyebrow">{banner.subtitle}</span> : null}
@@ -318,8 +299,8 @@ function StructuredPreview({ banner, variant }: { banner: Banner; variant: Banne
 
 function HtmlPreview({ banner, variant }: { banner: Banner; variant: BannerVariant }) {
   const sanitized = sanitizeBannerHtml(banner.content_html ?? '');
-  const fallbackHtml = `<div style="padding: 1rem; color: ${banner.text_color ?? '#ffffff'}; font-size: 1rem;">
-    <strong>${banner.title}</strong>
+  const fallbackHtml = `<div style="padding: 1rem; color: ${escapeHtml(banner.text_color ?? '#ffffff')}; font-size: 1rem;">
+    <strong>${escapeHtml(banner.title)}</strong>
     <p style="margin: 0.75rem 0 0; opacity: 0.85;">Build your custom banner in the visual editor.</p>
   </div>`;
 
@@ -341,7 +322,7 @@ export function BannerRenderer({ banner, variant = 'hero' }: BannerRendererProps
       <div
         className="hero-overlay"
         style={{
-          background: banner.overlay_color ?? DEFAULT_OVERLAY,
+          background: overlayToCss(banner.overlay_color),
         }}
       />
       <div className="banner-renderer-frame" style={{ '--hero-text': textColor } as CSSProperties}>

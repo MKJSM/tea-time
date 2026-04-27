@@ -1,5 +1,7 @@
+import React, { useRef } from 'react';
 import type { CategoryListItem, ProductListItem } from '@tea-time/types';
 import { formatMoney } from '../lib/format';
+import { useAutoScroll } from '../lib/autoScroll';
 
 type AsyncState = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -66,43 +68,76 @@ export function CatalogSection({
 
       <div className="catalog-grid">
         {products.map((product) => (
-          <article key={product.id} className="product-card">
-            <div className="product-media">
-              {product.images[0] ? (
-                <img src={product.images[0]} alt={product.name} />
-              ) : (
-                <div className="product-placeholder">{product.name.slice(0, 1)}</div>
-              )}
-            </div>
-            <div className="product-content">
-              <div className="product-title-row">
-                <h3>{product.name}</h3>
-                <strong>{formatMoney(product.price)}</strong>
-              </div>
-              <p>{product.description ?? 'Freshly prepared and ready for repeat ordering.'}</p>
-              <div className="product-tags">
-                {product.categories.map((c) => (
-                  <span key={`${product.id}-${c}`} className="product-tag">
-                    {c}
-                  </span>
-                ))}
-              </div>
-            </div>
-            {onAddToCart ? (
-              <div className="product-footer">
-                <button
-                  className="solid-button"
-                  type="button"
-                  onClick={() => onAddToCart(product.id)}
-                  disabled={busyProductId === product.id}
-                >
-                  {busyProductId === product.id ? 'Adding…' : 'Add to cart'}
-                </button>
-              </div>
-            ) : null}
-          </article>
+          <ProductCard
+            key={product.id}
+            product={product}
+            onAddToCart={onAddToCart}
+            isBusy={busyProductId === product.id}
+          />
         ))}
       </div>
     </section>
+  );
+}
+
+function ProductCard({
+  product,
+  onAddToCart,
+  isBusy,
+}: {
+  product: ProductListItem;
+  onAddToCart?: (id: string) => void;
+  isBusy: boolean;
+}) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  useAutoScroll(scrollerRef, product.images.length);
+
+  return (
+    <article className="product-card">
+      <div className="product-media">
+        {product.images.length > 0 ? (
+          <div className="image-scroller" ref={scrollerRef}>
+            {product.images.map((url, i) => (
+              <img key={`${product.id}-img-${i}`} src={url} alt={product.name} />
+            ))}
+            {product.images.length > 1 && (
+              <div className="scroller-dots">
+                {product.images.map((_, i) => (
+                  <div key={i} className="scroller-dot" />
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="product-placeholder">{product.name.slice(0, 1)}</div>
+        )}
+      </div>
+      <div className="product-content">
+        <div className="product-title-row">
+          <h3>{product.name}</h3>
+          <strong>{formatMoney(product.price)}</strong>
+        </div>
+        <p>{product.description ?? 'Freshly prepared and ready for repeat ordering.'}</p>
+        <div className="product-tags">
+          {product.categories.map((c) => (
+            <span key={`${product.id}-${c}`} className="product-tag">
+              {c}
+            </span>
+          ))}
+        </div>
+      </div>
+      {onAddToCart ? (
+        <div className="product-footer">
+          <button
+            className="solid-button"
+            type="button"
+            onClick={() => onAddToCart(product.id)}
+            disabled={isBusy}
+          >
+            {isBusy ? 'Adding…' : 'Add to cart'}
+          </button>
+        </div>
+      ) : null}
+    </article>
   );
 }

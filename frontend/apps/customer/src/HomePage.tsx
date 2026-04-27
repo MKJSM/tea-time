@@ -7,9 +7,9 @@ import {
   deleteAddress,
   deleteCartItem,
   getAddresses,
-  getBanners,
   getCart,
   getCategories,
+  getBanners,
   getCurrentCustomer,
   getOrder,
   getOrders,
@@ -26,9 +26,9 @@ import {
 import type {
   Address,
   AddressInput,
-  Banner,
   CartResponse,
   CheckoutResult,
+  Banner,
   CustomerAuthResponse,
   CustomerRegisterInput,
   CategoryListItem,
@@ -45,7 +45,6 @@ import { OrdersSection } from './components/OrdersSection';
 import { buildProductsPath } from './lib/catalog';
 import { ensureRazorpayScript } from './lib/razorpay';
 import { useSiteTheme } from './lib/theme';
-
 declare global {
   interface Window {
     Razorpay?: new (options: Record<string, unknown>) => {
@@ -124,8 +123,8 @@ function normalizeAddressForm(address?: Address): AddressInput {
 export function HomePage() {
   const { theme, toggleTheme } = useSiteTheme();
 
-  const [banners, setBanners] = useState<Banner[]>(fallbackBanners);
   const [categories, setCategories] = useState<CategoryListItem[]>([]);
+  const [banners, setBanners] = useState<Banner[]>([]);
   const [categoriesState, setCategoriesState] = useState<AsyncState>('loading');
   const [categoriesMessage, setCategoriesMessage] = useState('');
 
@@ -154,24 +153,12 @@ export function HomePage() {
   const [orderMessage, setOrderMessage] = useState<string>('');
   const [paymentMessage, setPaymentMessage] = useState<string>('');
   const [busyProductId, setBusyProductId] = useState<string | null>(null);
-  const [activeSlide, setActiveSlide] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     void loadPublicData();
     void restoreSession();
   }, []);
-
-  // Auto-advance hero slider
-  useEffect(() => {
-    if (banners.length < 2) {
-      return undefined;
-    }
-    const timer = window.setInterval(() => {
-      setActiveSlide((c) => (c + 1) % banners.length);
-    }, 4200);
-    return () => window.clearInterval(timer);
-  }, [banners.length]);
 
   // Intersection observer for fade-up animations
   useEffect(() => {
@@ -201,14 +188,7 @@ export function HomePage() {
     setCategoriesState('loading');
     setCategoriesMessage('');
 
-    const [bannerResult, categoryResult] = await Promise.allSettled([getBanners(), getCategories()]);
-
-    if (bannerResult.status === 'fulfilled') {
-      setBanners(bannerResult.value.items.length ? bannerResult.value.items : fallbackBanners);
-    } else {
-      setBanners(fallbackBanners);
-      console.error(bannerResult.reason);
-    }
+    const [categoryResult, bannerResult] = await Promise.allSettled([getCategories(), getBanners()]);
 
     if (categoryResult.status === 'fulfilled') {
       setCategories(categoryResult.value.items);
@@ -222,6 +202,17 @@ export function HomePage() {
           : 'Failed to load categories',
       );
       console.error(categoryResult.reason);
+    }
+
+    if (bannerResult.status === 'fulfilled') {
+      setBanners(
+        [...bannerResult.value.items]
+          .filter((banner) => banner.is_active)
+          .sort((left, right) => left.sort_order - right.sort_order),
+      );
+    } else {
+      setBanners([]);
+      console.error(bannerResult.reason);
     }
   }
 
@@ -560,7 +551,7 @@ export function HomePage() {
         </div>
       </header>
 
-      <HeroSlider banners={banners} activeSlide={activeSlide} onSlideChange={setActiveSlide} />
+      <HeroSlider banners={banners.length ? banners : fallbackBanners} />
 
       <CategoriesSection
         categories={categories}

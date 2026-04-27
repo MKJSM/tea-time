@@ -1,11 +1,4 @@
 import type { OrderDetail, OrderSummary, PaymentDetailResponse, PaymentRecord } from '@tea-time/types';
-import { BannerRenderer } from '@tea-time/ui';
-import {
-  normalizeHexColor,
-  parseOverlayColor,
-  rgbaFromHex,
-  backgroundThumbStyle
-} from '../lib/colors';
 import { formatDate, formatMoney } from '../lib/format';
 
 interface OrdersProps {

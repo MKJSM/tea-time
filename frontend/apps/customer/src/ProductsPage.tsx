@@ -115,9 +115,11 @@ export function ProductsPage() {
           <a className="brand" href="/" style={{ textDecoration: 'none' }}>
             <img src="/assets/logo.webp" alt="Mobilitea Logo" className="logo" />
           </a>
-          <nav className="site-nav products-nav">
+          <nav className="site-nav">
             <a href="/">Home</a>
-            <a href="/#categories">Categories</a>
+            <a href="/#categories">Menu</a>
+            <a href="/products">Products</a>
+            <a href="/#ritual">Process</a>
             <a href="/#contact">Contact</a>
           </nav>
           <div className="header-actions">
@@ -129,8 +131,8 @@ export function ProductsPage() {
             >
               {theme === 'light' ? '🌙' : '☀️'}
             </button>
-            <a className="solid-button" href="/">
-              Back Home
+            <a className="solid-button" href="/#categories">
+              Subscribe
             </a>
           </div>
         </div>

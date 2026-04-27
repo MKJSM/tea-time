@@ -75,7 +75,11 @@ pub async fn create(pool: &Pool, input: CategoryInput) -> Result<CategoryListIte
     get(pool, &category_id).await
 }
 
-pub async fn update(pool: &Pool, category_id: &str, input: CategoryInput) -> Result<CategoryListItem, AppError> {
+pub async fn update(
+    pool: &Pool,
+    category_id: &str,
+    input: CategoryInput,
+) -> Result<CategoryListItem, AppError> {
     let input = normalize_input(input)?;
     let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
     ensure_slug_available(&client, &input.slug, Some(category_id)).await?;
@@ -94,7 +98,12 @@ pub async fn update(pool: &Pool, category_id: &str, input: CategoryInput) -> Res
 
 pub async fn delete(pool: &Pool, category_id: &str) -> Result<(), AppError> {
     let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
-    let deleted = client.execute("DELETE FROM category WHERE id = $1::text::uuid", &[&category_id]).await?;
+    let deleted = client
+        .execute(
+            "DELETE FROM category WHERE id = $1::text::uuid",
+            &[&category_id],
+        )
+        .await?;
     if deleted == 0 {
         return Err(AppError::NotFound("category not found".into()));
     }
@@ -110,7 +119,8 @@ pub async fn get(pool: &Pool, category_id: &str) -> Result<CategoryListItem, App
          GROUP BY c.id, c.name, c.slug, c.images",
         &[&category_id]
     ).await?;
-    row.map(|row| map_category_row(&row)).ok_or_else(|| AppError::NotFound("category not found".into()))
+    row.map(|row| map_category_row(&row))
+        .ok_or_else(|| AppError::NotFound("category not found".into()))
 }
 
 fn map_category_row(row: &Row) -> CategoryListItem {
@@ -142,7 +152,9 @@ async fn ensure_slug_available(
     };
 
     if row.is_some() {
-        return Err(AppError::BadRequest("category slug is already in use".into()));
+        return Err(AppError::BadRequest(
+            "category slug is already in use".into(),
+        ));
     }
 
     Ok(())
@@ -175,7 +187,10 @@ fn normalize_slug(value: &str) -> Result<String, AppError> {
     }
 
     if !slug.split('-').all(|part| {
-        !part.is_empty() && part.chars().all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit())
+        !part.is_empty()
+            && part
+                .chars()
+                .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit())
     }) {
         return Err(AppError::BadRequest(
             "category slug must use lowercase letters, numbers, and hyphens only".into(),

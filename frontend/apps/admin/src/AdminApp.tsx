@@ -20,11 +20,12 @@ import {
   getUser,
   getUsers,
   logoutAdmin,
-  updateBanner,
   updateCategory,
   updateOrderStatus,
   updateProduct,
+  updateBanner,
   uploadFile,
+  deleteFile,
 } from '@tea-time/api-client';
 import type {
   AdminAuthResponse,
@@ -46,10 +47,13 @@ import type {
 } from '@tea-time/types';
 
 import { LoginPage } from './components/LoginPage';
-import { BannersSection, CustomersSection } from './components/BannersSection';
+import { BannerEditorPage } from './components/BannerEditorPage';
+import { BannersSection } from './components/BannersSection';
+import { CustomersSection } from './components/CustomersSection';
 import {
   CategoriesSection,
   ProductsSection,
+  ProductCategoryPicker,
   type CategoryFormState,
   type ProductFormState,
 } from './components/CatalogSection';
@@ -66,7 +70,8 @@ type DashboardSectionKey =
   | 'banners'
   | 'customers'
   | 'orders'
-  | 'payments';
+  | 'payments'
+  | 'banner-editor';
 
 interface DashboardSection {
   key: DashboardSectionKey;
@@ -107,6 +112,7 @@ const emptyBanner: BannerInput = {
   media_kind: 'image',
   content_mode: 'structured',
   content_html: '',
+  content_json: [],
   background_type: 'image',
   background_value: '/assets/home-Dr3wWsX4.webp',
   overlay_color: 'rgba(17, 24, 18, 0.24)',
@@ -126,12 +132,23 @@ const emptyUser: CreateCustomerInput = {
 
 function sectionFromHash(hash: string): DashboardSectionKey {
   const normalized = hash.replace(/^#/, '');
+  if (normalized === 'admin-banners') return 'banners';
+  if (normalized.startsWith('admin-banners/')) return 'banner-editor';
   const match = dashboardSections.find((section) => section.id === normalized);
   return match?.key ?? 'overview';
 }
 
 function sectionId(section: DashboardSectionKey): string {
   return dashboardSections.find((item) => item.key === section)?.id ?? 'admin-overview';
+}
+
+function bannerIdFromHash(hash: string): string {
+  const normalized = hash.replace(/^#/, '');
+  if (!normalized.startsWith('admin-banners/')) return '';
+
+  const bannerId = normalized.slice('admin-banners/'.length).trim();
+  if (!bannerId || bannerId === 'new') return '';
+  return bannerId;
 }
 
 function getErrorMessage(error: unknown): string {
@@ -215,7 +232,7 @@ export function AdminApp() {
   const [bannerEditingId, setBannerEditingId] = useState('');
   const [userForm, setUserForm] = useState<CreateCustomerInput>(emptyUser);
 
-  const [activeModal, setActiveModal] = useState<'category' | 'product' | 'banner' | 'user' | 'order' | 'payment' | null>(null);
+  const [activeModal, setActiveModal] = useState<'category' | 'product' | 'user' | 'order' | 'payment' | null>(null);
 
   const resetDashboard = () =>
     createResetState({
@@ -249,8 +266,15 @@ export function AdminApp() {
       getPayments(),
     ]);
 
-    const [healthResult, categoriesResult, productsResult, bannersResult, usersResult, ordersResult, paymentsResult] =
-      results;
+    const [
+      healthResult,
+      categoriesResult,
+      productsResult,
+      bannersResult,
+      usersResult,
+      ordersResult,
+      paymentsResult,
+    ] = results;
 
     const errors: string[] = [];
     let authExpired = false;
@@ -286,7 +310,7 @@ export function AdminApp() {
     }
 
     if (bannersResult.status === 'fulfilled') {
-      setBanners(bannersResult.value.items);
+      setBanners([...bannersResult.value.items].sort((left, right) => left.sort_order - right.sort_order));
     } else {
       applyError(bannersResult);
       setBanners([]);
@@ -357,6 +381,7 @@ export function AdminApp() {
     const syncSection = () => {
       if (!session) return;
       setActiveSection(sectionFromHash(window.location.hash));
+      setBannerEditingId(bannerIdFromHash(window.location.hash));
     };
 
     syncSection();
@@ -370,6 +395,20 @@ export function AdminApp() {
       window.location.hash = `#${sectionId('overview')}`;
     }
   }, [session]);
+
+  useEffect(() => {
+    if (activeSection !== 'banner-editor') return;
+
+    if (!bannerEditingId) {
+      setBannerForm(emptyBanner);
+      return;
+    }
+
+    const banner = banners.find((item) => item.id === bannerEditingId);
+    if (banner) {
+      setBannerForm(bannerFormFromBanner(banner));
+    }
+  }, [activeSection, bannerEditingId, banners]);
 
   // Close modals on navigation
   useEffect(() => {
@@ -409,31 +448,185 @@ export function AdminApp() {
     event: React.ChangeEvent<HTMLInputElement>,
     target: 'category' | 'product' | 'banner' | 'banner-background',
   ) {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
 
     try {
-      const response = await uploadFile(file);
+      const results = await Promise.allSettled(files.map((file) => uploadFile(file)));
+      const urls: string[] = [];
+      results.forEach((res) => {
+        if (res.status === 'fulfilled') {
+          urls.push(res.value.file_url);
+        } else {
+          console.error('Upload failed:', res.reason);
+        }
+      });
+
+      if (!urls.length) {
+        setMessage('Upload failed.');
+        return;
+      }
+
+      const newImagesText = urls.join('\n');
+
       if (target === 'category') {
         setCategoryForm((current: CategoryFormState) => ({
           ...current,
-          imagesText: current.imagesText ? `${current.imagesText}\n${response.file_url}` : response.file_url,
+          imagesText: current.imagesText ? `${current.imagesText}\n${newImagesText}` : newImagesText,
         }));
       } else if (target === 'product') {
         setProductForm((current: ProductFormState) => ({
           ...current,
-          imagesText: current.imagesText ? `${current.imagesText}\n${response.file_url}` : response.file_url,
+          imagesText: current.imagesText ? `${current.imagesText}\n${newImagesText}` : newImagesText,
         }));
       } else if (target === 'banner-background') {
-        setBannerForm((current: BannerInput) => ({ ...current, background_value: response.file_url }));
+        setBannerForm((current: BannerInput) => ({
+          ...current,
+          background_value: urls[0] ?? current.background_value ?? '',
+        }));
       } else {
-        setBannerForm((current: BannerInput) => ({ ...current, media_url: response.file_url }));
+        setBannerForm((current: BannerInput) => ({
+          ...current,
+          media_url: urls[0] ?? current.media_url ?? '',
+        }));
       }
-      setMessage('File uploaded.');
+      setMessage(`${urls.length} file(s) uploaded.`);
     } catch (error) {
       setMessage(getErrorMessage(error));
     } finally {
       event.target.value = '';
+    }
+  }
+
+  async function handleFileDelete(
+    url: string,
+    target: 'category' | 'product',
+  ) {
+    if (!confirm('Delete this image from storage?')) return;
+
+    try {
+      await deleteFile(url);
+      if (target === 'category') {
+        setCategoryForm((current: CategoryFormState) => {
+          const images = parseImageField(current.imagesText).filter((u) => u !== url);
+          return { ...current, imagesText: imageFieldToString(images) };
+        });
+      } else {
+        setProductForm((current: ProductFormState) => {
+          const images = parseImageField(current.imagesText).filter((u) => u !== url);
+          return { ...current, imagesText: imageFieldToString(images) };
+        });
+      }
+      setMessage('Image deleted.');
+    } catch (error) {
+      setMessage(getErrorMessage(error));
+    }
+  }
+
+  function bannerFormFromBanner(banner: Banner): BannerInput {
+    return {
+      title: banner.title,
+      subtitle: banner.subtitle ?? '',
+      description: banner.description ?? '',
+      primary_button_label: banner.primary_button_label ?? '',
+      primary_button_href: banner.primary_button_href ?? '',
+      secondary_button_label: banner.secondary_button_label ?? '',
+      secondary_button_href: banner.secondary_button_href ?? '',
+      media_url: banner.media_url ?? '',
+      media_kind: banner.media_kind === 'video' ? 'video' : 'image',
+      content_mode: banner.content_mode === 'html' ? 'html' : 'structured',
+      content_html: banner.content_html ?? '',
+      content_json: banner.content_json ?? [],
+      background_type:
+        banner.background_type === 'image' ||
+        banner.background_type === 'video' ||
+        banner.background_type === 'solid'
+          ? banner.background_type
+          : 'gradient',
+      background_value: banner.background_value ?? '',
+      overlay_color: banner.overlay_color ?? '',
+      text_color: banner.text_color ?? '',
+      sort_order: banner.sort_order,
+      is_active: banner.is_active,
+    };
+  }
+
+  function openBannerEditor(banner: Banner) {
+    setBannerEditingId(banner.id);
+    setBannerForm(bannerFormFromBanner(banner));
+    setActiveSection('banner-editor');
+    if (typeof window !== 'undefined') {
+      window.location.hash = `#admin-banners/${banner.id}`;
+    }
+  }
+
+  function createBannerDraft() {
+    setBannerEditingId('');
+    setBannerForm(emptyBanner);
+    setActiveSection('banner-editor');
+    if (typeof window !== 'undefined') {
+      window.location.hash = '#admin-banners/new';
+    }
+  }
+
+  function exitBannerEditor() {
+    setBannerEditingId('');
+    setBannerForm(emptyBanner);
+    setActiveSection('banners');
+    if (typeof window !== 'undefined') {
+      window.location.hash = '#admin-banners';
+    }
+  }
+
+  async function handleBannerFileAppend(
+    event: React.ChangeEvent<HTMLInputElement>,
+    target: 'banner' | 'banner-background',
+  ) {
+    await handleFileAppend(event, target);
+  }
+
+  async function submitBanner(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    try {
+      if (bannerEditingId) {
+        await updateBanner(bannerEditingId, bannerForm);
+        setMessage('Banner updated.');
+      } else {
+        await createBanner(bannerForm);
+        setMessage('Banner created.');
+      }
+      setBannerEditingId('');
+      setBannerForm(emptyBanner);
+      setActiveSection('banners');
+      if (typeof window !== 'undefined') {
+        window.location.hash = `#${sectionId('banners')}`;
+      }
+      await loadDashboardData();
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      if (isSessionError(errorMessage)) {
+        await handleLogout();
+        return;
+      }
+      setMessage(errorMessage);
+    }
+  }
+
+  async function deleteBannerItem(id: string) {
+    try {
+      await deleteBanner(id);
+      setMessage('Banner deleted.');
+      await loadDashboardData();
+      if (bannerEditingId === id) {
+        exitBannerEditor();
+      }
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      if (isSessionError(errorMessage)) {
+        await handleLogout();
+        return;
+      }
+      setMessage(errorMessage);
     }
   }
 
@@ -483,30 +676,6 @@ export function AdminApp() {
         setMessage('Product created.');
       }
       setProductForm(emptyProduct);
-      setActiveModal(null);
-      await loadDashboardData();
-    } catch (error) {
-      const errorMessage = getErrorMessage(error);
-      if (isSessionError(errorMessage)) {
-        await handleLogout();
-        return;
-      }
-      setMessage(errorMessage);
-    }
-  }
-
-  async function submitBanner(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    try {
-      if (bannerEditingId) {
-        await updateBanner(bannerEditingId, bannerForm);
-        setMessage('Banner updated.');
-      } else {
-        await createBanner(bannerForm);
-        setMessage('Banner created.');
-      }
-      setBannerEditingId('');
-      setBannerForm(emptyBanner);
       setActiveModal(null);
       await loadDashboardData();
     } catch (error) {
@@ -619,36 +788,6 @@ export function AdminApp() {
     setActiveModal('product');
   }
 
-  function editBanner(banner: Banner) {
-    setBannerEditingId(banner.id);
-    setBannerForm({
-      title: banner.title,
-      subtitle: banner.subtitle,
-      description: banner.description,
-      primary_button_label: banner.primary_button_label,
-      primary_button_href: banner.primary_button_href,
-      secondary_button_label: banner.secondary_button_label,
-      secondary_button_href: banner.secondary_button_href,
-      media_url: banner.media_url,
-      media_kind: banner.media_kind === 'video' ? 'video' : 'image',
-      content_mode: banner.content_mode === 'html' ? 'html' : 'structured',
-      content_html: banner.content_html ?? '',
-      content_json: banner.content_json,
-      background_type:
-        banner.background_type === 'image' ||
-          banner.background_type === 'video' ||
-          banner.background_type === 'solid'
-          ? banner.background_type
-          : 'gradient',
-      background_value: banner.background_value,
-      overlay_color: banner.overlay_color,
-      text_color: banner.text_color,
-      sort_order: banner.sort_order,
-      is_active: banner.is_active,
-    });
-    setActiveModal('banner');
-  }
-
   async function removeCategory(id: string) {
     try {
       await deleteCategory(id);
@@ -677,29 +816,49 @@ export function AdminApp() {
     }
   }
 
-  async function removeBanner(id: string) {
-    try {
-      await deleteBanner(id);
-      await loadDashboardData();
-    } catch (error) {
-      const errorMessage = getErrorMessage(error);
-      if (isSessionError(errorMessage)) {
-        await handleLogout();
-        return;
-      }
-      setMessage(errorMessage);
-    }
-  }
-
   if (!session) {
     return <LoginPage onLoginSuccess={handleLoginSuccess} checkingSession={bootstrapping} />;
   }
 
   const currentSession = session;
-  const activeSectionLabel = dashboardSections.find((item) => item.key === activeSection)?.label ?? 'Overview';
+  const activeSectionLabel =
+    activeSection === 'banner-editor'
+      ? 'Banner editor'
+      : dashboardSections.find((item) => item.key === activeSection)?.label ?? 'Overview';
 
   function renderSection() {
     switch (activeSection) {
+      case 'banners':
+        return (
+          <BannersSection
+            banners={banners}
+            onOpenBanner={(id) => {
+              const banner = banners.find((item) => item.id === id);
+              if (banner) {
+                openBannerEditor(banner);
+              }
+            }}
+            onDeleteBanner={(id) => void deleteBannerItem(id)}
+            onAddBanner={createBannerDraft}
+          />
+        );
+      case 'banner-editor':
+        return (
+          <BannerEditorPage
+            key={bannerEditingId || 'new'}
+            bannerId={bannerEditingId || null}
+            banners={banners}
+            onBack={exitBannerEditor}
+            onSaved={async () => {
+              await loadDashboardData();
+            }}
+            onRemoved={async () => {
+              await loadDashboardData();
+              exitBannerEditor();
+            }}
+            onMessage={setMessage}
+          />
+        );
       case 'categories':
         return (
           <CategoriesSection
@@ -722,19 +881,6 @@ export function AdminApp() {
             onAddProduct={() => {
               setProductForm(emptyProduct);
               setActiveModal('product');
-            }}
-          />
-        );
-      case 'banners':
-        return (
-          <BannersSection
-            banners={banners}
-            onEditBanner={editBanner}
-            onDeleteBanner={(id) => void removeBanner(id)}
-            onAddBanner={() => {
-              setBannerEditingId('');
-              setBannerForm(emptyBanner);
-              setActiveModal('banner');
             }}
           />
         );
@@ -798,7 +944,11 @@ export function AdminApp() {
           {dashboardSections.map((item) => (
             <a
               key={item.id}
-              className={`admin-sidebar-link${activeSection === item.key ? ' is-active' : ''}`}
+              className={`admin-sidebar-link${
+                activeSection === item.key || (item.key === 'banners' && activeSection === 'banner-editor')
+                  ? ' is-active'
+                  : ''
+              }`}
               href={`#${item.id}`}
               onClick={() => setSidebarOpen(false)}
             >
@@ -861,7 +1011,7 @@ export function AdminApp() {
                   };
                 })
               }
-              placeholder="Black Tea"
+              placeholder=""
             />
           </label>
           <label>
@@ -869,21 +1019,36 @@ export function AdminApp() {
             <input
               value={categoryForm.slug}
               onChange={(e) => setCategoryForm({ ...categoryForm, slug: e.target.value })}
-              placeholder="black-tea"
+              placeholder=""
             />
             <small className="helper-copy">Used in /products?category=...</small>
           </label>
-          <label>
-            Image URLs
-            <textarea
-              value={categoryForm.imagesText}
-              onChange={(e) => setCategoryForm({ ...categoryForm, imagesText: e.target.value })}
-              placeholder="One image URL per line"
-            />
-          </label>
+          <div>
+            <p className="admin-eyebrow" style={{ marginBottom: 8 }}>Images</p>
+            <div className="image-grid">
+              {parseImageField(categoryForm.imagesText).map((url) => (
+                <div key={url} className="image-item">
+                  <img src={url} alt="Category" />
+                  <button
+                    type="button"
+                    className="image-delete-btn"
+                    onClick={() => void handleFileDelete(url, 'category')}
+                    title="Delete image"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
           <label className="upload-field">
-            Upload image
-            <input type="file" accept="image/*" onChange={(e) => void handleFileAppend(e, 'category')} />
+            Add images
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => void handleFileAppend(e, 'category')}
+            />
           </label>
 
           <div className="form-actions">
@@ -903,7 +1068,7 @@ export function AdminApp() {
             <input
               value={productForm.name}
               onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
-              placeholder="Masala Ember"
+              placeholder=""
             />
           </label>
           <label>
@@ -925,56 +1090,44 @@ export function AdminApp() {
           </label>
           <label>
             Category links
-            <select
-              multiple
-              value={productForm.categoryIds}
-              onChange={(e) =>
-                setProductForm({
-                  ...productForm,
-                  categoryIds: Array.from(e.target.selectedOptions, (option) => option.value),
-                })
-              }
-            >
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Image URLs
-            <textarea
-              value={productForm.imagesText}
-              onChange={(e) => setProductForm({ ...productForm, imagesText: e.target.value })}
-              placeholder="One image URL per line"
+            <ProductCategoryPicker
+              categories={categories}
+              selectedIds={productForm.categoryIds}
+              onChange={(categoryIds) => setProductForm({ ...productForm, categoryIds })}
             />
           </label>
+          <div>
+            <p className="admin-eyebrow" style={{ marginBottom: 8 }}>Gallery</p>
+            <div className="image-grid">
+              {parseImageField(productForm.imagesText).map((url) => (
+                <div key={url} className="image-item">
+                  <img src={url} alt="Product" />
+                  <button
+                    type="button"
+                    className="image-delete-btn"
+                    onClick={() => void handleFileDelete(url, 'product')}
+                    title="Delete image"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
           <label className="upload-field">
-            Upload image
-            <input type="file" accept="image/*" onChange={(e) => void handleFileAppend(e, 'product')} />
+            Add images
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => void handleFileAppend(e, 'product')}
+            />
           </label>
 
           <div className="form-actions">
             <button type="submit">{productForm.id ? 'Update product' : 'Create product'}</button>
           </div>
         </form>
-      </AdminModal>
-
-      <AdminModal
-        isOpen={activeModal === 'banner'}
-        onClose={() => setActiveModal(null)}
-        title={bannerEditingId ? 'Edit Banner' : 'Create Banner'}
-        width="min(98vw, 1400px)"
-      >
-        <BannersSection
-          bannerForm={bannerForm}
-          bannerEditingId={bannerEditingId}
-          onBannerFormChange={(patch) => setBannerForm((c: any) => ({ ...c, ...patch }))}
-          onFileAppend={(e, t) => void handleFileAppend(e, t)}
-          onSubmitBanner={submitBanner}
-          variant="editor"
-        />
       </AdminModal>
 
       <AdminModal

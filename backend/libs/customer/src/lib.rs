@@ -275,7 +275,9 @@ pub async fn update_profile(
     input: UpdateProfileInput,
 ) -> Result<AuthResponse, AppError> {
     if input.first_name.trim().is_empty() || input.last_name.trim().is_empty() {
-        return Err(AppError::BadRequest("first_name and last_name are required".into()));
+        return Err(AppError::BadRequest(
+            "first_name and last_name are required".into(),
+        ));
     }
     let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
     let updated = client.execute(
@@ -289,7 +291,10 @@ pub async fn update_profile(
     me(pool, user_id).await
 }
 
-pub async fn create_by_admin(pool: &Pool, input: CreateCustomerInput) -> Result<AuthResponse, AppError> {
+pub async fn create_by_admin(
+    pool: &Pool,
+    input: CreateCustomerInput,
+) -> Result<AuthResponse, AppError> {
     let register_input = RegisterInput {
         user_name: input.user_name,
         first_name: input.first_name,

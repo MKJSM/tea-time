@@ -1,5 +1,9 @@
 use aws_sdk_s3::{primitives::ByteStream, types::ObjectCannedAcl};
-use axum::{extract::{Multipart, State}, routing::post, Json, Router};
+use axum::{
+    extract::{Multipart, Query, State},
+    routing::{delete, post},
+    Json, Router,
+};
 use axum_extra::extract::cookie::CookieJar;
 use uuid::Uuid;
 
@@ -11,10 +15,49 @@ use crate::state::AppState;
 #[derive(serde::Serialize)]
 struct UploadResponse {
     file_url: String,
+    data: Vec<String>,
 }
 
 pub fn router() -> Router<AppState> {
-    Router::new().route("/upload", post(upload))
+    Router::new()
+        .route("/upload", post(upload))
+        .route("/", delete(delete_file))
+}
+
+#[derive(serde::Deserialize)]
+struct DeleteQuery {
+    url: String,
+}
+
+async fn delete_file(
+    State(state): State<AppState>,
+    jar: CookieJar,
+    Query(query): Query<DeleteQuery>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let _user_id = current_user_id(&state, &jar).await?;
+
+    // Parse key from URL
+    let key = if let Some(public_url) = &state.s3_public_url {
+        query.url.replace(public_url.trim_end_matches('/'), "").trim_start_matches('/').to_string()
+    } else {
+        let prefix = format!("https://{}.s3.amazonaws.com/", state.s3_bucket);
+        query.url.replace(&prefix, "").to_string()
+    };
+
+    if key.is_empty() {
+        return Err(AppError::BadRequest("invalid file URL".into()));
+    }
+
+    state
+        .s3_client
+        .delete_object()
+        .bucket(&state.s3_bucket)
+        .key(&key)
+        .send()
+        .await
+        .map_err(|error| AppError::Config(format!("failed to delete file: {error}")))?;
+
+    Ok(Json(serde_json::json!({ "ok": true })))
 }
 
 async fn upload(
@@ -33,7 +76,10 @@ async fn upload(
     {
         let name = field.name().unwrap_or_default().to_string();
         if name == "file" {
-            let ct = field.content_type().unwrap_or("application/octet-stream").to_string();
+            let ct = field
+                .content_type()
+                .unwrap_or("application/octet-stream")
+                .to_string();
             let ext = match ct.as_str() {
                 "image/png" => "png",
                 "image/jpeg" | "image/jpg" => "jpg",
@@ -41,7 +87,10 @@ async fn upload(
                 "video/mp4" => "mp4",
                 _ => return Err(AppError::BadRequest("unsupported file type".into())),
             };
-            let data = field.bytes().await.map_err(|error| AppError::BadRequest(format!("failed to read file: {error}")))?;
+            let data = field
+                .bytes()
+                .await
+                .map_err(|error| AppError::BadRequest(format!("failed to read file: {error}")))?;
             if data.len() > state.max_upload_size {
                 return Err(AppError::BadRequest("file too large".into()));
             }
@@ -70,19 +119,25 @@ async fn upload(
     } else {
         format!("https://{}.s3.amazonaws.com/{}", state.s3_bucket, key)
     };
-    Ok(Json(UploadResponse { file_url }))
+    Ok(Json(UploadResponse {
+        data: vec![file_url.clone()],
+        file_url,
+    }))
 }
 
 async fn current_user_id(state: &AppState, jar: &CookieJar) -> Result<String, AppError> {
     for scope in [SessionScope::Customer, SessionScope::Admin] {
         let Some(token) = jar
             .get(cookie_name(scope))
-            .map(|cookie| cookie.value().to_string()) else {
+            .map(|cookie| cookie.value().to_string())
+        else {
             continue;
         };
         if let Some(user_id) = lookup_subject_id(&state.db, scope, &token).await? {
             return Ok(user_id.to_string());
         }
     }
-    Err(AppError::Unauthorized("session is missing or invalid".into()))
+    Err(AppError::Unauthorized(
+        "session is missing or invalid".into(),
+    ))
 }

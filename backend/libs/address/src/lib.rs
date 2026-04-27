@@ -45,12 +45,19 @@ pub async fn list_for_user(pool: &Pool, user_id: &str) -> Result<serde_json::Val
     Ok(serde_json::json!({"ok": true, "items": rows.iter().map(map_address).collect::<Vec<_>>()}))
 }
 
-pub async fn create_for_user(pool: &Pool, user_id: &str, input: AddressInput) -> Result<Address, AppError> {
+pub async fn create_for_user(
+    pool: &Pool,
+    user_id: &str,
+    input: AddressInput,
+) -> Result<Address, AppError> {
     validate(&input)?;
     let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
     if input.is_default {
         client
-            .execute("UPDATE address SET is_default = FALSE WHERE user_id = $1::text::uuid", &[&user_id])
+            .execute(
+                "UPDATE address SET is_default = FALSE WHERE user_id = $1::text::uuid",
+                &[&user_id],
+            )
             .await?;
     }
     let id = Uuid::new_v4().to_string();
@@ -65,12 +72,20 @@ pub async fn create_for_user(pool: &Pool, user_id: &str, input: AddressInput) ->
     get_for_user(pool, user_id, &id).await
 }
 
-pub async fn update_for_user(pool: &Pool, user_id: &str, address_id: &str, input: AddressInput) -> Result<Address, AppError> {
+pub async fn update_for_user(
+    pool: &Pool,
+    user_id: &str,
+    address_id: &str,
+    input: AddressInput,
+) -> Result<Address, AppError> {
     validate(&input)?;
     let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
     if input.is_default {
         client
-            .execute("UPDATE address SET is_default = FALSE WHERE user_id = $1::text::uuid", &[&user_id])
+            .execute(
+                "UPDATE address SET is_default = FALSE WHERE user_id = $1::text::uuid",
+                &[&user_id],
+            )
             .await?;
     }
     let updated = client.execute(
@@ -89,19 +104,23 @@ pub async fn update_for_user(pool: &Pool, user_id: &str, address_id: &str, input
 
 pub async fn delete_for_user(pool: &Pool, user_id: &str, address_id: &str) -> Result<(), AppError> {
     let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
-    let deleted = client.execute(
-        "DELETE FROM address WHERE id = $1::text::uuid AND user_id = $2::text::uuid",
-        &[&address_id, &user_id]
-    ).await?;
+    let deleted = client
+        .execute(
+            "DELETE FROM address WHERE id = $1::text::uuid AND user_id = $2::text::uuid",
+            &[&address_id, &user_id],
+        )
+        .await?;
     if deleted == 0 {
         return Err(AppError::NotFound("address not found".into()));
     }
-    client.execute(
-        "UPDATE address SET is_default = TRUE WHERE id = (
+    client
+        .execute(
+            "UPDATE address SET is_default = TRUE WHERE id = (
             SELECT id FROM address WHERE user_id = $1::text::uuid ORDER BY created_on DESC LIMIT 1
         )",
-        &[&user_id]
-    ).await?;
+            &[&user_id],
+        )
+        .await?;
     Ok(())
 }
 
@@ -112,17 +131,23 @@ pub async fn get_default_for_user(pool: &Pool, user_id: &str) -> Result<Address,
          FROM address WHERE user_id = $1::text::uuid ORDER BY is_default DESC, created_on DESC LIMIT 1",
         &[&user_id]
     ).await?;
-    row.map(|row| map_address(&row)).ok_or_else(|| AppError::BadRequest("address is required".into()))
+    row.map(|row| map_address(&row))
+        .ok_or_else(|| AppError::BadRequest("address is required".into()))
 }
 
-pub async fn get_for_user(pool: &Pool, user_id: &str, address_id: &str) -> Result<Address, AppError> {
+pub async fn get_for_user(
+    pool: &Pool,
+    user_id: &str,
+    address_id: &str,
+) -> Result<Address, AppError> {
     let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
     let row = client.query_opt(
         "SELECT id::text, user_id::text, full_name, phone, line_1, line_2, city, state, postal_code, country, landmark, is_default
          FROM address WHERE id = $1::text::uuid AND user_id = $2::text::uuid",
         &[&address_id, &user_id]
     ).await?;
-    row.map(|row| map_address(&row)).ok_or_else(|| AppError::NotFound("address not found".into()))
+    row.map(|row| map_address(&row))
+        .ok_or_else(|| AppError::NotFound("address not found".into()))
 }
 
 fn map_address(row: &Row) -> Address {
@@ -150,7 +175,9 @@ fn validate(input: &AddressInput) -> Result<(), AppError> {
         || input.state.trim().is_empty()
         || input.postal_code.trim().is_empty()
     {
-        return Err(AppError::BadRequest("full_name, phone, line_1, city, state, and postal_code are required".into()));
+        return Err(AppError::BadRequest(
+            "full_name, phone, line_1, city, state, and postal_code are required".into(),
+        ));
     }
     Ok(())
 }

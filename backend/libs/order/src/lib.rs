@@ -70,14 +70,20 @@ pub async fn get_cart(pool: &Pool, user_id: &str) -> Result<CartResponse, AppErr
     load_cart(pool, &cart_id).await
 }
 
-pub async fn add_cart_item(pool: &Pool, user_id: &str, input: CartItemInput) -> Result<CartResponse, AppError> {
+pub async fn add_cart_item(
+    pool: &Pool,
+    user_id: &str,
+    input: CartItemInput,
+) -> Result<CartResponse, AppError> {
     validate_qty(input.quantity)?;
     let cart_id = ensure_cart(pool, user_id).await?;
     let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
-    let product = client.query_opt(
-        "SELECT id::text, name, price FROM product WHERE id = $1::text::uuid",
-        &[&input.product_id]
-    ).await?;
+    let product = client
+        .query_opt(
+            "SELECT id::text, name, price FROM product WHERE id = $1::text::uuid",
+            &[&input.product_id],
+        )
+        .await?;
     let product = product.ok_or_else(|| AppError::NotFound("product not found".into()))?;
     let price: f64 = product.get(2);
     client.execute(
@@ -90,35 +96,52 @@ pub async fn add_cart_item(pool: &Pool, user_id: &str, input: CartItemInput) -> 
     load_cart(pool, &cart_id).await
 }
 
-pub async fn update_cart_item(pool: &Pool, user_id: &str, cart_item_id: &str, quantity: i32) -> Result<CartResponse, AppError> {
+pub async fn update_cart_item(
+    pool: &Pool,
+    user_id: &str,
+    cart_item_id: &str,
+    quantity: i32,
+) -> Result<CartResponse, AppError> {
     validate_qty(quantity)?;
     let cart_id = ensure_cart(pool, user_id).await?;
     let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
-    let updated = client.execute(
-        "UPDATE cart_item SET quantity = $3, modified_on = NOW()
+    let updated = client
+        .execute(
+            "UPDATE cart_item SET quantity = $3, modified_on = NOW()
          WHERE id = $1::text::uuid AND cart_id = $2::text::uuid",
-        &[&cart_item_id, &cart_id, &quantity]
-    ).await?;
+            &[&cart_item_id, &cart_id, &quantity],
+        )
+        .await?;
     if updated == 0 {
         return Err(AppError::NotFound("cart item not found".into()));
     }
     load_cart(pool, &cart_id).await
 }
 
-pub async fn delete_cart_item(pool: &Pool, user_id: &str, cart_item_id: &str) -> Result<CartResponse, AppError> {
+pub async fn delete_cart_item(
+    pool: &Pool,
+    user_id: &str,
+    cart_item_id: &str,
+) -> Result<CartResponse, AppError> {
     let cart_id = ensure_cart(pool, user_id).await?;
     let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
-    let deleted = client.execute(
-        "DELETE FROM cart_item WHERE id = $1::text::uuid AND cart_id = $2::text::uuid",
-        &[&cart_item_id, &cart_id]
-    ).await?;
+    let deleted = client
+        .execute(
+            "DELETE FROM cart_item WHERE id = $1::text::uuid AND cart_id = $2::text::uuid",
+            &[&cart_item_id, &cart_id],
+        )
+        .await?;
     if deleted == 0 {
         return Err(AppError::NotFound("cart item not found".into()));
     }
     load_cart(pool, &cart_id).await
 }
 
-pub async fn checkout(pool: &Pool, user_id: &str, input: CheckoutInput) -> Result<CheckoutResult, AppError> {
+pub async fn checkout(
+    pool: &Pool,
+    user_id: &str,
+    input: CheckoutInput,
+) -> Result<CheckoutResult, AppError> {
     let cart_id = ensure_cart(pool, user_id).await?;
     let cart = load_cart(pool, &cart_id).await?;
     if cart.items.is_empty() {
@@ -153,20 +176,36 @@ pub async fn checkout(pool: &Pool, user_id: &str, input: CheckoutInput) -> Resul
     tx.execute(
         "INSERT INTO payment (id, order_id, user_id, provider, status, amount, currency)
          VALUES ($1::text::uuid, $2::text::uuid, $3::text::uuid, 'razorpay', 'pending', $4, 'INR')",
-        &[&Uuid::new_v4().to_string(), &order_id, &user_id, &cart.total_amount]
-    ).await?;
+        &[
+            &Uuid::new_v4().to_string(),
+            &order_id,
+            &user_id,
+            &cart.total_amount,
+        ],
+    )
+    .await?;
     tx.commit().await?;
-    Ok(CheckoutResult { order_id, order_number, total_amount: cart.total_amount, currency: "INR".into() })
+    Ok(CheckoutResult {
+        order_id,
+        order_number,
+        total_amount: cart.total_amount,
+        currency: "INR".into(),
+    })
 }
 
-pub async fn list_orders_for_user(pool: &Pool, user_id: &str) -> Result<serde_json::Value, AppError> {
+pub async fn list_orders_for_user(
+    pool: &Pool,
+    user_id: &str,
+) -> Result<serde_json::Value, AppError> {
     let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
     let rows = client.query(
         "SELECT id::text, order_number, status, payment_status, total_amount, currency, placed_on::text
          FROM customer_order WHERE user_id = $1::text::uuid ORDER BY placed_on DESC",
         &[&user_id]
     ).await?;
-    Ok(serde_json::json!({"ok": true, "items": rows.iter().map(map_order_summary).collect::<Vec<_>>()}))
+    Ok(
+        serde_json::json!({"ok": true, "items": rows.iter().map(map_order_summary).collect::<Vec<_>>()}),
+    )
 }
 
 pub async fn list_orders_admin(pool: &Pool) -> Result<serde_json::Value, AppError> {
@@ -176,10 +215,16 @@ pub async fn list_orders_admin(pool: &Pool) -> Result<serde_json::Value, AppErro
          FROM customer_order ORDER BY placed_on DESC",
         &[]
     ).await?;
-    Ok(serde_json::json!({"ok": true, "items": rows.iter().map(map_order_summary).collect::<Vec<_>>()}))
+    Ok(
+        serde_json::json!({"ok": true, "items": rows.iter().map(map_order_summary).collect::<Vec<_>>()}),
+    )
 }
 
-pub async fn get_order_for_user(pool: &Pool, user_id: &str, order_id: &str) -> Result<OrderDetail, AppError> {
+pub async fn get_order_for_user(
+    pool: &Pool,
+    user_id: &str,
+    order_id: &str,
+) -> Result<OrderDetail, AppError> {
     get_order(pool, Some(user_id), order_id).await
 }
 
@@ -187,27 +232,44 @@ pub async fn get_order_admin(pool: &Pool, order_id: &str) -> Result<OrderDetail,
     get_order(pool, None, order_id).await
 }
 
-pub async fn update_order_status(pool: &Pool, order_id: &str, status: &str) -> Result<(), AppError> {
+pub async fn update_order_status(
+    pool: &Pool,
+    order_id: &str,
+    status: &str,
+) -> Result<(), AppError> {
     if !matches!(status, "placed" | "paid" | "cancelled" | "completed") {
         return Err(AppError::BadRequest("invalid order status".into()));
     }
     let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
-    let updated = client.execute(
-        "UPDATE customer_order SET status = $2, modified_on = NOW() WHERE id = $1::text::uuid",
-        &[&order_id, &status]
-    ).await?;
-    if updated == 0 { return Err(AppError::NotFound("order not found".into())); }
+    let updated = client
+        .execute(
+            "UPDATE customer_order SET status = $2, modified_on = NOW() WHERE id = $1::text::uuid",
+            &[&order_id, &status],
+        )
+        .await?;
+    if updated == 0 {
+        return Err(AppError::NotFound("order not found".into()));
+    }
     Ok(())
 }
 
 pub async fn clear_cart_by_user(pool: &Pool, user_id: &str) -> Result<(), AppError> {
     let cart_id = ensure_cart(pool, user_id).await?;
     let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
-    client.execute("DELETE FROM cart_item WHERE cart_id = $1::text::uuid", &[&cart_id]).await?;
+    client
+        .execute(
+            "DELETE FROM cart_item WHERE cart_id = $1::text::uuid",
+            &[&cart_id],
+        )
+        .await?;
     Ok(())
 }
 
-async fn get_order(pool: &Pool, user_id: Option<&str>, order_id: &str) -> Result<OrderDetail, AppError> {
+async fn get_order(
+    pool: &Pool,
+    user_id: Option<&str>,
+    order_id: &str,
+) -> Result<OrderDetail, AppError> {
     let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
     let row = if let Some(user_id) = user_id {
         client.query_opt(
@@ -252,15 +314,22 @@ async fn get_order(pool: &Pool, user_id: Option<&str>, order_id: &str) -> Result
 
 async fn ensure_cart(pool: &Pool, user_id: &str) -> Result<String, AppError> {
     let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
-    let existing = client.query_opt("SELECT id::text FROM cart WHERE user_id = $1::text::uuid", &[&user_id]).await?;
+    let existing = client
+        .query_opt(
+            "SELECT id::text FROM cart WHERE user_id = $1::text::uuid",
+            &[&user_id],
+        )
+        .await?;
     if let Some(row) = existing {
         return Ok(row.get(0));
     }
     let cart_id = Uuid::new_v4().to_string();
-    client.execute(
-        "INSERT INTO cart (id, user_id) VALUES ($1::text::uuid, $2::text::uuid)",
-        &[&cart_id, &user_id]
-    ).await?;
+    client
+        .execute(
+            "INSERT INTO cart (id, user_id) VALUES ($1::text::uuid, $2::text::uuid)",
+            &[&cart_id, &user_id],
+        )
+        .await?;
     Ok(cart_id)
 }
 
@@ -276,7 +345,11 @@ async fn load_cart(pool: &Pool, cart_id: &str) -> Result<CartResponse, AppError>
     ).await?;
     let items = rows.iter().map(map_cart_item).collect::<Vec<_>>();
     let total_amount = items.iter().map(|item| item.line_total).sum();
-    Ok(CartResponse { cart_id: cart_id.into(), items, total_amount })
+    Ok(CartResponse {
+        cart_id: cart_id.into(),
+        items,
+        total_amount,
+    })
 }
 
 fn map_cart_item(row: &Row) -> CartItem {
@@ -323,15 +396,27 @@ async fn load_address_any(pool: &Pool, address_id: &str) -> Result<Address, AppE
         &[&address_id]
     ).await?;
     row.map(|row| Address {
-        id: row.get(0), user_id: row.get(1), full_name: row.get(2), phone: row.get(3), line_1: row.get(4),
-        line_2: row.get(5), city: row.get(6), state: row.get(7), postal_code: row.get(8), country: row.get(9),
-        landmark: row.get(10), is_default: row.get(11),
-    }).ok_or_else(|| AppError::NotFound("address not found".into()))
+        id: row.get(0),
+        user_id: row.get(1),
+        full_name: row.get(2),
+        phone: row.get(3),
+        line_1: row.get(4),
+        line_2: row.get(5),
+        city: row.get(6),
+        state: row.get(7),
+        postal_code: row.get(8),
+        country: row.get(9),
+        landmark: row.get(10),
+        is_default: row.get(11),
+    })
+    .ok_or_else(|| AppError::NotFound("address not found".into()))
 }
 
 fn validate_qty(quantity: i32) -> Result<(), AppError> {
     if quantity <= 0 {
-        return Err(AppError::BadRequest("quantity must be greater than zero".into()));
+        return Err(AppError::BadRequest(
+            "quantity must be greater than zero".into(),
+        ));
     }
     Ok(())
 }

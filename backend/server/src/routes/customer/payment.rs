@@ -1,4 +1,9 @@
-use axum::{extract::{State}, http::HeaderMap, routing::{post, get}, Json, Router};
+use axum::{
+    extract::State,
+    http::HeaderMap,
+    routing::{get, post},
+    Json, Router,
+};
 use axum_extra::extract::cookie::CookieJar;
 use hmac::{Hmac, Mac};
 use reqwest::StatusCode;
@@ -40,16 +45,21 @@ async fn initiate_razorpay_order(
         "currency": response.currency,
         "receipt": response.order_number,
     });
-    let razorpay_response = state.http_client
+    let razorpay_response = state
+        .http_client
         .post("https://api.razorpay.com/v1/orders")
         .basic_auth(&state.razorpay.key_id, Some(&state.razorpay.key_secret))
         .json(&payload)
         .send()
         .await
         .map_err(|error| AppError::Config(format!("failed to create razorpay order: {error}")))?;
-    if razorpay_response.status() != StatusCode::OK && razorpay_response.status() != StatusCode::CREATED {
+    if razorpay_response.status() != StatusCode::OK
+        && razorpay_response.status() != StatusCode::CREATED
+    {
         let body = razorpay_response.text().await.unwrap_or_default();
-        return Err(AppError::Config(format!("razorpay order creation failed: {body}")));
+        return Err(AppError::Config(format!(
+            "razorpay order creation failed: {body}"
+        )));
     }
     let body: serde_json::Value = razorpay_response
         .json()
@@ -60,7 +70,9 @@ async fn initiate_razorpay_order(
         .and_then(|value| value.as_str())
         .ok_or_else(|| AppError::Config("razorpay order id missing".into()))?
         .to_string();
-    let payment = backend_payment::attach_provider_order(&state.db, &input.order_id, &provider_order_id).await?;
+    let payment =
+        backend_payment::attach_provider_order(&state.db, &input.order_id, &provider_order_id)
+            .await?;
     response.provider_order_id = payment.provider_order_id.unwrap_or(provider_order_id);
     response.razorpay_key_id = state.razorpay.key_id.clone();
     Ok(Json(response))
@@ -85,7 +97,8 @@ async fn verify_payment(
         &input.provider_order_id,
         &input.provider_payment_id,
         &input.provider_signature,
-    ).await?;
+    )
+    .await?;
     backend_order::clear_cart_by_user(&state.db, &user_id).await?;
     Ok(Json(payment))
 }
@@ -109,26 +122,55 @@ async fn handle_webhook(
         return Err(AppError::BadRequest("Invalid signature".into()));
     }
 
-    let payload: serde_json::Value =
-        serde_json::from_str(&body).map_err(|error| AppError::BadRequest(format!("Invalid payload: {error}")))?;
-    let event_type = payload.get("event").and_then(|value| value.as_str()).unwrap_or("unknown");
+    let payload: serde_json::Value = serde_json::from_str(&body)
+        .map_err(|error| AppError::BadRequest(format!("Invalid payload: {error}")))?;
+    let event_type = payload
+        .get("event")
+        .and_then(|value| value.as_str())
+        .unwrap_or("unknown");
     let provider_order_id = payload
         .pointer("/payload/payment/entity/order_id")
         .and_then(|value| value.as_str())
-        .or_else(|| payload.pointer("/payload/order/entity/id").and_then(|value| value.as_str()));
+        .or_else(|| {
+            payload
+                .pointer("/payload/order/entity/id")
+                .and_then(|value| value.as_str())
+        });
 
     if let Some(provider_order_id) = provider_order_id {
         match event_type {
             "payment.captured" | "order.paid" => {
-                if let Some(provider_payment_id) = payload.pointer("/payload/payment/entity/id").and_then(|value| value.as_str()) {
-                    let signature = payload.pointer("/payload/payment/entity/id").and_then(|value| value.as_str()).unwrap_or_default();
-                    let payment = backend_payment::mark_paid(&state.db, provider_order_id, provider_payment_id, signature).await?;
+                if let Some(provider_payment_id) = payload
+                    .pointer("/payload/payment/entity/id")
+                    .and_then(|value| value.as_str())
+                {
+                    let signature = payload
+                        .pointer("/payload/payment/entity/id")
+                        .and_then(|value| value.as_str())
+                        .unwrap_or_default();
+                    let payment = backend_payment::mark_paid(
+                        &state.db,
+                        provider_order_id,
+                        provider_payment_id,
+                        signature,
+                    )
+                    .await?;
                     backend_order::clear_cart_by_user(&state.db, &payment.user_id).await?;
                 }
             }
             "payment.failed" => {
-                let reason = payload.pointer("/payload/payment/entity/error_description").and_then(|value| value.as_str()).unwrap_or("payment failed");
-                backend_payment::mark_failed(&state.db, provider_order_id, reason, event_type, payload.clone()).await?;
+                let reason = payload
+                    .pointer("/payload/payment/entity/error_description")
+                    .and_then(|value| value.as_str())
+                    .unwrap_or("payment failed");
+                backend_payment::mark_failed(
+                    &state.db,
+                    provider_order_id,
+                    reason,
+                    event_type,
+                    payload.clone(),
+                )
+                .await?;
             }
             _ => {}
         }

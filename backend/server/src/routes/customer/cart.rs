@@ -1,4 +1,8 @@
-use axum::{extract::{Path, State}, routing::{get, patch, post}, Json, Router};
+use axum::{
+    extract::{Path, State},
+    routing::{get, patch, post},
+    Json, Router,
+};
 use axum_extra::extract::cookie::CookieJar;
 
 use backend_session::{cookie_name, lookup_subject_id, SessionScope};
@@ -18,7 +22,10 @@ pub fn router() -> Router<AppState> {
         .route("/items/{id}", patch(update_item).delete(delete_item))
 }
 
-async fn get_cart(State(state): State<AppState>, jar: CookieJar) -> Result<Json<backend_order::CartResponse>, AppError> {
+async fn get_cart(
+    State(state): State<AppState>,
+    jar: CookieJar,
+) -> Result<Json<backend_order::CartResponse>, AppError> {
     let user_id = current_user_id(&state, &jar).await?;
     Ok(Json(backend_order::get_cart(&state.db, &user_id).await?))
 }
@@ -29,7 +36,9 @@ async fn add_item(
     Json(input): Json<backend_order::CartItemInput>,
 ) -> Result<Json<backend_order::CartResponse>, AppError> {
     let user_id = current_user_id(&state, &jar).await?;
-    Ok(Json(backend_order::add_cart_item(&state.db, &user_id, input).await?))
+    Ok(Json(
+        backend_order::add_cart_item(&state.db, &user_id, input).await?,
+    ))
 }
 
 async fn update_item(
@@ -39,7 +48,9 @@ async fn update_item(
     Json(input): Json<QuantityInput>,
 ) -> Result<Json<backend_order::CartResponse>, AppError> {
     let user_id = current_user_id(&state, &jar).await?;
-    Ok(Json(backend_order::update_cart_item(&state.db, &user_id, &id, input.quantity).await?))
+    Ok(Json(
+        backend_order::update_cart_item(&state.db, &user_id, &id, input.quantity).await?,
+    ))
 }
 
 async fn delete_item(
@@ -48,7 +59,9 @@ async fn delete_item(
     Path(id): Path<String>,
 ) -> Result<Json<backend_order::CartResponse>, AppError> {
     let user_id = current_user_id(&state, &jar).await?;
-    Ok(Json(backend_order::delete_cart_item(&state.db, &user_id, &id).await?))
+    Ok(Json(
+        backend_order::delete_cart_item(&state.db, &user_id, &id).await?,
+    ))
 }
 
 async fn current_user_id(state: &AppState, jar: &CookieJar) -> Result<String, AppError> {

@@ -4,6 +4,7 @@ import type { AppCardData } from '@tea-time/types';
 
 export { ErrorBoundary } from './ErrorBoundary';
 export { BannerRenderer, sanitizeBannerHtml } from './bannerRenderer';
+export { PageRenderer } from './pageRenderer';
 
 export function ShellCard({ eyebrow, title, description }: AppCardData) {
   return (

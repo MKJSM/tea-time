@@ -84,8 +84,9 @@ pub async fn ensure_default_admin(
         )
         .await?;
 
-    let password_hash = hash_password(password.trim())
-        .map_err(|error| AppError::Config(format!("failed to hash default admin password: {error}")))?;
+    let password_hash = hash_password(password.trim()).map_err(|error| {
+        AppError::Config(format!("failed to hash default admin password: {error}"))
+    })?;
 
     if existing.is_some() {
         client

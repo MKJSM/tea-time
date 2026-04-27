@@ -57,6 +57,48 @@ export interface ProductInput {
   category_ids: string[];
 }
 
+export type BannerMediaKind = 'image' | 'video' | string;
+export type BannerContentMode = 'structured' | 'html' | string;
+export type BannerBackgroundType = 'image' | 'video' | 'gradient' | 'solid' | string;
+
+export type BannerContentBlock =
+  | {
+      id: string;
+      type: 'heading';
+      content: string;
+    }
+  | {
+      id: string;
+      type: 'paragraph';
+      content: string;
+    }
+  | {
+      id: string;
+      type: 'image';
+      content: {
+        src: string;
+        alt: string;
+      };
+    }
+  | {
+      id: string;
+      type: 'button';
+      content: {
+        label: string;
+        href: string;
+      };
+    }
+  | {
+      id: string;
+      type: 'spacer';
+      content: string;
+    }
+  | {
+      id: string;
+      type: 'divider';
+      content: Record<string, never>;
+    };
+
 export interface Banner {
   id: string;
   title: string;
@@ -67,11 +109,11 @@ export interface Banner {
   secondary_button_label: string | null;
   secondary_button_href: string | null;
   media_url: string | null;
-  media_kind: 'image' | 'video' | string;
-  content_mode: 'structured' | 'html' | string;
+  media_kind: BannerMediaKind;
+  content_mode: BannerContentMode;
   content_html: string | null;
-  content_json: any | null;
-  background_type: 'image' | 'video' | 'gradient' | 'solid' | string;
+  content_json: unknown | null;
+  background_type: BannerBackgroundType;
   background_value: string | null;
   overlay_color: string | null;
   text_color: string | null;
@@ -88,16 +130,127 @@ export interface BannerInput {
   secondary_button_label?: string | null;
   secondary_button_href?: string | null;
   media_url?: string | null;
-  media_kind: 'image' | 'video';
-  content_mode: 'structured' | 'html';
+  media_kind: BannerMediaKind;
+  content_mode: BannerContentMode;
   content_html?: string | null;
-  content_json?: any | null;
-  background_type: 'image' | 'video' | 'gradient' | 'solid';
+  content_json?: unknown | null;
+  background_type: BannerBackgroundType;
   background_value?: string | null;
   overlay_color?: string | null;
   text_color?: string | null;
   sort_order: number;
   is_active: boolean;
+}
+
+export type PageBlock =
+  | {
+      type: 'section' | 'container';
+      id: string;
+      props: SectionBlockProps | ContainerBlockProps;
+      children: PageBlock[];
+    }
+  | {
+      type: 'heading';
+      id: string;
+      props: HeadingBlockProps;
+    }
+  | {
+      type: 'paragraph';
+      id: string;
+      props: ParagraphBlockProps;
+    }
+  | {
+      type: 'image';
+      id: string;
+      props: ImageBlockProps;
+    }
+  | {
+      type: 'button';
+      id: string;
+      props: ButtonBlockProps;
+    }
+  | {
+      type: 'divider';
+      id: string;
+      props: DividerBlockProps;
+    }
+  | {
+      type: 'spacer';
+      id: string;
+      props: SpacerBlockProps;
+    };
+
+export interface SectionBlockProps {
+  title?: string | null;
+  subtitle?: string | null;
+  description?: string | null;
+  eyebrow?: string | null;
+  background_type?: 'image' | 'video' | 'gradient' | 'solid' | string | null;
+  background_value?: string | null;
+  overlay_color?: string | null;
+  text_color?: string | null;
+  media_url?: string | null;
+  media_kind?: 'image' | 'video' | string | null;
+  primary_button_label?: string | null;
+  primary_button_href?: string | null;
+  secondary_button_label?: string | null;
+  secondary_button_href?: string | null;
+}
+
+export interface ContainerBlockProps {
+  layout?: 'stack' | 'grid' | string | null;
+  gap?: string | null;
+}
+
+export interface HeadingBlockProps {
+  text: string;
+  level?: 1 | 2 | 3 | null;
+  align?: 'left' | 'center' | 'right' | string | null;
+}
+
+export interface ParagraphBlockProps {
+  text: string;
+  align?: 'left' | 'center' | 'right' | string | null;
+}
+
+export interface ImageBlockProps {
+  src: string;
+  alt: string;
+  caption?: string | null;
+}
+
+export interface ButtonBlockProps {
+  label: string;
+  href: string;
+  variant?: 'solid' | 'ghost' | string | null;
+}
+
+export interface DividerBlockProps {
+  style?: 'line' | 'dotted' | string | null;
+}
+
+export interface SpacerBlockProps {
+  height: number;
+}
+
+export interface PageDocument {
+  id: string;
+  slug: string;
+  title: string;
+  subtitle: string | null;
+  description: string | null;
+  blocks: PageBlock[];
+  is_published: boolean;
+  published_on: string | null;
+  created_on: string;
+  modified_on: string;
+}
+
+export interface PageInput {
+  title: string;
+  subtitle?: string | null;
+  description?: string | null;
+  blocks: PageBlock[];
 }
 
 export interface CustomerProfile {
@@ -304,4 +457,5 @@ export interface VerifyPaymentInput {
 
 export interface UploadResponse {
   file_url: string;
+  data?: string[];
 }
