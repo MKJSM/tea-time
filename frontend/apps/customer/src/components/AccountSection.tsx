@@ -73,7 +73,7 @@ export function AccountSection({
   onAddressEditCancel,
 }: Props) {
   return (
-    <section className="container customer-grid" id="account">
+    <section className="container customer-grid fade-up" id="account">
       {/* Auth / Profile Panel */}
       <section className="panel auth-panel">
         <div className="section-head compact">

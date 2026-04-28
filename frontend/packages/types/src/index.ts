@@ -458,6 +458,7 @@ export interface CustomizationSelectionSnapshot {
 
 export interface CheckoutInput {
   address_id?: string | null;
+  notes?: string | null;
 }
 
 export interface CheckoutResult {
@@ -484,6 +485,7 @@ export interface OrderDetail {
   payment_status: string;
   total_amount: number;
   currency: string;
+  notes: string | null;
   address: Address;
   items: CartItem[];
 }

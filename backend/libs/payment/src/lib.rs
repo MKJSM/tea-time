@@ -31,6 +31,18 @@ pub struct InitiatePaymentResponse {
     pub razorpay_key_id: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct PaymentCheckoutContext {
+    pub payment_id: String,
+    pub order_id: String,
+    pub order_number: String,
+    pub amount_major: f64,
+    pub amount_minor: i64,
+    pub currency: String,
+    pub provider_order_id: Option<String>,
+    pub payment_status: String,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct VerifyPaymentInput {
     pub provider_order_id: String,
@@ -41,42 +53,69 @@ pub struct VerifyPaymentInput {
 pub async fn attach_provider_order(
     pool: &Pool,
     order_id: &str,
+    user_id: &str,
     provider_order_id: &str,
 ) -> Result<PaymentRecord, AppError> {
     let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
-    let row = client.query_one(
-        "UPDATE payment SET provider_order_id = $2, modified_on = NOW()
-         WHERE order_id = $1::text::uuid
-         RETURNING id::text, order_id::text, user_id::text, provider, provider_order_id, provider_payment_id, status, amount, currency, failure_reason, paid_on::text",
-        &[&order_id, &provider_order_id]
-    ).await?;
-    Ok(map_payment(&row))
+    let row = client
+        .query_opt(
+            "UPDATE payment
+             SET provider_order_id = COALESCE(provider_order_id, $3), modified_on = NOW()
+             WHERE order_id = $1::text::uuid AND user_id = $2::text::uuid
+             RETURNING id::text, order_id::text, user_id::text, provider, provider_order_id, provider_payment_id, status, amount, currency, failure_reason, paid_on::text",
+            &[&order_id, &user_id, &provider_order_id],
+        )
+        .await?;
+    row.map(|row| map_payment(&row))
+        .ok_or_else(|| AppError::NotFound("payment not found".into()))
 }
 
 pub async fn mark_paid(
     pool: &Pool,
+    user_id: &str,
     provider_order_id: &str,
     provider_payment_id: &str,
-    provider_signature: &str,
+    provider_signature: Option<&str>,
 ) -> Result<PaymentRecord, AppError> {
     let mut client = pool.get().await.map_err(map_pool_error_to_app_error)?;
     let tx = client.transaction().await?;
     let payment_row = tx.query_opt(
-        "SELECT id::text, order_id::text, user_id::text, provider, provider_order_id, provider_payment_id, status, amount, currency, failure_reason, paid_on::text
-         FROM payment WHERE provider_order_id = $1",
-        &[&provider_order_id]
+        "SELECT id::text, order_id::text, user_id::text, provider, provider_order_id, provider_payment_id, provider_signature, status, amount, currency, failure_reason, paid_on::text
+         FROM payment WHERE provider_order_id = $1 AND user_id = $2::text::uuid
+         FOR UPDATE",
+        &[&provider_order_id, &user_id]
     ).await?;
     let payment_row = payment_row.ok_or_else(|| AppError::NotFound("payment not found".into()))?;
     let order_id: String = payment_row.get(1);
     let payment_id: String = payment_row.get(0);
+    let current_status: String = payment_row.get(7);
+    let existing_payment_id: Option<String> = payment_row.get(5);
+
+    if current_status == "paid" {
+        if existing_payment_id.as_deref() != Some(provider_payment_id)
+            && existing_payment_id.is_some()
+        {
+            return Err(AppError::Conflict("payment already verified for a different provider payment".into()));
+        }
+        tx.commit().await?;
+        return get_by_provider_order(pool, provider_order_id).await;
+    }
+
     tx.execute(
-        "UPDATE payment SET provider_payment_id = $2, provider_signature = $3, status = 'paid', paid_on = NOW(), modified_on = NOW()
+        "UPDATE payment
+         SET provider_payment_id = COALESCE(provider_payment_id, $2),
+             provider_signature = COALESCE(provider_signature, $3),
+             status = 'paid',
+             paid_on = COALESCE(paid_on, NOW()),
+             modified_on = NOW()
          WHERE id = $1::text::uuid",
-        &[&payment_id, &provider_payment_id, &provider_signature]
-    ).await?;
+        &[&payment_id, &provider_payment_id, &provider_signature],
+    )
+    .await?;
     tx.execute(
-        "UPDATE customer_order SET payment_status = 'paid', status = 'paid', modified_on = NOW()
-         WHERE id = $1::text::uuid",
+        "UPDATE customer_order
+         SET payment_status = 'paid', status = 'paid', modified_on = NOW()
+         WHERE id = $1::text::uuid AND payment_status <> 'paid'",
         &[&order_id],
     )
     .await?;
@@ -89,7 +128,8 @@ pub async fn mark_paid(
             &provider_payment_id,
             &serde_json::json!({
                 "provider_order_id": provider_order_id,
-                "provider_payment_id": provider_payment_id
+                "provider_payment_id": provider_payment_id,
+                "provider_signature": provider_signature,
             })
             .to_string(),
         ],
@@ -109,7 +149,7 @@ pub async fn mark_failed(
     let mut client = pool.get().await.map_err(map_pool_error_to_app_error)?;
     let payment = client
         .query_opt(
-            "SELECT id::text, order_id::text FROM payment WHERE provider_order_id = $1",
+            "SELECT id::text, order_id::text, status FROM payment WHERE provider_order_id = $1",
             &[&provider_order_id],
         )
         .await?;
@@ -118,6 +158,10 @@ pub async fn mark_failed(
     };
     let payment_id: String = payment.get(0);
     let order_id: String = payment.get(1);
+    let current_status: String = payment.get(2);
+    if current_status == "paid" || current_status == "failed" {
+        return Ok(());
+    }
     let tx = client.transaction().await?;
     tx.execute(
         "UPDATE payment SET status = 'failed', failure_reason = $2, modified_on = NOW()
@@ -189,24 +233,25 @@ pub async fn get_admin(pool: &Pool, payment_id: &str) -> Result<serde_json::Valu
 pub async fn get_checkout_context(
     pool: &Pool,
     order_id: &str,
-) -> Result<InitiatePaymentResponse, AppError> {
+    user_id: &str,
+) -> Result<PaymentCheckoutContext, AppError> {
     let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
     let row = client.query_opt(
-        "SELECT p.id::text, co.id::text, co.order_number, co.total_amount, co.currency, COALESCE(p.provider_order_id, '')
+        "SELECT p.id::text, co.id::text, co.order_number, co.total_amount, co.currency, p.provider_order_id, p.status
          FROM payment p JOIN customer_order co ON co.id = p.order_id
-         WHERE co.id = $1::text::uuid",
-        &[&order_id]
+         WHERE co.id = $1::text::uuid AND co.user_id = $2::text::uuid",
+        &[&order_id, &user_id]
     ).await?;
     let row = row.ok_or_else(|| AppError::NotFound("payment context not found".into()))?;
-    Ok(InitiatePaymentResponse {
+    Ok(PaymentCheckoutContext {
         payment_id: row.get(0),
         order_id: row.get(1),
         order_number: row.get(2),
         amount_major: row.get(3),
-        amount: ((row.get::<_, f64>(3)) * 100.0).round() as i64,
+        amount_minor: ((row.get::<_, f64>(3)) * 100.0).round() as i64,
         currency: row.get(4),
-        provider_order_id: row.get::<_, String>(5),
-        razorpay_key_id: String::new(),
+        provider_order_id: row.get(5),
+        payment_status: row.get(6),
     })
 }
 

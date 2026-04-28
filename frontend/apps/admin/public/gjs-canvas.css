@@ -1,0 +1,14 @@
+/* GrapesJS canvas base styles — dark background so white text is always visible */
+html,
+body {
+    margin: 0;
+    padding: 0;
+    background: #142018;
+    color: #ffffff;
+    font-family: 'Inter', 'Manrope', sans-serif;
+    min-height: 100vh;
+}
+
+* {
+    box-sizing: border-box;
+}

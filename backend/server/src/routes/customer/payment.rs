@@ -38,44 +38,64 @@ async fn initiate_razorpay_order(
     jar: CookieJar,
     Json(input): Json<InitiateInput>,
 ) -> Result<Json<backend_payment::InitiatePaymentResponse>, AppError> {
-    let _user_id = current_user_id(&state, &jar).await?;
-    let mut response = backend_payment::get_checkout_context(&state.db, &input.order_id).await?;
-    let payload = serde_json::json!({
-        "amount": response.amount,
-        "currency": response.currency,
-        "receipt": response.order_number,
-    });
-    let razorpay_response = state
-        .http_client
-        .post("https://api.razorpay.com/v1/orders")
-        .basic_auth(&state.razorpay.key_id, Some(&state.razorpay.key_secret))
-        .json(&payload)
-        .send()
-        .await
-        .map_err(|error| AppError::Config(format!("failed to create razorpay order: {error}")))?;
-    if razorpay_response.status() != StatusCode::OK
-        && razorpay_response.status() != StatusCode::CREATED
-    {
-        let body = razorpay_response.text().await.unwrap_or_default();
-        return Err(AppError::Config(format!(
-            "razorpay order creation failed: {body}"
-        )));
+    let user_id = current_user_id(&state, &jar).await?;
+    let ctx = backend_payment::get_checkout_context(&state.db, &input.order_id, &user_id).await?;
+    if ctx.payment_status == "paid" {
+        return Err(AppError::Conflict("payment has already been completed".into()));
     }
-    let body: serde_json::Value = razorpay_response
-        .json()
-        .await
-        .map_err(|error| AppError::Config(format!("invalid razorpay response: {error}")))?;
-    let provider_order_id = body
-        .get("id")
-        .and_then(|value| value.as_str())
-        .ok_or_else(|| AppError::Config("razorpay order id missing".into()))?
-        .to_string();
-    let payment =
-        backend_payment::attach_provider_order(&state.db, &input.order_id, &provider_order_id)
-            .await?;
-    response.provider_order_id = payment.provider_order_id.unwrap_or(provider_order_id);
-    response.razorpay_key_id = state.razorpay.key_id.clone();
-    Ok(Json(response))
+
+    let provider_order_id = if let Some(existing) = ctx.provider_order_id.clone() {
+        existing
+    } else {
+        let payload = serde_json::json!({
+            "amount": ctx.amount_minor,
+            "currency": ctx.currency,
+            "receipt": ctx.order_number,
+        });
+        let razorpay_response = state
+            .http_client
+            .post("https://api.razorpay.com/v1/orders")
+            .basic_auth(&state.razorpay.key_id, Some(&state.razorpay.key_secret))
+            .json(&payload)
+            .send()
+            .await
+            .map_err(|error| AppError::Config(format!("failed to create razorpay order: {error}")))?;
+        if razorpay_response.status() != StatusCode::OK
+            && razorpay_response.status() != StatusCode::CREATED
+        {
+            let body = razorpay_response.text().await.unwrap_or_default();
+            return Err(AppError::Config(format!(
+                "razorpay order creation failed: {body}"
+            )));
+        }
+        let body: serde_json::Value = razorpay_response
+            .json()
+            .await
+            .map_err(|error| AppError::Config(format!("invalid razorpay response: {error}")))?;
+        let provider_order_id = body
+            .get("id")
+            .and_then(|value| value.as_str())
+            .ok_or_else(|| AppError::Config("razorpay order id missing".into()))?;
+        backend_payment::attach_provider_order(
+            &state.db,
+            &input.order_id,
+            &user_id,
+            provider_order_id,
+        )
+        .await?;
+        provider_order_id.to_string()
+    };
+
+    Ok(Json(backend_payment::InitiatePaymentResponse {
+        payment_id: ctx.payment_id,
+        order_id: ctx.order_id,
+        order_number: ctx.order_number,
+        amount: ctx.amount_minor,
+        amount_major: ctx.amount_major,
+        currency: ctx.currency,
+        provider_order_id,
+        razorpay_key_id: state.razorpay.key_id.clone(),
+    }))
 }
 
 async fn verify_payment(
@@ -94,16 +114,17 @@ async fn verify_payment(
     }
     let payment = backend_payment::mark_paid(
         &state.db,
+        &user_id,
         &input.provider_order_id,
         &input.provider_payment_id,
-        &input.provider_signature,
+        Some(&input.provider_signature),
     )
     .await?;
     backend_order::clear_cart_by_user(&state.db, &user_id).await?;
     Ok(Json(payment))
 }
 
-async fn handle_webhook(
+pub async fn handle_webhook(
     State(state): State<AppState>,
     headers: HeaderMap,
     body: String,
@@ -140,22 +161,23 @@ async fn handle_webhook(
     if let Some(provider_order_id) = provider_order_id {
         match event_type {
             "payment.captured" | "order.paid" => {
-                if let Some(provider_payment_id) = payload
+                if let Ok(payment) =
+                    backend_payment::get_by_provider_order(&state.db, provider_order_id).await
+                {
+                    if let Some(provider_payment_id) = payload
                     .pointer("/payload/payment/entity/id")
                     .and_then(|value| value.as_str())
-                {
-                    let signature = payload
-                        .pointer("/payload/payment/entity/id")
-                        .and_then(|value| value.as_str())
-                        .unwrap_or_default();
-                    let payment = backend_payment::mark_paid(
-                        &state.db,
-                        provider_order_id,
-                        provider_payment_id,
-                        signature,
-                    )
-                    .await?;
-                    backend_order::clear_cart_by_user(&state.db, &payment.user_id).await?;
+                    {
+                        let payment = backend_payment::mark_paid(
+                            &state.db,
+                            &payment.user_id,
+                            provider_order_id,
+                            provider_payment_id,
+                            None,
+                        )
+                        .await?;
+                        backend_order::clear_cart_by_user(&state.db, &payment.user_id).await?;
+                    }
                 }
             }
             "payment.failed" => {

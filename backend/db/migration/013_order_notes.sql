@@ -1,0 +1,2 @@
+ALTER TABLE IF EXISTS customer_order
+    ADD COLUMN IF NOT EXISTS notes TEXT NULL;

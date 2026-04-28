@@ -73,7 +73,9 @@ a {
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
 }
 
@@ -2245,6 +2247,21 @@ input {
   color: var(--text);
 }
 
+select,
+textarea {
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  padding: 12px 14px;
+  color: var(--text);
+}
+
+textarea {
+  resize: vertical;
+  line-height: 1.6;
+}
+
 /* Profile */
 .profile-grid {
   display: grid;
@@ -2308,6 +2325,21 @@ input {
   flex-wrap: wrap;
   gap: 12px;
   margin-top: 16px;
+}
+
+.checkout-field {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.checkout-field span {
+  font-weight: 700;
+}
+
+.checkout-field select,
+.checkout-field textarea {
+  width: 100%;
 }
 
 .list-stack {

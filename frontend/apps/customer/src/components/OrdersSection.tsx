@@ -13,7 +13,7 @@ interface Props {
 
 export function OrdersSection({ orders, selectedOrder, onOrderOpen }: Props) {
   return (
-    <section className="container stacked-section" id="orders">
+    <section className="container stacked-section fade-up" id="orders">
       <div className="section-head">
         <div>
           <span className="eyebrow">Orders</span>
@@ -59,6 +59,7 @@ export function OrdersSection({ orders, selectedOrder, onOrderOpen }: Props) {
                   ? 'Payment complete.'
                   : 'Payment pending.'}
               </p>
+              {selectedOrder.notes ? <p className="helper-copy">Notes: {selectedOrder.notes}</p> : null}
               <p>
                 {selectedOrder.address.full_name} · {selectedOrder.address.phone}
               </p>

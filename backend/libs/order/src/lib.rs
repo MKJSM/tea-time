@@ -47,6 +47,7 @@ pub struct CartItemInput {
 #[derive(Debug, Clone, Deserialize)]
 pub struct CheckoutInput {
     pub address_id: Option<String>,
+    pub notes: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -68,6 +69,7 @@ pub struct OrderDetail {
     pub payment_status: String,
     pub total_amount: f64,
     pub currency: String,
+    pub notes: Option<String>,
     pub address: Address,
     pub items: Vec<CartItem>,
 }
@@ -200,6 +202,7 @@ pub async fn checkout(
     if cart.items.is_empty() {
         return Err(AppError::BadRequest("cart is empty".into()));
     }
+    let notes = normalize_notes(input.notes);
     let address = match input.address_id {
         Some(address_id) => backend_address::get_for_user(pool, user_id, &address_id).await?,
         None => get_default_for_user(pool, user_id).await?,
@@ -210,15 +213,30 @@ pub async fn checkout(
     let tx = client.transaction().await?;
     tx.execute(
         "INSERT INTO customer_order
-         (id, user_id, address_id, order_number, status, payment_status, subtotal_amount, total_amount, currency,
+         (id, user_id, address_id, order_number, status, payment_status, subtotal_amount, total_amount, currency, notes,
           recipient_name, recipient_phone, line_1, line_2, city, state, postal_code, country, landmark)
          VALUES
-         ($1::text::uuid, $2::text::uuid, $3::text::uuid, $4, 'placed', 'pending', $5, $5, 'INR',
-          $6, $7, $8, $9, $10, $11, $12, $13, $14)",
-        &[&order_id, &user_id, &address.id, &order_number, &cart.total_amount, &address.full_name,
-          &address.phone, &address.line_1, &address.line_2, &address.city, &address.state, &address.postal_code,
-          &address.country, &address.landmark]
-    ).await?;
+         ($1::text::uuid, $2::text::uuid, $3::text::uuid, $4, 'placed', 'pending', $5, $5, 'INR', $6,
+          $7, $8, $9, $10, $11, $12, $13, $14, $15)",
+        &[
+            &order_id,
+            &user_id,
+            &address.id,
+            &order_number,
+            &cart.total_amount,
+            &notes,
+            &address.full_name,
+            &address.phone,
+            &address.line_1,
+            &address.line_2,
+            &address.city,
+            &address.state,
+            &address.postal_code,
+            &address.country,
+            &address.landmark,
+        ],
+    )
+    .await?;
     for item in &cart.items {
         let selected_customizations_json = serde_json::to_value(&item.selected_customizations)
             .map_err(|error| AppError::Config(format!("failed to serialize customization snapshot: {error}")))?;
@@ -328,19 +346,19 @@ async fn get_order(
     let client = pool.get().await.map_err(map_pool_error_to_app_error)?;
     let row = if let Some(user_id) = user_id {
         client.query_opt(
-            "SELECT id::text, order_number, status, payment_status, total_amount, currency, address_id::text
+            "SELECT id::text, order_number, status, payment_status, total_amount, currency, notes, address_id::text
              FROM customer_order WHERE id = $1::text::uuid AND user_id = $2::text::uuid",
             &[&order_id, &user_id]
         ).await?
     } else {
         client.query_opt(
-            "SELECT id::text, order_number, status, payment_status, total_amount, currency, address_id::text
+            "SELECT id::text, order_number, status, payment_status, total_amount, currency, notes, address_id::text
              FROM customer_order WHERE id = $1::text::uuid",
             &[&order_id]
         ).await?
     };
     let row = row.ok_or_else(|| AppError::NotFound("order not found".into()))?;
-    let address_id: String = row.get(6);
+    let address_id: String = row.get(7);
     let address = if let Some(user_id) = user_id {
         backend_address::get_for_user(pool, user_id, &address_id).await?
     } else {
@@ -360,6 +378,7 @@ async fn get_order(
         payment_status: row.get(3),
         total_amount: row.get(4),
         currency: row.get(5),
+        notes: row.get(6),
         address,
         items: item_rows.iter().map(map_order_item).collect(),
     })
@@ -601,6 +620,17 @@ fn validate_qty(quantity: i32) -> Result<(), AppError> {
     Ok(())
 }
 
+fn normalize_notes(notes: Option<String>) -> Option<String> {
+    notes.and_then(|value| {
+        let trimmed = value.trim();
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed.to_string())
+        }
+    })
+}
+
 #[derive(Clone)]
 struct GroupAccumulator {
     group_id: String,
@@ -691,5 +721,12 @@ mod tests {
         )
         .unwrap_err();
         assert!(error.to_string().contains("duplicate"));
+    }
+
+    #[test]
+    fn normalizes_notes() {
+        assert_eq!(super::normalize_notes(Some("  Extra hot  ".into())), Some("Extra hot".into()));
+        assert_eq!(super::normalize_notes(Some("   ".into())), None);
+        assert_eq!(super::normalize_notes(None), None);
     }
 }

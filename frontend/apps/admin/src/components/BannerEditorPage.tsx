@@ -17,13 +17,13 @@ interface BannerEditorPageProps {
 }
 
 const DEFAULT_EDITOR_HTML = `
-  <section class="banner-root">
+  <section class="banner-root" style="padding:48px; min-height:94vh; display:flex; align-items:center; color:#fff;">
     <div class="banner-copy">
-      <span class="eyebrow">Daily Workplace Refreshment</span>
-      <h1>Refreshment That Moves with Your Workday.</h1>
-      <p>Daily delivery of hot and cold beverages, fresh juices, and snacks, served at your workplace morning and evening.</p>
-      <div class="hero-actions-row">
-        <a class="solid-button" href="#account">Subscribe Now</a>
+      <span class="eyebrow" style="font-size:14px; letter-spacing:.1em; opacity:.7;">Daily Workplace Refreshment</span>
+      <h1 style="font-size:clamp(36px,5vw,64px); line-height:0.95; letter-spacing:-0.05em; margin:12px 0 16px;">Refreshment That Moves with Your Workday.</h1>
+      <p style="font-size:18px; line-height:1.7; opacity:.85; max-width:600px;">Daily delivery of hot and cold beverages, fresh juices, and snacks, served at your workplace morning and evening.</p>
+      <div class="hero-actions-row" style="margin-top:28px;">
+        <a class="solid-button" href="#account" style="display:inline-block; padding:14px 32px; background:#4caf7e; color:#fff; border-radius:32px; font-weight:700; text-decoration:none;">Subscribe Now</a>
       </div>
     </div>
   </section>
@@ -34,16 +34,17 @@ const DEFAULT_EDITOR_CSS = `
     min-height: 100%;
     display: flex;
     align-items: center;
+    padding: 48px;
+    color: #ffffff;
   }
 
   .banner-copy {
     max-width: 720px;
-    color: inherit;
   }
 
   .banner-copy h1 {
-    margin: 0 0 16px;
-    font-size: 64px;
+    margin: 12px 0 16px;
+    font-size: clamp(36px, 5vw, 64px);
     line-height: 0.95;
     letter-spacing: -0.05em;
   }
@@ -52,6 +53,7 @@ const DEFAULT_EDITOR_CSS = `
     margin: 0 0 24px;
     font-size: 18px;
     line-height: 1.7;
+    opacity: 0.85;
   }
 `;
 
@@ -105,7 +107,12 @@ function splitHtmlContent(contentHtml: string | null | undefined) {
   const raw = contentHtml ?? '';
   const styleMatch = raw.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
   const css = styleMatch?.[1] ?? '';
-  const html = raw.replace(/<style[^>]*>[\s\S]*?<\/style>/i, '').trim();
+  let html = raw.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').trim();
+  // GrapesJS wraps saved content in <body>...</body>; strip it before reinserting
+  const bodyMatch = html.match(/^<body[^>]*>([\s\S]*)<\/body>$/i);
+  if (bodyMatch) {
+    html = bodyMatch[1].trim();
+  }
   return { html, css };
 }
 
@@ -164,7 +171,8 @@ export function BannerEditorPage({
       avoidInlineStyle: false,
       allowScripts: false,
       canvas: {
-        styles: [],
+        // Inline styles injected into the GrapesJS iframe for baseline visibility
+        styles: ['/admin/gjs-canvas.css'],
       },
       assetManager: {
         upload: true,
@@ -346,213 +354,158 @@ export function BannerEditorPage({
           </div>
         )}
 
-        <form className="banner-editor-form banner-editor-form--grapes-3zone admin-form" onSubmit={saveBanner}>
-          <div className="banner-editor-3zone-grid">
-            {/* Zone 1: Left Sidebar - General & Actions */}
-            <aside className="banner-sidebar-1">
-              <div className="editor-group">
-                <h3>General</h3>
-                <label>
-                  Title
-                  <input
-                    value={draft.title}
-                    onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
-                    placeholder="Summer Refreshment"
-                    required
-                  />
-                </label>
-                <label>
-                  Subtitle
-                  <input
-                    value={draft.subtitle ?? ''}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, subtitle: event.target.value || null }))
-                    }
-                    placeholder="Daily Workplace Refreshment"
-                  />
-                </label>
-                <label>
-                  Description
-                  <textarea
-                    value={draft.description ?? ''}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, description: event.target.value || null }))
-                    }
-                    placeholder="A short line that explains the banner."
-                  />
-                </label>
-              </div>
+        <form className="banner-editor-2zone-form admin-form" onSubmit={saveBanner}>
+          {/* Canvas — takes most of the width */}
+          <div className="banner-editor-canvas-wrap">
+            <div className="banner-editor-canvas" ref={editorRootRef} />
+          </div>
 
-              <div className="editor-group">
-                <h3>Actions</h3>
-                <label>
-                  Primary button label
-                  <input
-                    value={draft.primary_button_label ?? ''}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        primary_button_label: event.target.value || null,
-                      }))
-                    }
-                    placeholder="SUBSCRIBE NOW"
-                  />
-                </label>
-                <label>
-                  Primary button href
-                  <input
-                    value={draft.primary_button_href ?? ''}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        primary_button_href: event.target.value || null,
-                      }))
-                    }
-                    placeholder="#account"
-                  />
-                </label>
-                <label>
-                  Secondary button label
-                  <input
-                    value={draft.secondary_button_label ?? ''}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        secondary_button_label: event.target.value || null,
-                      }))
-                    }
-                    placeholder="Learn more"
-                  />
-                </label>
-                <label>
-                  Secondary button href
-                  <input
-                    value={draft.secondary_button_href ?? ''}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        secondary_button_href: event.target.value || null,
-                      }))
-                    }
-                    placeholder="#contact"
-                  />
-                </label>
-              </div>
-            </aside>
-
-            {/* Zone 2: Middle - GrapesJS Canvas */}
-            <div className="banner-editor-canvas-wrap">
-              <div className="banner-editor-canvas" ref={editorRootRef} />
+          {/* Unified settings panel */}
+          <aside className="banner-settings-panel">
+            <div className="editor-group">
+              <h3>General</h3>
+              <label>
+                Title
+                <input
+                  value={draft.title}
+                  onChange={(event) => setDraft((c) => ({ ...c, title: event.target.value }))}
+                  placeholder="Summer Refreshment"
+                  required
+                />
+              </label>
+              <label>
+                Subtitle
+                <input
+                  value={draft.subtitle ?? ''}
+                  onChange={(event) => setDraft((c) => ({ ...c, subtitle: event.target.value || null }))}
+                  placeholder="Daily Workplace Refreshment"
+                />
+              </label>
+              <label>
+                Description
+                <textarea
+                  value={draft.description ?? ''}
+                  onChange={(event) => setDraft((c) => ({ ...c, description: event.target.value || null }))}
+                  placeholder="A short line that explains the banner."
+                  rows={3}
+                />
+              </label>
             </div>
 
-            {/* Zone 3: Right Sidebar - Banner Settings & Preview */}
-            <aside className="banner-sidebar-2">
-              <div className="editor-group">
-                <h3>Banner Config</h3>
-                <div className="split-inputs">
-                  <label>
-                    Order
-                    <input
-                      type="number"
-                      value={draft.sort_order}
-                      onChange={(event) =>
-                        setDraft((current) => ({
-                          ...current,
-                          sort_order: Number.parseInt(event.target.value, 10) || 0,
-                        }))
-                      }
-                    />
-                  </label>
-                  <label className="checkbox-field">
-                    <input
-                      type="checkbox"
-                      checked={draft.is_active}
-                      onChange={(event) =>
-                        setDraft((current) => ({ ...current, is_active: event.target.checked }))
-                      }
-                    />
-                    <span>Active</span>
-                  </label>
-                </div>
-                <label>
-                  Background Type
-                  <select
-                    value={draft.background_type}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        background_type: event.target.value,
-                      }))
-                    }
-                  >
-                    <option value="image">Image</option>
-                    <option value="video">Video</option>
-                    <option value="gradient">Gradient</option>
-                    <option value="solid">Solid Color</option>
-                  </select>
-                </label>
-                <label>
-                  Background Value
+            <div className="editor-group">
+              <h3>Call-to-Action</h3>
+              <label>
+                Primary label
+                <input
+                  value={draft.primary_button_label ?? ''}
+                  onChange={(event) => setDraft((c) => ({ ...c, primary_button_label: event.target.value || null }))}
+                  placeholder="SUBSCRIBE NOW"
+                />
+              </label>
+              <label>
+                Primary href
+                <input
+                  value={draft.primary_button_href ?? ''}
+                  onChange={(event) => setDraft((c) => ({ ...c, primary_button_href: event.target.value || null }))}
+                  placeholder="#account"
+                />
+              </label>
+              <label>
+                Secondary label
+                <input
+                  value={draft.secondary_button_label ?? ''}
+                  onChange={(event) => setDraft((c) => ({ ...c, secondary_button_label: event.target.value || null }))}
+                  placeholder="Learn more"
+                />
+              </label>
+              <label>
+                Secondary href
+                <input
+                  value={draft.secondary_button_href ?? ''}
+                  onChange={(event) => setDraft((c) => ({ ...c, secondary_button_href: event.target.value || null }))}
+                  placeholder="#contact"
+                />
+              </label>
+            </div>
+
+            <div className="editor-group">
+              <h3>Settings</h3>
+              <div className="settings-row">
+                <label className="settings-order-label">
+                  Order
                   <input
-                    value={draft.background_value ?? ''}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        background_value: event.target.value || null,
-                      }))
-                    }
-                    placeholder="/assets/home.webp or linear-gradient(...)"
+                    type="number"
+                    value={draft.sort_order}
+                    onChange={(event) => setDraft((c) => ({ ...c, sort_order: Number.parseInt(event.target.value, 10) || 0 }))}
                   />
                 </label>
-                <label>
-                  Overlay Color
+                <label className="checkbox-field settings-active-label">
                   <input
-                    value={draft.overlay_color ?? ''}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        overlay_color: event.target.value || null,
-                      }))
-                    }
-                    placeholder="rgba(17, 24, 18, 0.28)"
+                    type="checkbox"
+                    checked={draft.is_active}
+                    onChange={(event) => setDraft((c) => ({ ...c, is_active: event.target.checked }))}
                   />
-                </label>
-                <label>
-                  Text Color
-                  <input
-                    value={draft.text_color ?? ''}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        text_color: event.target.value || null,
-                      }))
-                    }
-                    placeholder="#ffffff"
-                  />
+                  <span>Active</span>
                 </label>
               </div>
+              <label>
+                Background type
+                <select
+                  value={draft.background_type}
+                  onChange={(event) => setDraft((c) => ({ ...c, background_type: event.target.value }))}
+                >
+                  <option value="image">Image</option>
+                  <option value="video">Video</option>
+                  <option value="gradient">Gradient</option>
+                  <option value="solid">Solid color</option>
+                </select>
+              </label>
+              <label>
+                Background value
+                <input
+                  value={draft.background_value ?? ''}
+                  onChange={(event) => setDraft((c) => ({ ...c, background_value: event.target.value || null }))}
+                  placeholder="/assets/home.webp or linear-gradient(…)"
+                />
+              </label>
+              <label>
+                Overlay color
+                <input
+                  value={draft.overlay_color ?? ''}
+                  onChange={(event) => setDraft((c) => ({ ...c, overlay_color: event.target.value || null }))}
+                  placeholder="rgba(17, 24, 18, 0.28)"
+                />
+              </label>
+              <label>
+                Text color
+                <input
+                  value={draft.text_color ?? ''}
+                  onChange={(event) => setDraft((c) => ({ ...c, text_color: event.target.value || null }))}
+                  placeholder="#ffffff"
+                />
+              </label>
+            </div>
 
-              <div className="banner-preview">
-                <div className="banner-preview-head">
-                  <h3>Live Preview</h3>
-                  <span className="mode-chip">Hero Variant</span>
-                </div>
-                <div className="banner-preview-canvas">
-                  <BannerRenderer banner={previewBanner} variant="hero" />
-                </div>
+            <div className="editor-group">
+              <div className="banner-preview-head">
+                <h3>Preview</h3>
+                <span className="mode-chip">Hero</span>
               </div>
-            </aside>
-          </div>
+              <div className="banner-preview-canvas">
+                <BannerRenderer banner={previewBanner} variant="hero" />
+              </div>
+            </div>
 
-          <div className="form-actions sticky-footer">
-            <button type="button" className="secondary" onClick={onBack}>
-              Cancel
-            </button>
-            <button type="submit" className="solid-button large" disabled={saving}>
-              {saving ? 'Saving…' : existingBanner ? 'Update Banner' : 'Create Banner'}
-            </button>
-          </div>
-          {status ? <p className="helper-copy">{status}</p> : null}
+            <div className="settings-panel-footer">
+              {status ? <p className="helper-copy status-msg">{status}</p> : null}
+              <div className="panel-actions">
+                <button type="button" className="secondary" onClick={onBack}>Cancel</button>
+                <button type="submit" className="solid-button" disabled={saving}>
+                  {saving ? 'Saving…' : existingBanner ? 'Update Banner' : 'Create Banner'}
+                </button>
+              </div>
+            </div>
+          </aside>
         </form>
       </article>
     </section>

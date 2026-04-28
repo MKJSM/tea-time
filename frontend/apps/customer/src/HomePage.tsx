@@ -143,6 +143,8 @@ export function HomePage() {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [addressForm, setAddressForm] = useState<AddressInput>(emptyAddressForm);
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
+  const [selectedAddressId, setSelectedAddressId] = useState('');
+  const [orderNotes, setOrderNotes] = useState('');
   const [addressState, setAddressState] = useState<AsyncState>('idle');
   const [addressMessage, setAddressMessage] = useState<string>('');
 
@@ -247,6 +249,29 @@ export function HomePage() {
     }
   }
 
+  function patchRegisterForm(patch: Partial<CustomerRegisterInput>) {
+    setRegisterForm((current) => ({ ...current, ...patch }));
+  }
+
+  function patchLoginForm(patch: Partial<LoginInput>) {
+    setLoginForm((current) => ({ ...current, ...patch }));
+  }
+
+  function patchProfileForm(
+    patch: Partial<{
+      first_name: string;
+      last_name: string;
+      phone: string;
+      avatar_url: string;
+    }>,
+  ) {
+    setProfileForm((current) => ({ ...current, ...patch }));
+  }
+
+  function patchAddressForm(patch: Partial<AddressInput>) {
+    setAddressForm((current) => ({ ...current, ...patch }));
+  }
+
   async function handleRegister(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setAuthState('loading');
@@ -305,6 +330,8 @@ export function HomePage() {
       setOrders([]);
       setSelectedOrder(null);
       setCheckoutResult(null);
+      setSelectedAddressId('');
+      setOrderNotes('');
       setPaymentMessage('');
       setOrderMessage('Customer session closed.');
     } catch (error) {
@@ -409,6 +436,11 @@ export function HomePage() {
     }
   }
 
+  function handleAddressEditCancel() {
+    setEditingAddressId(null);
+    setAddressForm(emptyAddressForm);
+  }
+
   async function handleCartQuantity(itemId: string, quantity: number) {
     if (quantity <= 0) {
       await handleCartDelete(itemId);
@@ -432,6 +464,11 @@ export function HomePage() {
   }
 
   async function handleCheckout() {
+    if (!session) {
+      setOrderMessage('Please sign in before creating an order.');
+      window.location.hash = '#account';
+      return;
+    }
     if (!cart?.items.length) {
       setOrderMessage('Your cart is empty. Add products before checking out.');
       return;
@@ -440,13 +477,25 @@ export function HomePage() {
       setOrderMessage('Create at least one delivery address before checkout.');
       return;
     }
+    if (!selectedAddressId) {
+      setOrderMessage('Select a delivery address before checkout.');
+      return;
+    }
     try {
-      const selectedAddress = addresses.find((a) => a.is_default) ?? addresses[0]!;
-      const result = await checkout({ address_id: selectedAddress.id });
+      const selectedAddress = addresses.find((a) => a.id === selectedAddressId);
+      if (!selectedAddress) {
+        setOrderMessage('Selected delivery address was not found.');
+        return;
+      }
+      const result = await checkout({
+        address_id: selectedAddress.id,
+        notes: orderNotes.trim() ? orderNotes.trim() : null,
+      });
       setCheckoutResult(result);
       setOrderMessage(`Order ${result.order_number} created. Continue to payment.`);
       const orderDetail = await getOrder(result.order_id);
       setSelectedOrder(orderDetail);
+      setOrderNotes('');
       await loadPrivateData();
     } catch (error) {
       setOrderMessage(error instanceof Error ? error.message : 'Checkout failed');
@@ -457,13 +506,32 @@ export function HomePage() {
     try {
       const detail = await getOrder(orderId);
       setSelectedOrder(detail);
+      setCheckoutResult({
+        order_id: detail.id,
+        order_number: detail.order_number,
+        total_amount: detail.total_amount,
+        currency: detail.currency,
+      });
     } catch (error) {
       setOrderMessage(error instanceof Error ? error.message : 'Failed to load order');
     }
   }
 
   async function handlePaymentLaunch() {
-    if (!checkoutResult) {
+    if (!session) {
+      setPaymentMessage('Please sign in before starting payment.');
+      window.location.hash = '#account';
+      return;
+    }
+    const activeOrder = checkoutResult ?? (selectedOrder
+      ? {
+          order_id: selectedOrder.id,
+          order_number: selectedOrder.order_number,
+          total_amount: selectedOrder.total_amount,
+          currency: selectedOrder.currency,
+        }
+      : null);
+    if (!activeOrder) {
       setPaymentMessage('Create an order before starting payment.');
       return;
     }
@@ -472,7 +540,7 @@ export function HomePage() {
       return;
     }
     try {
-      const payment = await initiateRazorpayOrder(checkoutResult.order_id);
+      const payment = await initiateRazorpayOrder(activeOrder.order_id);
       await ensureRazorpayScript();
 
       if (!window.Razorpay) {
@@ -494,8 +562,14 @@ export function HomePage() {
           });
           setPaymentMessage('Payment verified successfully.');
           await loadPrivateData();
-          const detail = await getOrder(checkoutResult.order_id);
+          const detail = await getOrder(activeOrder.order_id);
           setSelectedOrder(detail);
+          setCheckoutResult({
+            order_id: detail.id,
+            order_number: detail.order_number,
+            total_amount: detail.total_amount,
+            currency: detail.currency,
+          });
         },
         prefill: session
           ? {
@@ -524,6 +598,8 @@ export function HomePage() {
           <nav className={`site-nav ${mobileMenuOpen ? 'is-open' : ''}`}>
             <a href="#home" onClick={() => setMobileMenuOpen(false)}>Home</a>
             <a href="/products" onClick={() => setMobileMenuOpen(false)}>Products</a>
+            <a href="#shop" onClick={() => setMobileMenuOpen(false)}>Shop</a>
+            <a href="#cart" onClick={() => setMobileMenuOpen(false)}>Cart</a>
             <a href="#ritual" onClick={() => setMobileMenuOpen(false)}>Process</a>
             <a href="#contact" onClick={() => setMobileMenuOpen(false)}>Contact</a>
           </nav>
@@ -563,6 +639,69 @@ export function HomePage() {
         getCategoryHref={(category) => buildProductsPath(category.slug)}
       />
       <HowWeBrew />
+      <section className="section fade-up" id="shop">
+        <div className="container">
+          <div className="section-head">
+            <div>
+              <span className="eyebrow">Order flow</span>
+              <h2>Move from product to payment without leaving the page.</h2>
+            </div>
+            <p>
+              Add products to cart from the catalog, manage your basket, create an order, and
+              complete payment with Razorpay.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <AccountSection
+        session={session}
+        authState={authState}
+        authMessage={authMessage}
+        registerForm={registerForm}
+        loginForm={loginForm}
+        profileForm={profileForm}
+        addresses={addresses}
+        addressForm={addressForm}
+        editingAddressId={editingAddressId}
+        addressState={addressState}
+        addressMessage={addressMessage}
+        cartItemCount={cart?.items.length ?? 0}
+        orderCount={orders.length}
+        onRegisterFormChange={patchRegisterForm}
+        onLoginFormChange={patchLoginForm}
+        onProfileFormChange={patchProfileForm}
+        onAddressFormChange={patchAddressForm}
+        onRegister={handleRegister}
+        onLogin={handleLogin}
+        onLogout={handleLogout}
+        onProfileSave={handleProfileSave}
+        onAvatarUpload={handleAvatarUpload}
+        onAddressSubmit={handleAddressSubmit}
+        onAddressDelete={handleAddressDelete}
+        onAddressEdit={startAddressEdit}
+        onAddressEditCancel={handleAddressEditCancel}
+      />
+
+      <CartSection
+        session={Boolean(session)}
+        cart={cart}
+        addresses={addresses}
+        selectedAddressId={selectedAddressId}
+        orderNotes={orderNotes}
+        checkoutResult={checkoutResult}
+        selectedOrder={selectedOrder}
+        orderMessage={orderMessage}
+        paymentMessage={paymentMessage}
+        onCartQuantity={handleCartQuantity}
+        onCartDelete={handleCartDelete}
+        onAddressSelect={setSelectedAddressId}
+        onNotesChange={setOrderNotes}
+        onCheckout={handleCheckout}
+        onPaymentLaunch={handlePaymentLaunch}
+      />
+
+      <OrdersSection orders={orders} selectedOrder={selectedOrder} onOrderOpen={handleOrderOpen} />
 
       {/* Footer */}
       <footer className="site-footer fade-up" id="contact">
@@ -573,7 +712,7 @@ export function HomePage() {
               <h2 className="serif">Ready to Energize Your Workplace?</h2>
               <p>Start your subscription today. Free 3-day trial.</p>
             </div>
-            <a className="solid-button" href="#categories">
+            <a className="solid-button" href="#shop">
               Get Started Free →
             </a>
           </div>

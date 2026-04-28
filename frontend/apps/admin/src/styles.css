@@ -596,43 +596,62 @@ code {
   text-transform: capitalize;
 }
 
-.banner-editor-form {
-  display: grid;
-  grid-template-columns: 280px 1fr 400px;
-  gap: 32px;
-  align-items: start;
-  height: clamp(720px, 88vh, 1200px);
-  padding: 0;
-}
-
+/* ── Banner Editor 2-zone layout ───────────────────── */
 .banner-editor-shell {
   display: grid;
   gap: 20px;
 }
 
-.banner-editor-form--grapes-3zone {
+.banner-editor-2zone-form {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 380px;
   gap: 24px;
-  height: auto;
+  align-items: start;
   padding: 0;
 }
 
-.banner-editor-3zone-grid {
-  display: grid;
-  grid-template-columns: 320px minmax(0, 1fr) 400px;
-  gap: 24px;
-  align-items: start;
-}
-
-.banner-sidebar-1,
-.banner-sidebar-2 {
+.banner-settings-panel {
   position: sticky;
-  top: 104px;
+  top: 80px;
+  height: calc(100vh - 120px);
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  height: auto;
+  gap: 16px;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+.settings-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.settings-order-label { display: grid; gap: 6px; }
+.settings-active-label { align-self: end; padding-bottom: 10px; }
+
+.settings-panel-footer {
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface-soft);
+  display: grid;
+  gap: 12px;
+  margin-top: auto;
+}
+
+.panel-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.status-msg {
+  text-align: center;
+  color: var(--accent);
 }
 
 .paste-html-modal {

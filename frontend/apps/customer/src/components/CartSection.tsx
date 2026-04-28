@@ -9,12 +9,16 @@ interface Props {
   session: boolean;
   cart: CartResponse | null;
   addresses: Address[];
+  selectedAddressId: string;
+  orderNotes: string;
   checkoutResult: CheckoutResult | null;
   selectedOrder: OrderDetail | null;
   orderMessage: string;
   paymentMessage: string;
   onCartQuantity: (itemId: string, quantity: number) => void;
   onCartDelete: (itemId: string) => void;
+  onAddressSelect: (addressId: string) => void;
+  onNotesChange: (value: string) => void;
   onCheckout: () => void;
   onPaymentLaunch: () => void;
 }
@@ -23,19 +27,25 @@ export function CartSection({
   session,
   cart,
   addresses,
+  selectedAddressId,
+  orderNotes,
   checkoutResult,
   selectedOrder,
   orderMessage,
   paymentMessage,
   onCartQuantity,
   onCartDelete,
+  onAddressSelect,
+  onNotesChange,
   onCheckout,
   onPaymentLaunch,
 }: Props) {
-  const defaultAddress = addresses.find((a) => a.is_default) ?? null;
+  const selectedAddress = addresses.find((address) => address.id === selectedAddressId) ?? null;
+  const canCheckout = Boolean(session && cart?.items.length && selectedAddress && !checkoutResult);
+  const canPay = Boolean(session && checkoutResult && selectedOrder?.payment_status !== 'paid');
 
   return (
-    <section className="container customer-grid wide" id="cart">
+    <section className="container customer-grid wide fade-up" id="cart">
       {/* Cart items */}
       <section className="panel">
         <div className="section-head compact">
@@ -112,11 +122,46 @@ export function CartSection({
             <strong>{checkoutResult?.order_number ?? 'Not created yet'}</strong>
           </div>
         </div>
+        <label className="checkout-field">
+          <span>Delivery address</span>
+          <select
+            value={selectedAddressId}
+            onChange={(event) => onAddressSelect(event.target.value)}
+            disabled={!session || !addresses.length}
+          >
+            <option value="">Select an address</option>
+            {addresses.map((address) => (
+              <option key={address.id} value={address.id}>
+                {address.full_name} · {address.city} · {address.phone}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="checkout-field">
+          <span>Order notes</span>
+          <textarea
+            rows={4}
+            value={orderNotes}
+            onChange={(event) => onNotesChange(event.target.value)}
+            placeholder="Add delivery instructions, preferred timing, or special requests."
+            disabled={!session}
+          />
+        </label>
+        {selectedAddress ? (
+          <p className="helper-copy">
+            Delivery to {selectedAddress.full_name}, {selectedAddress.line_1}
+            {selectedAddress.line_2 ? `, ${selectedAddress.line_2}` : ''}, {selectedAddress.city}
+          </p>
+        ) : (
+          <p className="helper-copy">
+            Select a delivery address before creating the order.
+          </p>
+        )}
         <div className="stack-actions">
-          <button className="solid-button" type="button" onClick={onCheckout}>
+          <button className="solid-button" type="button" onClick={onCheckout} disabled={!canCheckout}>
             Create order
           </button>
-          <button className="outline-button" type="button" onClick={onPaymentLaunch}>
+          <button className="outline-button" type="button" onClick={onPaymentLaunch} disabled={!canPay}>
             Pay with Razorpay
           </button>
           {checkoutResult ? (
@@ -127,6 +172,7 @@ export function CartSection({
         </div>
         {orderMessage ? <p className="form-message">{orderMessage}</p> : null}
         {paymentMessage ? <p className="form-message">{paymentMessage}</p> : null}
+        {!session ? <p className="helper-copy">Sign in to create orders and launch payment.</p> : null}
         {selectedOrder ? (
           <article className="detail-card">
             <div className="list-title-row">
@@ -136,6 +182,7 @@ export function CartSection({
             <p>
               {selectedOrder.status} · {formatMoney(selectedOrder.total_amount, selectedOrder.currency)}
             </p>
+            {selectedOrder.notes ? <p className="helper-copy">Notes: {selectedOrder.notes}</p> : null}
                 <div className="mini-list">
                   {selectedOrder.items.map((item) => (
                     <div key={item.id} className="mini-row">

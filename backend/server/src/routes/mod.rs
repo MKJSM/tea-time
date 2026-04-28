@@ -5,7 +5,7 @@ use axum::{
     extract::Request,
     http::StatusCode,
     response::{Html, IntoResponse, Response},
-    routing::get,
+    routing::{get, post},
     Router,
 };
 use tower_http::services::{ServeDir, ServeFile};
@@ -34,6 +34,10 @@ async fn app_fallback(request: Request) -> Response {
 pub fn build_router(state: AppState) -> Router {
     Router::new()
         .merge(customer::router())
+        .route(
+            "/api/webhooks/razorpay",
+            post(customer::payment::handle_webhook),
+        )
         .nest("/api/admin", admin::router(state.clone()))
         .nest_service(
             "/admin",
